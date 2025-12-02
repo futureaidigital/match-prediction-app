@@ -33,19 +33,8 @@ interface EnvConfig {
  * Throws an error on app startup if validation fails
  */
 function validateEnv(): void {
-  // Validate that API_BASE_URL is set in production
-  if (import.meta.env.PROD && !import.meta.env.VITE_API_BASE_URL) {
-    throw new Error(
-      'VITE_API_BASE_URL is required in production environment.\n' +
-      'Please set it in your .env.production file.'
-    );
-  }
-
+  // API_BASE_URL can be empty to use proxy (Vite dev or Vercel rewrites)
   // Add additional required variable checks here as needed
-  // Example:
-  // if (!import.meta.env.VITE_REQUIRED_VAR) {
-  //   throw new Error('VITE_REQUIRED_VAR is required');
-  // }
 }
 
 // ==================== Helpers ====================
