@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "Bash(npm run build:*)",
+      "Bash(TOKEN=\"eyJhbGciOiJSUzI1NiIsImtpZCI6IjdjNzQ5NTFmNjBhMDE0NzE3ZjFlMzA4ZDZiMjgwZjQ4ZjFlODhmZGEiLCJ0eXAiOiJKV1QifQ.eyJuYW1lIjoiRnJlZSBVc2VyIDE3NjI4NTI3ODkiLCJzdWJzY3JpcHRpb24iOnsidGllciI6ImZyZWUiLCJzdGF0dXMiOiJhY3RpdmUiLCJjcmVhdGVkX2F0IjoiMjAyNS0xMS0xMVQwOToxOTo1MS4xOTExNjUifSwiY291bnRyeSI6IkdCIiwiaXNzIjoiaHR0cHM6Ly9zZWN1cmV0b2tlbi5nb29nbGUuY29tL2ZvdXJ0aC1vZmZpY2lhbC1wcm9kIiwiYXVkIjoiZm91cnRoLW9mZmljaWFsLXByb2QiLCJhdXRoX3RpbWUiOjE3NjQ1NzUzODAsInVzZXJfaWQiOiJPRVRaYkFZSXhDZXdtSFRNNXcxTXU3Q0xjdGYxIiwic3ViIjoiT0VUWmJBWUl4Q2V3bUhUTTV3MU11N0NMY3RmMSIsImlhdCI6MTc2NDU3NTM4MCwiZXhwIjoxNzY0NTc4OTgwLCJlbWFpbCI6ImZyZWVAZm91cnRob2ZmaWNpYWwuYWkiLCJlbWFpbF92ZXJpZmllZCI6ZmFsc2UsImZpcmViYXNlIjp7ImlkZW50aXRpZXMiOnsiZW1haWwiOlsiZnJlZUBmb3VydGhvZmZpY2lhbC5haSJdfSwic2lnbl9pbl9wcm92aWRlciI6InBhc3N3b3JkIn19.r0bl6onznVUsCJOZlZKZeLW309H7KCjcS4tsFoO42QsVcNX4MIlYiqbhYgz1MKy5onGTrwtwDTKqpTM-_7Fue6SKyflz2HZLA7GOuCSBLoQxXD3roq3H_7q42oIAsgCGL7VXd5PENkK0aGTTPpLSiWt3HMBa8FiS3UZdB55PMqLonDzEtRefbdT0nWd5UgwSR3iJcrTOV_yoDq-GeMpf5qFngD_7DTeCo2SCW8zaJf0wycRPGJuV3oMuRHzV819-O1tsezJTa5dyRtk61-utoGHPkUyWYiH_-yaPfMNsLHjmmtz7jw-vWw-wH9DQUaWAm500voKRJVgOIRmttAhK2A\")",
+      "Bash(curl:*)",
+      "Bash(cmd /c dir \"C:\\Users\\USER\\Documents\\Development\\match-prediction-app\\public\\stadium-bg.jpg\")",
+      "Bash(powershell -Command \"Rename-Item ''C:\\Users\\USER\\Documents\\Development\\match-prediction-app\\public\\Group.png'' ''logo.png''\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

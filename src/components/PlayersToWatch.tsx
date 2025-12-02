@@ -1,0 +1,551 @@
+import { useState, useRef, useMemo } from 'react';
+import { usePlayersWatchlist, useMultiplePlayerStatistics } from '@/hooks/usePlayers';
+import { ApiDebugInfo } from '@/components/ApiDebugInfo';
+import { PlayerStatisticsResponse } from '@/services/api';
+
+interface PlayerCardProps {
+  player: {
+    player_id: number;
+    position_id?: number;
+    goals?: number;
+    assists?: number;
+    appearances?: number;
+    minutes_played?: number;
+    player_name?: string;
+    team_name?: string;
+    country_name?: string;
+    image_path?: string;
+  };
+  onViewProfile?: (playerId: number) => void;
+  variant?: 'default' | 'mobile';
+}
+
+// Map position IDs to display names
+const getPositionName = (positionId?: number): string => {
+  const positions: Record<number, string> = {
+    24: 'Goalkeeper',
+    25: 'Defender',
+    26: 'Midfielder',
+    27: 'Forward',
+  };
+  return positions[positionId || 0] || 'Player';
+};
+
+// Get player name - use provided name or show ID
+const getPlayerName = (playerId: number, name?: string): string => {
+  if (name) return name;
+  return `Player #${playerId}`;
+};
+
+function PlayerCard({ player, onViewProfile, variant = 'default' }: PlayerCardProps) {
+  const positionName = getPositionName(player.position_id);
+  const playerName = getPlayerName(player.player_id, player.player_name);
+
+  // Mobile variant - larger card with more details
+  if (variant === 'mobile') {
+    return (
+      <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+        {/* Player Image */}
+        <div className="flex justify-center mb-4">
+          {player.image_path ? (
+            <img
+              src={player.image_path}
+              alt={playerName}
+              className="w-28 h-28 rounded-full object-cover border-4 border-gray-100 shadow-sm"
+            />
+          ) : (
+            <div className="w-28 h-28 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center border-4 border-gray-100 shadow-sm">
+              <span className="text-3xl font-bold text-white">
+                {playerName.slice(0, 2).toUpperCase()}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Player Name */}
+        <h3 className="text-center font-bold text-gray-900 text-xl mb-2">
+          {playerName}
+        </h3>
+
+        {/* Position with Club & Country */}
+        <div className="flex items-center justify-center gap-2 mb-6 text-sm text-gray-500">
+          <span className="font-medium text-[#0d1a67]">{positionName}</span>
+          {player.team_name && (
+            <>
+              <span className="text-gray-300">|</span>
+              <span className="font-medium text-gray-600">{player.team_name.slice(0, 3).toUpperCase()}</span>
+            </>
+          )}
+          {player.country_name && (
+            <>
+              <span className="text-gray-300">|</span>
+              <span className="font-medium text-gray-600">{player.country_name}</span>
+            </>
+          )}
+        </div>
+
+        {/* Stats Row - Each stat in its own bordered box */}
+        <div className="flex items-center gap-3 mb-6">
+          <div className="flex-1 border border-gray-200 rounded-xl py-3 text-center">
+            <div className="text-xl font-bold text-gray-900">{player.goals ?? 0}</div>
+            <div className="text-xs text-gray-400">Goals</div>
+          </div>
+          <div className="flex-1 border border-gray-200 rounded-xl py-3 text-center">
+            <div className="text-xl font-bold text-gray-900">{player.assists ?? 0}</div>
+            <div className="text-xs text-gray-400">Assists</div>
+          </div>
+          <div className="flex-1 border border-gray-200 rounded-xl py-3 text-center">
+            <div className="text-xl font-bold text-gray-900">{player.appearances ?? 0}</div>
+            <div className="text-xs text-gray-400">Matches</div>
+          </div>
+          <div className="flex-1 border border-gray-200 rounded-xl py-3 text-center">
+            <div className="text-xl font-bold text-gray-900">{player.minutes_played?.toLocaleString() ?? '-'}</div>
+            <div className="text-xs text-gray-400">Minutes</div>
+          </div>
+        </div>
+
+        {/* View Profile Link */}
+        <button
+          onClick={() => onViewProfile?.(player.player_id)}
+          className="w-full text-center text-[#0d1a67] text-base font-semibold hover:text-[#0d1a67]/80 transition-colors py-2"
+        >
+          View Profile
+        </button>
+      </div>
+    );
+  }
+
+  // Default variant - compact card for desktop
+  return (
+    <div className="bg-white rounded-2xl border border-gray-200 px-4 py-2 flex-1 min-w-0 shadow-sm hover:shadow-md transition-shadow">
+      {/* Player Image */}
+      <div className="flex justify-center mb-4">
+        {player.image_path ? (
+          <img
+            src={player.image_path}
+            alt={playerName}
+            className="w-20 h-20 rounded-full object-cover border-4 border-gray-100 shadow-sm"
+          />
+        ) : (
+          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center border-4 border-gray-100 shadow-sm">
+            <span className="text-2xl font-bold text-white">
+              {playerName.slice(0, 2).toUpperCase()}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Player Name */}
+      <h3 className="text-center font-bold text-gray-900 text-base mb-1">
+        {playerName}
+      </h3>
+
+      {/* Position with Club & Country */}
+      <div className="flex items-center justify-center gap-1.5 mb-4 text-xs text-gray-500">
+        <span className="font-medium">{positionName}</span>
+        {player.team_name && (
+          <>
+            <span className="text-gray-300">|</span>
+            <span className="font-medium text-gray-600">{player.team_name.slice(0, 3).toUpperCase()}</span>
+          </>
+        )}
+        {player.country_name && (
+          <>
+            <span className="text-gray-300">|</span>
+            <span className="font-medium text-gray-600">{player.country_name}</span>
+          </>
+        )}
+      </div>
+
+      {/* Stats Row - Each stat in its own box */}
+      <div className="flex items-center gap-2 mb-4">
+        <div className="flex-1 bg-gray-50 rounded-xl py-3 text-center">
+          <div className="text-lg font-bold text-gray-900">{player.goals ?? 0}</div>
+          <div className="text-xs text-gray-400">Goals</div>
+        </div>
+        <div className="flex-1 bg-gray-50 rounded-xl py-3 text-center">
+          <div className="text-lg font-bold text-gray-900">{player.assists ?? 0}</div>
+          <div className="text-xs text-gray-400">Assists</div>
+        </div>
+        <div className="flex-1 bg-gray-50 rounded-xl py-3 text-center">
+          <div className="text-lg font-bold text-gray-900">{player.appearances ?? 0}</div>
+          <div className="text-xs text-gray-400">Matches</div>
+        </div>
+        <div className="flex-1 bg-gray-50 rounded-xl py-3 text-center">
+          <div className="text-lg font-bold text-gray-900">{player.minutes_played ?? '-'}</div>
+          <div className="text-xs text-gray-400">Minutes</div>
+        </div>
+      </div>
+
+      {/* View Profile Link */}
+      <button
+        onClick={() => onViewProfile?.(player.player_id)}
+        className="w-full text-center text-[#1e3a5f] text-sm font-semibold hover:text-[#1e3a5f]/80 transition-colors py-2"
+      >
+        View Profile
+      </button>
+    </div>
+  );
+}
+
+export function PlayersToWatch() {
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+  const [mobileIndex, setMobileIndex] = useState(0);
+
+  // Step 1: Fetch watchlist to get player IDs
+  const {
+    data: watchlistResponse,
+    isLoading: isLoadingWatchlist,
+    error: watchlistError
+  } = usePlayersWatchlist();
+
+  // Extract player IDs from watchlist
+  const playerIds = useMemo(() => {
+    const watchlist = watchlistResponse?.data?.watchlist || [];
+    if (watchlist.length === 0) return [];
+    const latestEntry = watchlist[0];
+    return latestEntry?.player_ids || [];
+  }, [watchlistResponse]);
+
+  // Step 2: Fetch statistics for each player
+  const playerStatsQueries = useMultiplePlayerStatistics(playerIds);
+
+  // Check if any player stats are still loading
+  const isLoadingStats = playerStatsQueries.some((q) => q.isLoading);
+
+  // Transform player stats into display format
+  // NOTE: /players/statistics does NOT return image_path or player name - backend needs to add these
+  const players = useMemo(() => {
+    return playerStatsQueries
+      .map((query) => {
+        if (!query.data?.data) return null;
+        const data = query.data.data as PlayerStatisticsResponse;
+        return {
+          player_id: data.player_id,
+          position_id: data.position_id,
+          // These fields are NOT returned by the API currently:
+          // player_name, image_path, team_name, country_name
+          goals: data.statistics?.attacking?.goals || 0,
+          assists: data.statistics?.attacking?.assists || 0,
+          appearances: data.statistics?.appearances?.appearances || 0,
+          minutes_played: data.statistics?.appearances?.minutes_played || 0,
+        };
+      })
+      .filter((p): p is NonNullable<typeof p> => p !== null);
+  }, [playerStatsQueries]);
+
+  const isLoading = isLoadingWatchlist || isLoadingStats;
+  const error = watchlistError;
+
+  const updateScrollButtons = () => {
+    if (scrollContainerRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+      setCanScrollLeft(scrollLeft > 0);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
+    }
+  };
+
+  const scroll = (direction: 'left' | 'right') => {
+    if (scrollContainerRef.current) {
+      const scrollAmount = 220;
+      const newScrollLeft =
+        direction === 'left'
+          ? scrollContainerRef.current.scrollLeft - scrollAmount
+          : scrollContainerRef.current.scrollLeft + scrollAmount;
+
+      scrollContainerRef.current.scrollTo({
+        left: newScrollLeft,
+        behavior: 'smooth',
+      });
+
+      setTimeout(updateScrollButtons, 300);
+    }
+  };
+
+  const scrollMobile = (direction: 'left' | 'right') => {
+    if (direction === 'left' && mobileIndex > 0) {
+      setMobileIndex(mobileIndex - 1);
+    } else if (direction === 'right' && mobileIndex < players.length - 1) {
+      setMobileIndex(mobileIndex + 1);
+    }
+  };
+
+  const handleViewProfile = (playerId: number) => {
+    console.log('View profile for player:', playerId);
+  };
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div
+        className="w-full rounded-2xl overflow-hidden"
+        style={{ background: 'linear-gradient(to top right, #091143 65%, #11207f 100%)' }}
+      >
+        <div className="px-4 py-2">
+          <div className="flex items-center justify-between min-h-[40px]">
+            <div className="flex items-center gap-3">
+              <img src="/players-star-icon.png" alt="" className="w-6 h-6" />
+              <h2 className="text-white font-bold text-lg">Players to Watch</h2>
+            </div>
+            <div className="text-white">
+              <ApiDebugInfo
+                endpoint="/api/v1/players/watchlist + /api/v1/players/statistics"
+                response={null}
+                isLoading={true}
+              />
+            </div>
+          </div>
+        </div>
+        {/* Mobile Loading */}
+        <div className="md:hidden px-4 py-4">
+          <div className="bg-white rounded-2xl p-6 animate-pulse">
+            <div className="flex justify-center mb-4">
+              <div className="w-28 h-28 rounded-full bg-gray-200" />
+            </div>
+            <div className="h-6 bg-gray-200 rounded mx-auto w-40 mb-3" />
+            <div className="h-4 bg-gray-200 rounded mx-auto w-48 mb-6" />
+            <div className="flex gap-3 mb-6">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="flex-1 border border-gray-200 rounded-xl py-3">
+                  <div className="h-6 bg-gray-200 rounded mx-auto w-8 mb-1" />
+                  <div className="h-3 bg-gray-200 rounded mx-auto w-12" />
+                </div>
+              ))}
+            </div>
+            <div className="h-10 bg-gray-200 rounded mx-auto w-32" />
+          </div>
+        </div>
+        {/* Desktop Loading */}
+        <div className="hidden md:block px-3 py-3">
+          <div className="flex gap-3">
+            {[1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                className="bg-white rounded-2xl border border-gray-200 p-4 flex-1 animate-pulse shadow-sm"
+              >
+                <div className="flex justify-center mb-4">
+                  <div className="w-20 h-20 rounded-full bg-gray-200" />
+                </div>
+                <div className="h-5 bg-gray-200 rounded mx-auto w-28 mb-2" />
+                <div className="h-3 bg-gray-200 rounded mx-auto w-32 mb-4" />
+                <div className="flex items-center justify-between mb-4 px-2">
+                  {[1, 2, 3].map((j) => (
+                    <div key={j} className="flex-1 text-center">
+                      <div className="h-5 bg-gray-200 rounded mb-1 mx-auto w-8" />
+                      <div className="h-2 bg-gray-200 rounded mx-auto w-10" />
+                    </div>
+                  ))}
+                </div>
+                <div className="h-8 bg-gray-200 rounded mx-auto w-24" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div
+        className="w-full rounded-2xl overflow-hidden"
+        style={{ background: 'linear-gradient(to top right, #091143 65%, #11207f 100%)' }}
+      >
+        <div className="px-4 py-2">
+          <div className="flex items-center justify-between min-h-[40px]">
+            <div className="flex items-center gap-3">
+              <img src="/players-star-icon.png" alt="" className="w-6 h-6" />
+              <h2 className="text-white font-bold text-lg">Players to Watch</h2>
+            </div>
+            <div className="text-white">
+              <ApiDebugInfo
+                endpoint="/api/v1/players/watchlist + /api/v1/players/statistics"
+                response={watchlistResponse?.data}
+                error={error?.message}
+              />
+            </div>
+          </div>
+        </div>
+        <div className="px-4 py-6 text-center">
+          <div className="text-red-400 mb-2">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mx-auto">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+          </div>
+          <p className="text-white font-medium">Failed to load players</p>
+          <p className="text-white/70 text-sm mt-1">Please try again later</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Empty state
+  if (players.length === 0) {
+    return (
+      <div
+        className="w-full rounded-2xl overflow-hidden"
+        style={{ background: 'linear-gradient(to top right, #091143 65%, #11207f 100%)' }}
+      >
+        <div className="px-4 py-2">
+          <div className="flex items-center justify-between min-h-[40px]">
+            <div className="flex items-center gap-3">
+              <img src="/players-star-icon.png" alt="" className="w-6 h-6" />
+              <h2 className="text-white font-bold text-lg">Players to Watch</h2>
+            </div>
+            <div className="text-white">
+              <ApiDebugInfo
+                endpoint="/api/v1/players/watchlist + /api/v1/players/statistics"
+                response={watchlistResponse?.data}
+              />
+            </div>
+          </div>
+        </div>
+        <div className="px-4 py-6 text-center">
+          <div className="text-white/50 mb-3">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mx-auto">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+          </div>
+          <p className="text-white font-medium">No players to watch</p>
+          <p className="text-white/70 text-sm mt-1">
+            Check back later for player recommendations
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const canScrollMobileLeft = mobileIndex > 0;
+  const canScrollMobileRight = mobileIndex < players.length - 1;
+
+  return (
+    <div
+      className="w-full md:rounded-2xl overflow-hidden"
+      style={{ background: 'linear-gradient(to top right, #091143 65%, #11207f 100%)' }}
+    >
+      {/* Header */}
+      <div className="px-4 pt-2 pb-0">
+        <div className="flex items-center justify-between min-h-[40px]">
+          <div className="flex items-center gap-3">
+            <img src="/players-star-icon.png" alt="" className="w-6 h-6" />
+            <h2 className="text-white font-bold text-lg">Players to Watch</h2>
+          </div>
+
+          <div className="flex items-center gap-4">
+            {/* API Debug Info - Desktop only */}
+            <div className="hidden md:block text-white">
+              <ApiDebugInfo
+                endpoint="/api/v1/players/watchlist + /api/v1/players/statistics"
+                response={watchlistResponse?.data}
+              />
+            </div>
+
+            {/* Mobile Navigation Arrows */}
+            <div className="md:hidden flex items-center gap-2">
+              <button
+                onClick={() => scrollMobile('left')}
+                disabled={!canScrollMobileLeft}
+                className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
+                  canScrollMobileLeft
+                    ? 'bg-white text-[#091143]'
+                    : 'bg-transparent border-2 border-white/50 text-white/50 cursor-not-allowed'
+                }`}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
+              </button>
+              <button
+                onClick={() => scrollMobile('right')}
+                disabled={!canScrollMobileRight}
+                className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
+                  canScrollMobileRight
+                    ? 'bg-white text-[#091143]'
+                    : 'bg-transparent border-2 border-white/50 text-white/50 cursor-not-allowed'
+                }`}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Desktop Navigation Arrows */}
+            <div className="hidden md:flex items-center gap-2">
+              <button
+                onClick={() => scroll('left')}
+                disabled={!canScrollLeft}
+                className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
+                  canScrollLeft
+                    ? 'bg-white text-[#091143]'
+                    : 'bg-transparent border-2 border-white/50 text-white/50 cursor-not-allowed'
+                }`}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
+              </button>
+              <button
+                onClick={() => scroll('right')}
+                disabled={!canScrollRight}
+                className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
+                  canScrollRight
+                    ? 'bg-white text-[#091143]'
+                    : 'bg-transparent border-2 border-white/50 text-white/50 cursor-not-allowed'
+                }`}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile: Simple Carousel */}
+      <div className="md:hidden py-4 overflow-hidden">
+        <div
+          className="flex transition-transform duration-300 ease-out"
+          style={{ transform: `translateX(-${mobileIndex * 100}%)` }}
+        >
+          {players.map((player) => (
+            <div key={player.player_id} className="flex-shrink-0 w-full px-4">
+              <PlayerCard
+                player={player}
+                onViewProfile={handleViewProfile}
+                variant="mobile"
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Desktop: Horizontal Scroll */}
+      <div className="hidden md:block px-3 py-3">
+        <div
+          ref={scrollContainerRef}
+          onScroll={updateScrollButtons}
+          className="flex gap-3"
+        >
+          {players.map((player) => (
+            <PlayerCard
+              key={player.player_id}
+              player={player}
+              onViewProfile={handleViewProfile}
+              variant="default"
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
