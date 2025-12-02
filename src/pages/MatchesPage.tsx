@@ -219,7 +219,7 @@ export function MatchesPage() {
   const fixtures = fixturesResponse?.data?.fixtures || [];
 
   // Separate live and upcoming fixtures, group all by league
-  const { liveFixtures, upcomingFixtures, fixturesByLeague } = useMemo(() => {
+  const { liveFixtures, fixturesByLeague } = useMemo(() => {
     const live: any[] = [];
     const upcoming: any[] = [];
     const byLeague: Record<string, { leagueName: string; country: string; logo?: string; fixtures: any[] }> = {};
@@ -247,7 +247,7 @@ export function MatchesPage() {
       }
     });
 
-    return { liveFixtures: live, upcomingFixtures: upcoming, fixturesByLeague: byLeague };
+    return { liveFixtures: live, fixturesByLeague: byLeague };
   }, [fixtures]);
 
   // Transform fixture to MatchCard format

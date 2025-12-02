@@ -202,7 +202,7 @@ export function RegisterPage() {
             <Checkbox
               id="terms"
               checked={agreedToTerms}
-              onCheckedChange={(checked) => setAgreedToTerms(checked as boolean)}
+              onCheckedChange={(checked: boolean | 'indeterminate') => setAgreedToTerms(checked as boolean)}
               className="mt-1"
             />
             <Label
