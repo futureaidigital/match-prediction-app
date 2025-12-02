@@ -59,7 +59,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.log('🔑 Token exists:', !!token);
 
       if (!token) {
-        console.log('❌ No token found, skipping auth init');
+        console.log('🔑 No token found, auto-logging in with premium user...');
+        try {
+          const response = await api.login({
+            email: 'premium@fourthofficial.ai',
+            password: 'TestPassword123!'
+          });
+          if (response.success) {
+            api.setToken(response.data.access_token);
+            localStorage.setItem('refresh_token', response.data.refresh_token);
+            setUser(response.data.user);
+            // Set demo premium flag for hasAccess check
+            localStorage.setItem('demo_premium', 'true');
+            console.log('✅ Auto-logged in as premium user');
+          }
+        } catch (err) {
+          console.log('⚠️ Auto-login failed, continuing as guest', err);
+        }
         setIsLoading(false);
         return;
       }
