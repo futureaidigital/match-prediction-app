@@ -1,6 +1,7 @@
 import { useQuery, UseQueryOptions } from '@tanstack/react-query';
 import { api, SmartComboCurrentResponse, ApiResponse } from '@/services/api';
 import { queryKeys } from '@/lib/queryClient';
+import { CACHE_DURATIONS } from '@/config/cache';
 
 export function useCurrentSmartCombo(
   options?: Omit<
@@ -11,8 +12,8 @@ export function useCurrentSmartCombo(
   return useQuery({
     queryKey: queryKeys.predictions.smartCombos({ current: true }),
     queryFn: () => api.getCurrentSmartCombo(),
-    staleTime: 5 * 60 * 1000, // 5 minutes cache
-    refetchInterval: 5 * 60 * 1000, // Refresh every 5 minutes
+    staleTime: CACHE_DURATIONS.SMART_COMBO,
+    refetchInterval: CACHE_DURATIONS.SMART_COMBO,
     ...options,
   });
 }

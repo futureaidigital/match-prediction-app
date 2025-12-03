@@ -1,6 +1,7 @@
 import { useQuery, UseQueryOptions } from '@tanstack/react-query';
 import { api, Prediction, SmartCombo, ComboAccuracy, SmartComboPredictionList, ApiResponse } from '@/services/api';
 import { queryKeys } from '@/lib/queryClient';
+import { CACHE_DURATIONS } from '@/config/cache';
 
 export function useFixturePredictions(
   params: {
@@ -17,8 +18,8 @@ export function useFixturePredictions(
   return useQuery({
     queryKey: queryKeys.predictions.fixture(params),
     queryFn: () => api.getFixturePredictions(params),
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    refetchInterval: 2 * 60 * 1000, // Refresh every 2 minutes
+    staleTime: CACHE_DURATIONS.PREDICTIONS,
+    refetchInterval: CACHE_DURATIONS.PREDICTIONS,
     ...options,
   });
 }
@@ -39,7 +40,7 @@ export function usePlayerPredictions(
   return useQuery({
     queryKey: queryKeys.predictions.player(params),
     queryFn: () => api.getPlayerPredictions(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: CACHE_DURATIONS.FIXTURES,
     ...options,
   });
 }
@@ -59,7 +60,7 @@ export function useSmartCombos(
   return useQuery({
     queryKey: queryKeys.predictions.smartCombos(params),
     queryFn: () => api.getSmartCombos(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes cache
+    staleTime: CACHE_DURATIONS.SMART_COMBO,
     ...options,
   });
 }
@@ -78,7 +79,7 @@ export function useSmartComboAccuracy(
   return useQuery({
     queryKey: queryKeys.predictions.comboAccuracy(params),
     queryFn: () => api.getSmartComboAccuracy(params),
-    staleTime: 60 * 60 * 1000, // 1 hour cache
+    staleTime: CACHE_DURATIONS.WEATHER, // Long cache like weather
     ...options,
   });
 }
@@ -99,8 +100,8 @@ export function useSmartComboPredictions(
   return useQuery({
     queryKey: queryKeys.predictions.smartComboPredictions(params),
     queryFn: () => api.getSmartComboPredictions(params),
-    staleTime: 2 * 60 * 1000, // 2 minutes cache
-    refetchInterval: 2 * 60 * 1000, // Refresh every 2 minutes for live updates
+    staleTime: CACHE_DURATIONS.PREDICTIONS,
+    refetchInterval: CACHE_DURATIONS.PREDICTIONS,
     ...options,
   });
 }

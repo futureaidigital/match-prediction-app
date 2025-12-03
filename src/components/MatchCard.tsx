@@ -1,5 +1,8 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { TeamAvatar } from '@/components/ui/TeamAvatar';
+import { PredictionBar } from '@/components/ui/PredictionBar';
+import { DEFAULTS } from '@/config/defaults';
 
 interface Team {
   id: string;
@@ -91,108 +94,57 @@ export function MatchCard({
         {/* Teams and Time Row - Vertical team layout */}
         <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-100">
           {/* Home Team - Vertical */}
-          <div className="flex flex-col items-center gap-1">
-            {homeTeam.logo ? (
-              <img
-                src={homeTeam.logo}
-                alt={homeTeam.name}
-                className="w-10 h-10 object-contain"
-              />
-            ) : (
-              <div className="w-10 h-10 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center border border-gray-200">
-                <span className="text-xs font-bold text-gray-500">
-                  {homeTeam.shortName?.slice(0, 3)}
-                </span>
-              </div>
-            )}
-            <span className="font-bold text-gray-900 text-xs">{homeTeam.shortName}</span>
-          </div>
+          <TeamAvatar
+            logo={homeTeam.logo}
+            name={homeTeam.name}
+            shortName={homeTeam.shortName}
+            size="md"
+            showName
+            namePosition="bottom"
+          />
 
           {/* Time */}
           <div className="flex flex-col items-center">
-            <span className="font-bold text-gray-900 text-lg">{kickoffTime || 'TBD'}</span>
+            <span className="font-bold text-gray-900 text-lg">{kickoffTime || DEFAULTS.KICKOFF_TIME}</span>
             {isToday && (
-              <span className="text-gray-400 text-xs font-medium">TODAY</span>
+              <span className="text-gray-400 text-xs font-medium">{DEFAULTS.TODAY_LABEL}</span>
             )}
           </div>
 
           {/* Away Team - Vertical */}
-          <div className="flex flex-col items-center gap-1">
-            {awayTeam.logo ? (
-              <img
-                src={awayTeam.logo}
-                alt={awayTeam.name}
-                className="w-10 h-10 object-contain"
-              />
-            ) : (
-              <div className="w-10 h-10 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center border border-gray-200">
-                <span className="text-xs font-bold text-gray-500">
-                  {awayTeam.shortName?.slice(0, 3)}
-                </span>
-              </div>
-            )}
-            <span className="font-bold text-gray-900 text-xs">{awayTeam.shortName}</span>
-          </div>
+          <TeamAvatar
+            logo={awayTeam.logo}
+            name={awayTeam.name}
+            shortName={awayTeam.shortName}
+            size="md"
+            showName
+            namePosition="bottom"
+          />
         </div>
 
         {/* Predictions */}
         <div className="space-y-3">
-          {/* Visible Prediction */}
+          {/* Visible Predictions */}
           {visiblePredictions.map((prediction) => (
-            <div key={prediction.id}>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-gray-800 font-medium text-sm">
-                  {prediction.label}
-                </span>
-                <span className="text-green-600 font-bold text-sm">
-                  {prediction.percentage}%
-                </span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-1.5 mb-1">
-                <div
-                  className="bg-green-500 h-1.5 rounded-full transition-all duration-300"
-                  style={{ width: `${prediction.percentage}%` }}
-                />
-              </div>
-              {prediction.trend && (
-                <div className="flex items-center text-xs">
-                  <span className={`font-medium ${prediction.trend.direction === 'up' ? 'text-green-600' : 'text-red-500'}`}>
-                    {prediction.trend.direction === 'up' ? '↑' : '↓'} {prediction.trend.value.toFixed(0)}%
-                  </span>
-                  <span className="text-gray-400 ml-1">
-                    in the last {prediction.trend.timeframe}
-                  </span>
-                </div>
-              )}
-            </div>
+            <PredictionBar
+              key={prediction.id}
+              label={prediction.label}
+              percentage={prediction.percentage}
+              trend={prediction.trend}
+              size="sm"
+            />
           ))}
 
           {/* Blurred Predictions */}
           {!isPremium && blurredPredictions.map((prediction) => (
-            <div key={prediction.id} className="blur-[4px] select-none pointer-events-none">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-gray-800 font-medium text-sm">
-                  {prediction.label}
-                </span>
-                <span className="text-green-600 font-bold text-sm">
-                  {prediction.percentage}%
-                </span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-1.5 mb-1">
-                <div
-                  className="bg-green-500 h-1.5 rounded-full"
-                  style={{ width: `${prediction.percentage}%` }}
-                />
-              </div>
-              {prediction.trend && (
-                <div className="flex items-center text-xs">
-                  <span className={`font-medium ${prediction.trend.direction === 'up' ? 'text-green-600' : 'text-red-500'}`}>
-                    {prediction.trend.direction === 'up' ? '↑' : '↓'} {prediction.trend.value.toFixed(0)}%
-                  </span>
-                  <span className="text-gray-400 ml-1">in the last {prediction.trend.timeframe}</span>
-                </div>
-              )}
-            </div>
+            <PredictionBar
+              key={prediction.id}
+              label={prediction.label}
+              percentage={prediction.percentage}
+              trend={prediction.trend}
+              size="sm"
+              isBlurred
+            />
           ))}
         </div>
       </div>
@@ -214,19 +166,14 @@ export function MatchCard({
       <div className="flex items-center justify-between mb-5 px-2">
         {/* Home Team */}
         <div className="flex flex-col items-center w-20">
-          {homeTeam.logo ? (
-            <img
-              src={homeTeam.logo}
-              alt={homeTeam.name}
-              className="w-12 h-12 object-contain mb-2"
+          <div className="mb-2">
+            <TeamAvatar
+              logo={homeTeam.logo}
+              name={homeTeam.name}
+              shortName={homeTeam.shortName}
+              size="lg"
             />
-          ) : (
-            <div className="w-12 h-12 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mb-2 border border-gray-200">
-              <span className="text-sm font-bold text-gray-500">
-                {homeTeam.shortName?.slice(0, 3)}
-              </span>
-            </div>
-          )}
+          </div>
           <span className="font-bold text-gray-900 text-sm tracking-wide">{homeTeam.shortName}</span>
         </div>
 
@@ -249,19 +196,14 @@ export function MatchCard({
 
         {/* Away Team */}
         <div className="flex flex-col items-center w-20">
-          {awayTeam.logo ? (
-            <img
-              src={awayTeam.logo}
-              alt={awayTeam.name}
-              className="w-12 h-12 object-contain mb-2"
+          <div className="mb-2">
+            <TeamAvatar
+              logo={awayTeam.logo}
+              name={awayTeam.name}
+              shortName={awayTeam.shortName}
+              size="lg"
             />
-          ) : (
-            <div className="w-12 h-12 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mb-2 border border-gray-200">
-              <span className="text-sm font-bold text-gray-500">
-                {awayTeam.shortName?.slice(0, 3)}
-              </span>
-            </div>
-          )}
+          </div>
           <span className="font-bold text-gray-900 text-sm tracking-wide">{awayTeam.shortName}</span>
         </div>
       </div>
@@ -270,62 +212,27 @@ export function MatchCard({
       <div className="flex-1 space-y-3">
         {/* Visible Predictions */}
         {visiblePredictions.map((prediction, index) => (
-          <div key={`${prediction.id}-${index}`} className="bg-gray-50/50 rounded-lg p-3">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-800 font-semibold text-sm truncate pr-2">
-                {prediction.label}
-              </span>
-              <span className="text-green-600 font-bold text-base">
-                {prediction.percentage}%
-              </span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
-              <div
-                className="bg-green-500 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${prediction.percentage}%` }}
-              />
-            </div>
-            {prediction.trend && (
-              <div className="flex items-center text-xs">
-                <span className={`font-medium ${prediction.trend.direction === 'up' ? 'text-green-600' : 'text-red-500'}`}>
-                  {prediction.trend.direction === 'up' ? '↑' : '↓'} {prediction.trend.value.toFixed(0)}%
-                </span>
-                <span className="text-gray-400 ml-1">
-                  in the last {prediction.trend.timeframe}
-                </span>
-              </div>
-            )}
-          </div>
+          <PredictionBar
+            key={`${prediction.id}-${index}`}
+            label={prediction.label}
+            percentage={prediction.percentage}
+            trend={prediction.trend}
+            size="md"
+            showBackground
+          />
         ))}
 
         {/* Blurred Predictions (for non-premium) */}
         {!isPremium && blurredPredictions.map((prediction) => (
-          <div key={prediction.id} className="relative bg-gray-50/50 rounded-lg p-3">
-            <div className="blur-[6px] select-none pointer-events-none">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-gray-800 font-semibold text-sm">
-                  {prediction.label}
-                </span>
-                <span className="text-green-600 font-bold text-base">
-                  {prediction.percentage}%
-                </span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
-                <div
-                  className="bg-green-500 h-2 rounded-full"
-                  style={{ width: `${prediction.percentage}%` }}
-                />
-              </div>
-              {prediction.trend && (
-                <div className="flex items-center text-xs">
-                  <span className={`font-medium ${prediction.trend.direction === 'up' ? 'text-green-600' : 'text-red-500'}`}>
-                    {prediction.trend.direction === 'up' ? '↑' : '↓'} {prediction.trend.value.toFixed(0)}%
-                  </span>
-                  <span className="text-gray-400 ml-1">in the last {prediction.trend.timeframe}</span>
-                </div>
-              )}
-            </div>
-          </div>
+          <PredictionBar
+            key={prediction.id}
+            label={prediction.label}
+            percentage={prediction.percentage}
+            trend={prediction.trend}
+            size="md"
+            showBackground
+            isBlurred
+          />
         ))}
       </div>
 

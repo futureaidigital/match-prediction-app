@@ -1,5 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { api, User, SubscriptionStatus, LoginRequest, RegisterRequest, ApiError } from '../services/api';
+import { api, User, SubscriptionStatus, LoginRequest, RegisterRequest } from '../services/api';
+import { ApiError } from '@/lib/queryHelpers';
+import { devLog } from '@/config/env';
+import { TEST_CREDENTIALS } from '@/config/defaults';
 
 // ==================== Types ====================
 
@@ -54,62 +57,56 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     const initializeAuth = async () => {
-      console.log('🔐 Initializing auth...');
+      devLog.log('Initializing auth...');
       const token = api.getToken();
-      console.log('🔑 Token exists:', !!token);
+      devLog.log('Token exists:', !!token);
 
       if (!token) {
-        console.log('🔑 No token found, auto-logging in with premium user...');
+        devLog.log('No token found, auto-logging in with premium user...');
         try {
-          const response = await api.login({
-            email: 'premium@fourthofficial.ai',
-            password: 'TestPassword123!'
-          });
+          const response = await api.login(TEST_CREDENTIALS.PREMIUM);
           if (response.success) {
             api.setToken(response.data.access_token);
             localStorage.setItem('refresh_token', response.data.refresh_token);
             setUser(response.data.user);
             // Set demo premium flag for hasAccess check
             localStorage.setItem('demo_premium', 'true');
-            console.log('✅ Auto-logged in as premium user');
+            devLog.log('Auto-logged in as premium user');
           }
         } catch (err) {
-          console.log('⚠️ Auto-login failed, continuing as guest', err);
+          devLog.warn('Auto-login failed, continuing as guest', err);
         }
         setIsLoading(false);
         return;
       }
 
       try {
-        console.log('📡 Fetching current user...');
+        devLog.log('Fetching current user...');
         // Try to fetch current user with existing token
         const response = await api.getCurrentUser();
-        console.log('📦 User response:', response);
+        devLog.log('User response:', response);
 
         if (response.success && response.data) {
-          // Type is now correctly ApiResponse<User>, data is User directly
-          console.log('✅ User fetched:', response.data.email);
+          devLog.log('User fetched:', response.data.email);
           setUser(response.data);
-
-          // Don't fetch subscription status during initialization - do it separately if needed
         } else {
-          console.log('❌ Invalid user response structure');
+          devLog.error('Invalid user response structure');
           throw new Error('Invalid user response');
         }
       } catch (err) {
-        console.log('⚠️ Failed to fetch user, attempting token refresh...', err);
+        devLog.warn('Failed to fetch user, attempting token refresh...', err);
         // Token might be expired, try to refresh
         try {
           await refreshToken();
         } catch (refreshErr) {
-          console.log('❌ Refresh failed, clearing auth state', refreshErr);
+          devLog.error('Refresh failed, clearing auth state', refreshErr);
           // Refresh failed, clear auth state
           api.setToken(null);
           setUser(null);
           setSubscriptionStatus(null);
         }
       } finally {
-        console.log('✅ Auth initialization complete');
+        devLog.log('Auth initialization complete');
         setIsLoading(false);
       }
     };
@@ -120,9 +117,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // ==================== Helper Functions ====================
 
   const handleApiError = (err: unknown) => {
-    const apiError = err as ApiError;
-    if (apiError.error?.message) {
-      setError(apiError.error.message);
+    if (err instanceof ApiError) {
+      setError(err.message);
+    } else if (err instanceof Error) {
+      setError(err.message);
     } else {
       setError('An unexpected error occurred');
     }
@@ -130,18 +128,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const fetchSubscriptionStatus = async () => {
     try {
-      console.log('Fetching subscription status...');
+      devLog.log('Fetching subscription status...');
       const response = await api.getSubscriptionStatus();
-      console.log('Subscription status response:', response);
+      devLog.log('Subscription status response:', response);
 
       if (response.success) {
         setSubscriptionStatus(response.data);
-        setSubscriptionError(null); // Clear any previous errors
-        console.log('✅ Subscription status set:', response.data);
+        setSubscriptionError(null);
+        devLog.log('Subscription status set:', response.data);
       } else {
-        // API returned success:false, log the errors
-        const errorMessage = (response as any).errors || 'Failed to load subscription status';
-        console.error('⚠️ Subscription API returned error:', errorMessage);
+        const errorMessage = (response as { errors?: string }).errors || 'Failed to load subscription status';
+        devLog.error('Subscription API returned error:', errorMessage);
 
         // SECURITY: Deny access by default when subscription check fails
         setSubscriptionStatus({
@@ -153,10 +150,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setSubscriptionError('Unable to verify subscription status. Please try again later.');
       }
     } catch (err) {
-      console.error('❌ Failed to fetch subscription status (exception):', err);
+      devLog.error('Failed to fetch subscription status:', err);
 
       // SECURITY: Deny access by default on error
-      // This prevents users from getting free access during API downtime or network issues
       setSubscriptionStatus({
         has_access: false,
         access_type: null,
@@ -167,9 +163,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       setSubscriptionError(`Subscription check failed: ${errorMessage}`);
 
-      // Log to error tracking service (e.g., Sentry, LogRocket)
-      // TODO: Add error tracking integration
-      console.error('Subscription fetch error details:', {
+      // Log error details for debugging
+      devLog.error('Subscription fetch error details:', {
         error: err,
         timestamp: new Date().toISOString(),
         userId: user?.id,

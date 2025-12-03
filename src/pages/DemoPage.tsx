@@ -10,13 +10,17 @@ import { ApiDebugInfo } from '@/components/ApiDebugInfo';
 import { useFixtures } from '@/hooks/useFixtures';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import { MatchCardSkeleton } from '@/components/ui/skeletons/MatchCardSkeleton';
+import { fixtureToMatchCard } from '@/lib/transformers';
+import { TEST_CREDENTIALS, DEFAULTS } from '@/config/defaults';
+import { COLORS } from '@/config/theme';
 
 export function DemoPage() {
   const { user, isAuthenticated, login, logout, error: authError } = useAuth();
   const [loginLoading, setLoginLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [showAuthPanel, setShowAuthPanel] = useState(false);
-  const itemsPerPage = 6;
+  const itemsPerPage = DEFAULTS.ITEMS_PER_PAGE;
 
   // Fetch fixtures
   const { data: fixturesResponse, isLoading, error, refetch } = useFixtures({
@@ -30,10 +34,7 @@ export function DemoPage() {
   const handleFreeLogin = async () => {
     setLoginLoading(true);
     try {
-      await login({
-        email: 'free@fourthofficial.ai',
-        password: 'TestPassword123!'
-      });
+      await login(TEST_CREDENTIALS.FREE);
       await refetch();
     } catch (err) {
       console.error('Free login failed:', err);
@@ -45,10 +46,7 @@ export function DemoPage() {
   const handlePremiumLogin = async () => {
     setLoginLoading(true);
     try {
-      await login({
-        email: 'premium@fourthofficial.ai',
-        password: 'TestPassword123!'
-      });
+      await login(TEST_CREDENTIALS.PREMIUM);
       await refetch();
     } catch (err) {
       console.error('Premium login failed:', err);
@@ -75,59 +73,11 @@ export function DemoPage() {
       return { matchCards: [], totalPages: 0, paginatedCards: [] };
     }
 
-    const allMatchCards = fixtures.map((fixtureItem) => {
-      const fixture = fixtureItem.fixture;
-      const predictions = fixtureItem.predictions || [];
-
-      return {
-        id: fixture.fixture_id.toString(),
-        competition: fixture.league_name || 'UEFA Champions League',
-        homeTeam: {
-          id: fixture.home_team_id.toString(),
-          name: fixture.home_team_name || fixture.home_team_short_code || 'Home',
-          shortName: fixture.home_team_short_code || fixture.home_team_name?.slice(0, 3).toUpperCase() || 'HOM',
-          logo: fixture.home_team_image_path,
-        },
-        awayTeam: {
-          id: fixture.away_team_id.toString(),
-          name: fixture.away_team_name || fixture.away_team_short_code || 'Away',
-          shortName: fixture.away_team_short_code || fixture.away_team_name?.slice(0, 3).toUpperCase() || 'AWY',
-          logo: fixture.away_team_image_path,
-        },
-        score: fixture.home_team_score !== undefined && fixture.away_team_score !== undefined ? {
-          home: fixture.home_team_score,
-          away: fixture.away_team_score,
-        } : undefined,
-        status: (fixture.minutes_elapsed !== null && fixture.minutes_elapsed !== undefined) ? 'live' as const : 'upcoming' as const,
-        currentMinute: fixture.minutes_elapsed ?? undefined,
-        kickoffTime: fixture.starting_at ? new Date(fixture.starting_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : 'TBD',
-        predictions: predictions.map((pred, index) => {
-          const predValue = pred.prediction ?? pred.pre_game_prediction ?? 0;
-          let percentage;
-          if (predValue > 1) {
-            percentage = Math.round(predValue);
-          } else {
-            percentage = Math.round(predValue * 100);
-          }
-          percentage = Math.max(1, Math.min(99, percentage));
-
-          return {
-            id: pred.prediction_id?.toString() || index.toString(),
-            label: pred.prediction_display_name || `Prediction ${index + 1}`,
-            percentage: percentage,
-            trend: {
-              direction: (pred.pct_change_value || 0) >= 0 ? 'up' as const : 'down' as const,
-              value: Math.abs(pred.pct_change_value || 0),
-              timeframe: pred.pct_change_interval ? `${pred.pct_change_interval} min` : '13 min',
-            },
-            isBlurred: false,
-          };
-        }),
-        totalPredictions: predictions.length || 5,
-        lastUpdated: '2 mins ago',
-        onSeeMore: () => console.log('See more clicked for:', fixture.fixture_id),
-      };
-    });
+    // Use shared transformer for consistent data transformation
+    const allMatchCards = fixtures.map((fixtureItem) => ({
+      ...fixtureToMatchCard(fixtureItem),
+      onSeeMore: () => console.log('See more clicked for:', fixtureItem.fixture.fixture_id),
+    }));
 
     const totalPages = Math.ceil(allMatchCards.length / itemsPerPage);
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -141,47 +91,6 @@ export function DemoPage() {
     };
   }, [fixtures, currentPage, itemsPerPage]);
 
-  // Skeleton components for loading state
-  const SkeletonMatchCard = () => (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 animate-pulse">
-      <div className="h-3 bg-gray-200 rounded w-32 mb-3" />
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <div className="w-10 h-10 bg-gray-200 rounded-full" />
-          <div className="h-4 bg-gray-200 rounded w-12" />
-        </div>
-        <div className="h-5 bg-gray-200 rounded w-16" />
-        <div className="flex items-center gap-2">
-          <div className="h-4 bg-gray-200 rounded w-12" />
-          <div className="w-10 h-10 bg-gray-200 rounded-full" />
-        </div>
-      </div>
-      <div className="space-y-2">
-        <div className="h-12 bg-gray-100 rounded-lg" />
-        <div className="h-12 bg-gray-100 rounded-lg" />
-      </div>
-    </div>
-  );
-
-  const SkeletonBanner = () => (
-    <div className="w-full rounded-xl overflow-hidden bg-gradient-to-b from-[#1a2a4a] to-[#0d1829] animate-pulse">
-      <div className="px-8 py-8">
-        <div className="h-4 bg-white/20 rounded w-48 mx-auto mb-4" />
-        <div className="flex items-center justify-center gap-8">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-white/20" />
-            <div className="h-6 bg-white/20 rounded w-16" />
-          </div>
-          <div className="h-12 bg-white/20 rounded w-24" />
-          <div className="flex items-center gap-4">
-            <div className="h-6 bg-white/20 rounded w-16" />
-            <div className="w-16 h-16 rounded-full bg-white/20" />
-          </div>
-        </div>
-      </div>
-      <div className="h-16 bg-[#0d1829]" />
-    </div>
-  );
 
   if (isLoading) {
     return (
@@ -190,7 +99,7 @@ export function DemoPage() {
         <div className="max-w-[1400px] mx-auto px-6 py-8">
           {/* Banner Skeleton */}
           <div className="mb-8">
-            <SkeletonBanner />
+            <MatchCardSkeleton variant="banner" />
           </div>
 
           {/* Main Content Layout */}
@@ -206,21 +115,21 @@ export function DemoPage() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <SkeletonMatchCard key={i} />
+                  <MatchCardSkeleton key={i} />
                 ))}
               </div>
             </div>
 
             {/* Right Side: Smart Combo Skeleton */}
             <div className="hidden md:block w-[360px]">
-              <div className="rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(to top right, #091143 65%, #11207f 100%)' }}>
+              <div className="rounded-2xl overflow-hidden" style={{ background: `linear-gradient(to top right, ${COLORS.primary.dark} 65%, ${COLORS.primary.light} 100%)` }}>
                 <div className="text-white px-4 py-3">
                   <div className="h-6 bg-white/20 rounded w-32 animate-pulse" />
                 </div>
                 <div className="bg-white rounded-xl mx-1 mb-1 p-4">
                   <div className="space-y-4">
-                    <SkeletonMatchCard />
-                    <SkeletonMatchCard />
+                    <MatchCardSkeleton variant="compact" />
+                    <MatchCardSkeleton variant="compact" />
                   </div>
                 </div>
               </div>

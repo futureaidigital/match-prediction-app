@@ -1,6 +1,7 @@
 import { useQuery, UseQueryOptions } from '@tanstack/react-query';
 import { api, Fixture, ApiResponse, Commentary, Weather, FixtureStatistics, FixturesResponse } from '@/services/api';
 import { queryKeys } from '@/lib/queryClient';
+import { CACHE_DURATIONS } from '@/config/cache';
 
 export function useFixtures(
   params?: {
@@ -21,8 +22,8 @@ export function useFixtures(
   return useQuery({
     queryKey: queryKeys.fixtures.list(params),
     queryFn: () => api.getFixtures(params),
-    refetchInterval: params?.live_only ? 30 * 1000 : false,
-    staleTime: params?.live_only ? 30 * 1000 : 5 * 60 * 1000,
+    refetchInterval: params?.live_only ? CACHE_DURATIONS.LIVE_MATCH : false,
+    staleTime: params?.live_only ? CACHE_DURATIONS.LIVE_MATCH : CACHE_DURATIONS.FIXTURES,
     ...options,
   });
 }
@@ -68,7 +69,7 @@ export function useFixtureWeather(
     queryKey: queryKeys.fixtures.weather(fixtureId),
     queryFn: () => api.getFixtureWeather(fixtureId),
     enabled: !!fixtureId,
-    staleTime: 60 * 60 * 1000, // Weather data cached for 1 hour
+    staleTime: CACHE_DURATIONS.WEATHER,
     ...options,
   });
 }
@@ -84,7 +85,7 @@ export function useFixtureStatistics(
     queryKey: queryKeys.fixtures.statistics(fixtureId),
     queryFn: () => api.getFixtureStatistics(fixtureId),
     enabled: !!fixtureId,
-    refetchInterval: 60 * 1000, // Refetch stats every minute for live matches
+    refetchInterval: CACHE_DURATIONS.LIVE_STATS,
     ...options,
   });
 }

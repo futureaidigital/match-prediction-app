@@ -1,22 +1,28 @@
 import { QueryClient } from '@tanstack/react-query';
+import { CACHE_DURATIONS, RETRY_CONFIG } from '@/config/cache';
 
 /**
  * React Query configuration
  *
- * Default options for all queries and mutations
+ * Default options for all queries and mutations.
+ * Uses centralized cache configuration from config/cache.ts
  */
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       // Cache data for 5 minutes by default
-      staleTime: 5 * 60 * 1000, // 5 minutes
+      staleTime: CACHE_DURATIONS.DEFAULT_STALE,
 
       // Keep unused data in cache for 10 minutes
-      gcTime: 10 * 60 * 1000, // 10 minutes (previously cacheTime)
+      gcTime: CACHE_DURATIONS.DEFAULT_GC,
 
-      // Retry failed requests 3 times with exponential backoff
-      retry: 3,
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+      // Retry failed requests with exponential backoff
+      retry: RETRY_CONFIG.MAX_RETRIES,
+      retryDelay: (attemptIndex) =>
+        Math.min(
+          RETRY_CONFIG.RETRY_DELAY_BASE * 2 ** attemptIndex,
+          RETRY_CONFIG.RETRY_DELAY_MAX
+        ),
 
       // Refetch on window focus for real-time data
       refetchOnWindowFocus: true,
