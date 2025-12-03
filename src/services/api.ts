@@ -1,5 +1,6 @@
 // API Service Layer for FourthOfficial API
 import { env } from '@/config/env';
+import { buildQueryString, parseApiError } from '@/lib/queryHelpers';
 
 const API_BASE_URL = env.API_BASE_URL;
 const BASE_PATH = `/api/v1`;
@@ -396,7 +397,13 @@ class ApiClient {
     }).finally(() => clearTimeout(timeoutId));
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      let errorBody;
+      try {
+        errorBody = await response.json();
+      } catch {
+        // Response body is not JSON
+      }
+      throw parseApiError(response, errorBody);
     }
 
     return response.json();
@@ -479,14 +486,7 @@ class ApiClient {
     page?: number;
     limit?: number;
   } = {}): Promise<ApiResponse<FixturesResponse>> {
-    const query = new URLSearchParams();
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined) {
-        query.append(key, value.toString());
-      }
-    });
-
-    const queryString = query.toString() ? `?${query.toString()}` : '';
+    const queryString = buildQueryString(params);
     return this.request<FixturesResponse>(`/fixtures${queryString}`);
   }
 
@@ -513,14 +513,7 @@ class ApiClient {
     page?: number;
     limit?: number;
   }): Promise<ApiResponse<Prediction[]>> {
-    const query = new URLSearchParams();
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined) {
-        query.append(key, value.toString());
-      }
-    });
-
-    const queryString = query.toString() ? `?${query.toString()}` : '';
+    const queryString = buildQueryString(params);
     return this.request<Prediction[]>(`/predictions${queryString}`);
   }
 
@@ -531,14 +524,7 @@ class ApiClient {
     page?: number;
     limit?: number;
   }): Promise<ApiResponse<Prediction[]>> {
-    const query = new URLSearchParams();
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined) {
-        query.append(key, value.toString());
-      }
-    });
-
-    const queryString = query.toString() ? `?${query.toString()}` : '';
+    const queryString = buildQueryString(params);
     return this.request<Prediction[]>(`/predictions/players${queryString}`);
   }
 
@@ -548,14 +534,7 @@ class ApiClient {
     page?: number;
     limit?: number;
   } = {}): Promise<ApiResponse<SmartCombo[]>> {
-    const query = new URLSearchParams();
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined) {
-        query.append(key, value.toString());
-      }
-    });
-
-    const queryString = query.toString() ? `?${query.toString()}` : '';
+    const queryString = buildQueryString(params);
     return this.request<SmartCombo[]>(`/smart-combos${queryString}`);
   }
 
@@ -564,14 +543,7 @@ class ApiClient {
     year?: number;
     week?: number;
   }): Promise<ApiResponse<ComboAccuracy[]>> {
-    const query = new URLSearchParams();
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined) {
-        query.append(key, value.toString());
-      }
-    });
-
-    const queryString = query.toString() ? `?${query.toString()}` : '';
+    const queryString = buildQueryString(params);
     return this.request<ComboAccuracy[]>(`/smart-combos/accuracy${queryString}`);
   }
 
@@ -586,14 +558,7 @@ class ApiClient {
     sort_order?: 'asc' | 'desc';
     limit?: number;
   } = {}): Promise<ApiResponse<SmartComboPredictionList>> {
-    const query = new URLSearchParams();
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined) {
-        query.append(key, value.toString());
-      }
-    });
-
-    const queryString = query.toString() ? `?${query.toString()}` : '';
+    const queryString = buildQueryString(params);
     // Use /predictions/smart-combos endpoint which supports sorting
     return this.request<SmartComboPredictionList>(`/predictions/smart-combos${queryString}`);
   }
@@ -619,14 +584,7 @@ class ApiClient {
     year?: number;
     day?: number;
   } = {}): Promise<ApiResponse<WatchlistResponse>> {
-    const query = new URLSearchParams();
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined) {
-        query.append(key, value.toString());
-      }
-    });
-
-    const queryString = query.toString() ? `?${query.toString()}` : '';
+    const queryString = buildQueryString(params);
     return this.request<WatchlistResponse>(`/players/watchlist${queryString}`);
   }
 
