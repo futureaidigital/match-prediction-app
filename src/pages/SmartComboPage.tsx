@@ -1,22 +1,60 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { TeamAvatar } from '@/components/ui/TeamAvatar';
+import { Button } from '@/components/ui/button';
 import { useCurrentSmartCombo } from '@/hooks/useSmartCombo';
 import { useSmartComboPredictions } from '@/hooks/usePredictions';
 import { useAuth } from '@/contexts/AuthContext';
+import { TEST_CREDENTIALS } from '@/config/defaults';
 
 export function SmartComboPage() {
   const navigate = useNavigate();
-  const { hasAccess } = useAuth();
-  const isPremium = hasAccess();
+  const { isAuthenticated, user, login, logout, error: authError, subscriptionStatus } = useAuth();
+  const [showAuthPanel, setShowAuthPanel] = useState(false);
+  const [loginLoading, setLoginLoading] = useState(false);
+
+  // Check premium status - use subscriptionStatus directly for reactive updates
+  const isPremium = subscriptionStatus?.has_access ?? false;
+
+  // Login handlers
+  const handleFreeLogin = async () => {
+    setLoginLoading(true);
+    try {
+      await login(TEST_CREDENTIALS.FREE);
+    } catch (err) {
+      console.error('Free login failed:', err);
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  const handlePremiumLogin = async () => {
+    setLoginLoading(true);
+    try {
+      await login(TEST_CREDENTIALS.PREMIUM);
+    } catch (err) {
+      console.error('Premium login failed:', err);
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (err) {
+      console.error('Logout failed:', err);
+    }
+  };
 
   // Fetch combo metadata and fixture details
   const {
     data: comboResponse,
     isLoading: isLoadingCombo,
     error: comboError,
+    refetch: refetchCombo,
   } = useCurrentSmartCombo();
 
   const combo = comboResponse?.data?.combo;
@@ -26,6 +64,7 @@ export function SmartComboPage() {
   const {
     data: predictionsResponse,
     isLoading: isLoadingPredictions,
+    refetch: refetchPredictions,
   } = useSmartComboPredictions(
     {
       combo_id: combo?.combo_id,
@@ -56,9 +95,80 @@ export function SmartComboPage() {
 
   const isLoading = isLoadingCombo || isLoadingPredictions;
 
+  // Refetch data when auth state changes
+  useEffect(() => {
+    refetchCombo();
+    if (combo?.combo_id) {
+      refetchPredictions();
+    }
+  }, [isAuthenticated, subscriptionStatus]);
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header currentPage="smart-combo" />
+
+      {/* Auth Toggle Button - Fixed Position */}
+      <button
+        onClick={() => setShowAuthPanel(!showAuthPanel)}
+        className="fixed top-4 right-4 z-50 bg-white shadow-lg rounded-full p-3 hover:bg-gray-50 transition-colors"
+        title={isAuthenticated ? `Logged in as ${user?.email}` : 'Login'}
+      >
+        {isAuthenticated ? (
+          <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+        ) : (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+        )}
+      </button>
+
+      {/* Auth Panel - Slide Out */}
+      {showAuthPanel && (
+        <div className="fixed top-16 right-4 z-40 w-80 bg-white rounded-xl shadow-2xl border border-gray-100 p-4">
+          {isAuthenticated ? (
+            <div className="space-y-3">
+              <div className="text-sm text-gray-600">
+                Logged in as: <span className="font-medium text-gray-900">{user?.email}</span>
+              </div>
+              <div className="text-xs text-gray-500">
+                Status: <span className={isPremium ? 'text-green-600' : 'text-gray-600'}>{isPremium ? 'Premium' : 'Free'}</span>
+              </div>
+              <Button
+                onClick={handleLogout}
+                className="w-full bg-red-500 hover:bg-red-600 text-white text-sm"
+              >
+                Logout
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="text-sm font-medium text-gray-900 mb-2">Test Accounts</div>
+              <Button
+                onClick={handleFreeLogin}
+                disabled={loginLoading}
+                className="w-full bg-gray-600 hover:bg-gray-700 text-white text-sm"
+              >
+                {loginLoading ? 'Loading...' : 'Login as Free User'}
+              </Button>
+              <Button
+                onClick={handlePremiumLogin}
+                disabled={loginLoading}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm"
+              >
+                {loginLoading ? 'Loading...' : 'Login as Premium User'}
+              </Button>
+              {authError && (
+                <div className="text-xs text-red-500 mt-2">{authError}</div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       <main className="flex-1">
         <div className="max-w-[1400px] mx-auto px-6 py-8">
@@ -70,7 +180,7 @@ export function SmartComboPage() {
             {/* Header Section */}
             <div className="p-6 text-white">
               {/* Title Row */}
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <h1 className="text-2xl font-bold">This Week's Smart Combo</h1>
                   <span className="flex items-center gap-1.5 bg-yellow-500/20 text-yellow-400 px-3 py-1 rounded-full text-sm font-medium">
@@ -118,33 +228,33 @@ export function SmartComboPage() {
                 </div>
 
                 {/* Stats Badges */}
-                <div className="flex items-center gap-6">
-                  <div className="text-center">
-                    <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center mb-2 mx-auto">
-                      <img src="/icon-success.svg" alt="Success Rate" className="w-8 h-8" />
+                <div className="flex items-center gap-4">
+                  <div className="bg-[#1a2555] rounded-2xl px-6 py-2.5 text-center min-w-[100px]">
+                    <div className="flex items-center justify-center mb-1">
+                      <img src="/icon-success.svg" alt="Success Rate" className="w-10 h-10" />
                     </div>
-                    <p className="text-white font-bold">{combo?.confidence ? Math.round(combo.confidence) : 87}%</p>
+                    <p className="text-white font-bold text-lg">{combo?.confidence ? Math.round(combo.confidence) : 87}%</p>
                     <p className="text-white/60 text-xs">Success Rate</p>
                   </div>
-                  <div className="text-center">
-                    <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center mb-2 mx-auto">
-                      <img src="/icon-proven.svg" alt="Proven" className="w-8 h-8" />
+                  <div className="bg-[#1a2555] rounded-2xl px-6 py-2.5 text-center min-w-[100px]">
+                    <div className="flex items-center justify-center mb-1">
+                      <img src="/icon-proven.svg" alt="Proven" className="w-10 h-10" />
                     </div>
-                    <p className="text-white font-bold">Proven</p>
+                    <p className="text-white font-bold text-lg">Proven</p>
                     <p className="text-white/60 text-xs">Track Record</p>
                   </div>
-                  <div className="text-center">
-                    <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center mb-2 mx-auto">
-                      <img src="/icon-expert.svg" alt="Expert" className="w-8 h-8" />
+                  <div className="bg-[#1a2555] rounded-2xl px-6 py-2.5 text-center min-w-[100px]">
+                    <div className="flex items-center justify-center mb-1">
+                      <img src="/icon-expert.svg" alt="Expert" className="w-10 h-10" />
                     </div>
-                    <p className="text-white font-bold">Expert</p>
+                    <p className="text-white font-bold text-lg">Expert</p>
                     <p className="text-white/60 text-xs">Analysis</p>
                   </div>
-                  <div className="text-center">
-                    <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center mb-2 mx-auto">
-                      <img src="/icon-global.svg" alt="Global" className="w-8 h-8" />
+                  <div className="bg-[#1a2555] rounded-2xl px-6 py-2.5 text-center min-w-[100px]">
+                    <div className="flex items-center justify-center mb-1">
+                      <img src="/icon-global.svg" alt="Global" className="w-10 h-10" />
                     </div>
-                    <p className="text-white font-bold">Global</p>
+                    <p className="text-white font-bold text-lg">Global</p>
                     <p className="text-white/60 text-xs">Coverage</p>
                   </div>
                 </div>
@@ -154,8 +264,8 @@ export function SmartComboPage() {
             {/* White Content Area */}
             <div className="bg-white rounded-t-2xl">
               {/* Combo Overview Header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-                <h2 className="text-xl font-bold text-gray-900">Combo Overview</h2>
+              <div className="flex items-center justify-between px-6 pt-4">
+                <h2 className="text-3xl font-semibold text-gray-900">Combo Overview</h2>
                 <button className="text-gray-400 hover:text-gray-600">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <circle cx="12" cy="12" r="10" />
@@ -216,12 +326,15 @@ export function SmartComboPage() {
               {/* Fixtures List */}
               {!isLoading && !comboError && fixtures.length > 0 && (
                 <div className="p-6 space-y-4">
-                  {fixtures.map((fixtureData) => {
+                  {fixtures.map((fixtureData, fixtureIndex) => {
                     const { fixture, predictions: fallbackPredictions } = fixtureData;
                     const predictions = predictionsByFixture.get(fixture.fixture_id) || fallbackPredictions;
 
                     const homeTeamLogo = fixture.home_team_image_path || fixture.home_team_logo_location;
                     const awayTeamLogo = fixture.away_team_image_path || fixture.away_team_logo_location;
+
+                    // For free users: blur entire fixture card after the first one
+                    const isFixtureBlurred = !isPremium && fixtureIndex > 0;
 
                     let kickoffTime = '15:30h';
                     if (fixture.starting_at) {
@@ -235,8 +348,12 @@ export function SmartComboPage() {
                     return (
                       <div
                         key={fixture.fixture_id}
-                        className="border-2 border-dashed border-gray-300 rounded-xl p-5 hover:border-[#091143]/30 transition-colors"
+                        className={`border-2 border-dashed border-gray-300 rounded-xl p-5 hover:border-[#091143]/30 transition-colors ${isFixtureBlurred ? 'relative' : ''}`}
                       >
+                        {/* Blur overlay for non-first fixtures (free users) */}
+                        {isFixtureBlurred && (
+                          <div className="absolute inset-0 backdrop-blur-[6px] bg-white/50 z-10 rounded-xl" />
+                        )}
                         {/* Match Header */}
                         <div className="flex items-center justify-between mb-4">
                           {/* Home Team */}
@@ -278,21 +395,17 @@ export function SmartComboPage() {
                         {/* Predictions */}
                         <div className="space-y-3">
                           {predictions.slice(0, 3).map((pred, idx) => {
-                            const isBlurred = !isPremium && idx > 0;
+                            // For free users: blur predictions after the first one (only in first fixture)
+                            const isPredictionBlurred = !isPremium && fixtureIndex === 0 && idx > 0;
                             const percentage = Math.round(pred.prediction || pred.pre_game_prediction);
 
                             return (
                               <div
                                 key={pred.prediction_id}
-                                className={`border border-gray-200 rounded-lg p-4 ${isBlurred ? 'relative overflow-hidden' : ''}`}
+                                className={`border border-gray-200 rounded-lg p-4 ${isPredictionBlurred ? 'relative overflow-hidden' : ''}`}
                               >
-                                {isBlurred && (
-                                  <div className="absolute inset-0 backdrop-blur-sm bg-white/70 z-10 flex items-center justify-center">
-                                    <div className="flex items-center gap-2 text-gray-500">
-                                      <img src="/Lock.svg" alt="" className="w-4 h-4" />
-                                      <span className="text-sm font-medium">Premium Only</span>
-                                    </div>
-                                  </div>
+                                {isPredictionBlurred && (
+                                  <div className="absolute inset-0 backdrop-blur-[6px] bg-white/50 z-10 flex items-center justify-center rounded-lg" />
                                 )}
 
                                 {/* Prediction Label & Trend */}
@@ -348,31 +461,44 @@ export function SmartComboPage() {
                 </div>
               )}
 
-              {/* Footer CTA */}
-              {!isPremium && (
-                <div
-                  className="mx-6 mb-6 p-4 rounded-xl flex items-center justify-between"
-                  style={{ background: 'linear-gradient(to right, #091143, #11207f)' }}
-                >
-                  <div className="text-white">
-                    <p className="font-semibold">Full Combo Access</p>
-                    <div className="flex items-center gap-2">
-                      <span className="text-2xl font-bold">$9.99</span>
-                      <span className="text-white/60 line-through text-sm">$19.99</span>
-                      <span className="bg-green-500 text-white text-xs font-bold px-2 py-0.5 rounded">50% OFF</span>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => navigate('/pricing')}
-                    className="flex items-center gap-2 bg-white text-[#091143] font-semibold px-6 py-3 rounded-lg hover:bg-gray-100 transition-colors"
-                  >
-                    <img src="/Lock.svg" alt="" className="w-4 h-4" />
-                    Unlock Combo
-                  </button>
-                </div>
-              )}
             </div>
           </div>
+
+          {/* Footer CTA - Separate box below main card */}
+          {!isPremium && (
+            <div
+              className="mt-6 p-4 rounded-2xl flex items-center justify-between relative overflow-hidden"
+              style={{ background: 'linear-gradient(to right, #091143, #11207f)' }}
+            >
+              {/* Abstract overlay on left side */}
+              <img
+                src="/cta-overlay.svg"
+                alt=""
+                className="absolute left-0 top-0 h-full opacity-50 pointer-events-none scale-x-[-1]"
+              />
+              {/* Abstract overlay on right side */}
+              <img
+                src="/cta-overlay.svg"
+                alt=""
+                className="absolute right-0 top-0 h-full opacity-50 pointer-events-none"
+              />
+              <div className="text-white relative z-10">
+                <p className="font-semibold">Full Combo Access</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl font-bold">$9.99</span>
+                  <span className="text-white/60 line-through text-sm">$19.99</span>
+                  <span className="bg-green-500 text-white text-xs font-bold px-2 py-0.5 rounded">50% OFF</span>
+                </div>
+              </div>
+              <button
+                onClick={() => navigate('/pricing')}
+                className="flex items-center gap-2 bg-white text-[#091143] font-semibold px-6 py-3 rounded-lg hover:bg-gray-100 transition-colors relative z-10"
+              >
+                <img src="/icon-unlock.svg" alt="" className="w-4 h-4" />
+                Unlock Combo
+              </button>
+            </div>
+          )}
         </div>
       </main>
 
