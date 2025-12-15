@@ -22,9 +22,10 @@ export function DemoPage() {
   const [showAuthPanel, setShowAuthPanel] = useState(false);
   const itemsPerPage = DEFAULTS.ITEMS_PER_PAGE;
 
-  // Fetch fixtures
+  // Fetch fixtures (default: 7 days, returns fixture_ids + first 6 fixtures)
+  // No match_type = backend defaults to upcoming matches for next 7 days
   const { data: fixturesResponse, isLoading, error, refetch } = useFixtures({
-    limit: 100
+    sort_by: 'kickoff_asc',
   });
 
   // Safely extract fixtures array from response
@@ -268,8 +269,15 @@ export function DemoPage() {
 
             {/* Empty State */}
             {matchCards.length === 0 && !isLoading && (
-              <div className="text-center py-12 text-gray-500">
-                {error ? 'Unable to load fixtures' : 'No fixtures available'}
+              <div className="flex flex-col items-center justify-center min-h-[400px] bg-white rounded-xl border border-gray-200">
+                <img
+                  src="/404.svg"
+                  alt="No matches"
+                  className="w-32 h-32 mb-6 opacity-60"
+                />
+                <p className="text-gray-500 font-medium text-lg">
+                  {error ? 'Unable to load fixtures' : 'No matches available at the moment'}
+                </p>
               </div>
             )}
 

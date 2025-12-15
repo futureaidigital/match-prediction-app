@@ -37,14 +37,14 @@ export function HomePage() {
   const { hasAccess, isAuthenticated, user, subscriptionStatus, subscriptionError, logout } = useAuth();
   const navigate = useNavigate();
 
-  // Fetch featured matches
+  // Fetch featured matches (default: 7 days, returns first 6 fixtures with data)
+  // No params = backend defaults to upcoming matches for next 7 days
   const {
     data: fixturesData,
     isLoading: isLoadingFixtures,
     error: fixturesError,
   } = useFixtures({
-    with_predictions: true,
-    limit: 6,
+    sort_by: 'kickoff_asc',
   });
 
   const featuredMatches = fixturesData?.data?.fixtures || [];
@@ -208,47 +208,38 @@ export function HomePage() {
       )}
 
       {/* Match Cards Grid */}
-      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+      <div className="max-w-7xl mx-auto mb-12">
         {isLoadingFixtures ? (
-          <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <MatchCardSkeleton />
             <MatchCardSkeleton />
             <MatchCardSkeleton />
-          </>
+          </div>
         ) : featuredMatches.length > 0 ? (
-          featuredMatches.slice(0, 6).map((match) => {
-            const transformed = transformFixtureToMatchCard(match);
-            if (!transformed) return null;
-            return (
-              <MatchCard
-                key={transformed.id}
-                {...transformed}
-                onSeeMore={() => navigate(`/match/${transformed.id}`)}
-              />
-            );
-          }).filter(Boolean)
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {featuredMatches.slice(0, 6).map((match) => {
+              const transformed = transformFixtureToMatchCard(match);
+              if (!transformed) return null;
+              return (
+                <MatchCard
+                  key={transformed.id}
+                  {...transformed}
+                  onSeeMore={() => navigate(`/match/${transformed.id}`)}
+                />
+              );
+            }).filter(Boolean)}
+          </div>
         ) : (
-          <div className="col-span-3 text-center py-12 text-gray-500">
-            <p>No featured matches available at the moment.</p>
+          <div className="flex flex-col items-center justify-center min-h-[400px] bg-white rounded-xl border border-gray-200">
+            <img
+              src="/404.svg"
+              alt="No matches"
+              className="w-32 h-32 mb-6 opacity-60"
+            />
+            <p className="text-gray-500 font-medium text-lg">No matches available at the moment</p>
           </div>
         )}
       </div>
-
-      {/* Empty State */}
-      {!isLoadingFixtures && featuredMatches.length === 0 && (
-        <div className="max-w-7xl mx-auto text-center py-20">
-          <div className="text-gray-400 mb-4">
-            <svg className="w-20 h-20 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <h3 className="text-xl font-semibold text-gray-700 mb-2">No data available</h3>
-          <p className="text-gray-500 mb-4">There are no matches available at the moment.</p>
-          <Button onClick={() => window.location.reload()}>
-            Refresh
-          </Button>
-        </div>
-      )}
     </div>
   );
 }
