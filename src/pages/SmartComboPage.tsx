@@ -483,11 +483,11 @@ export function SmartComboPage() {
                 className="absolute right-0 top-0 h-full opacity-50 pointer-events-none"
               />
               <div className="text-white relative z-10">
-                <p className="font-semibold">Full Combo Access</p>
+                <p className="text-lg font-semibold">Full Combo Access</p>
                 <div className="flex items-center gap-2">
-                  <span className="text-2xl font-bold">$9.99</span>
-                  <span className="text-white/60 line-through text-sm">$19.99</span>
-                  <span className="bg-green-500 text-white text-xs font-bold px-2 py-0.5 rounded">50% OFF</span>
+                  <span className="text-3xl font-bold">$9.99</span>
+                  <span className="text-white/60 line-through">$19.99</span>
+                  <span className="bg-green-500 text-white text-sm font-bold px-2 py-1 rounded">50% OFF</span>
                 </div>
               </div>
               <button
