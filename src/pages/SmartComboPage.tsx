@@ -73,11 +73,11 @@ export function SmartComboPage() {
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
                   <h1 className="text-2xl font-bold">This Week's Smart Combo</h1>
-                  <span className="flex items-center gap-1 bg-yellow-500/20 text-yellow-400 px-3 py-1 rounded-full text-sm font-medium">
-                    <span>⭐</span> Trusted Pick
+                  <span className="flex items-center gap-1.5 bg-yellow-500/20 text-yellow-400 px-3 py-1 rounded-full text-sm font-medium">
+                    <img src="/icon-trusted-pick.svg" alt="" className="w-4 h-4" /> Trusted Pick
                   </span>
-                  <span className="flex items-center gap-1 bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full text-sm font-medium">
-                    <span>🛡️</span> Safe Pick
+                  <span className="flex items-center gap-1.5 bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full text-sm font-medium">
+                    <img src="/icon-safe-pick.svg" alt="" className="w-4 h-4" /> Safe Pick
                   </span>
                 </div>
               </div>
