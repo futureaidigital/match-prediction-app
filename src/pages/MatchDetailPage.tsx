@@ -448,17 +448,17 @@ export function MatchDetailPage() {
   const { fixtureId } = useParams<{ fixtureId: string }>();
   const [activeTab, setActiveTab] = useState<TabType>('predictions');
 
-  // Fetch all fixtures with predictions (the backend embeds predictions in fixtures response)
-  const { data: fixturesResponse, isLoading: isLoadingFixtures } = useFixtures({
-    with_predictions: true,
-    limit: 200, // Get enough fixtures to find the one we need
-  });
+  // Fetch specific fixture by ID (backend returns fixture with predictions)
+  const { data: fixturesResponse, isLoading: isLoadingFixtures } = useFixtures(
+    fixtureId ? { fixture_ids: [parseInt(fixtureId, 10)] } : undefined,
+    { enabled: !!fixtureId }
+  );
 
-  // Find the specific fixture from the list
+  // Get the fixture from response (should be the only one when fetching by ID)
   const fixtureData = useMemo(() => {
     const fixtures = fixturesResponse?.data?.fixtures || [];
-    return fixtures.find((f: any) => f.fixture.fixture_id.toString() === fixtureId);
-  }, [fixturesResponse, fixtureId]);
+    return fixtures[0] || null;
+  }, [fixturesResponse]);
 
   const fixture = fixtureData?.fixture;
   const predictions = fixtureData?.predictions || [];

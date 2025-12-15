@@ -432,7 +432,7 @@ class ApiClient {
 
   async refreshToken(): Promise<ApiResponse<AuthResponse>> {
     const refreshToken = localStorage.getItem('refresh_token');
-    return this.request<AuthResponse>('/auth/refresh', {
+    return this.request<AuthResponse>('/auth/refresh-token', {
       method: 'POST',
       body: JSON.stringify({ refresh_token: refreshToken }),
     });
@@ -477,16 +477,36 @@ class ApiClient {
 
   // Fixtures endpoints
   async getFixtures(params: {
-    date?: string;
-    league_id?: number;
-    team_id?: number;
-    live_only?: boolean;
-    carousel_only?: boolean;
-    with_predictions?: boolean;
-    page?: number;
-    limit?: number;
+    fixture_ids?: number[];  // Comma-separated fixture IDs for specific fixtures
+    leagues?: number[];      // Comma-separated league IDs
+    match_type?: 'live' | 'upcoming' | 'finished';  // Match type filter
+    sort_by?: 'kickoff_asc' | 'kickoff_desc' | 'prediction_accuracy_asc' | 'prediction_accuracy_desc';
+    date_from?: string;      // Start date (ISO format: YYYY-MM-DD)
+    date_to?: string;        // End date (ISO format: YYYY-MM-DD)
   } = {}): Promise<ApiResponse<FixturesResponse>> {
-    const queryString = buildQueryString(params);
+    // Build query string with correct parameter names for backend
+    const query = new URLSearchParams();
+
+    if (params.fixture_ids?.length) {
+      query.append('fixture_ids', params.fixture_ids.join(','));
+    }
+    if (params.leagues?.length) {
+      query.append('leagues', params.leagues.join(','));
+    }
+    if (params.match_type) {
+      query.append('match_type', params.match_type);
+    }
+    if (params.sort_by) {
+      query.append('sort_by', params.sort_by);
+    }
+    if (params.date_from) {
+      query.append('date_from', params.date_from);
+    }
+    if (params.date_to) {
+      query.append('date_to', params.date_to);
+    }
+
+    const queryString = query.toString() ? `?${query.toString()}` : '';
     return this.request<FixturesResponse>(`/fixtures${queryString}`);
   }
 

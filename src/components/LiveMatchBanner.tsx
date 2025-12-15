@@ -5,15 +5,14 @@ import { MatchBanner } from '@/components/MatchBanner';
 export function LiveMatchBanner() {
   const [activeIndex, setActiveIndex] = useState(0);
 
-  // Fetch carousel fixtures (is_carousel filter)
+  // Fetch live fixtures for carousel display
   const {
     data: fixturesResponse,
     isLoading: isLoadingFixtures,
     error: fixturesError,
   } = useFixtures({
-    carousel_only: true,
-    with_predictions: true,
-    limit: 10,
+    match_type: 'live',
+    sort_by: 'kickoff_asc',
   });
 
   const fixtures = fixturesResponse?.data?.fixtures || [];

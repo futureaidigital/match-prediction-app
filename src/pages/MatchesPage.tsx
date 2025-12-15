@@ -210,11 +210,16 @@ export function MatchesPage() {
   };
 
   // Fetch fixtures for selected date
-  const { data: fixturesResponse, isLoading } = useFixtures({
-    date: formatDateForApi(currentDate),
-    with_predictions: true,
-    limit: 100,
-  });
+  // When on "live" tab, fetch live matches; otherwise fetch by date
+  const { data: fixturesResponse, isLoading } = useFixtures(
+    activeTab === 'live'
+      ? { match_type: 'live', sort_by: 'kickoff_asc' }
+      : {
+          date_from: formatDateForApi(currentDate),
+          date_to: formatDateForApi(currentDate),
+          sort_by: 'kickoff_asc',
+        }
+  );
 
   const fixtures = fixturesResponse?.data?.fixtures || [];
 
@@ -443,8 +448,13 @@ export function MatchesPage() {
                   ))}
 
                   {Object.keys(fixturesByLeague).length === 0 && (
-                    <div className="text-center py-12 text-gray-500">
-                      No matches found
+                    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-300px)] mx-4 bg-white rounded-xl border border-gray-200">
+                      <img
+                        src="/404.svg"
+                        alt="No matches"
+                        className="w-24 h-24 mb-4 opacity-60"
+                      />
+                      <p className="text-gray-500 font-medium">No matches found for this date</p>
                     </div>
                   )}
                 </>
@@ -618,8 +628,13 @@ export function MatchesPage() {
               ))}
 
               {Object.keys(fixturesByLeague).length === 0 && (
-                <div className="text-center py-12 text-gray-500">
-                  No upcoming matches found
+                <div className="flex flex-col items-center justify-center min-h-[calc(100vh-300px)] bg-white rounded-xl border border-gray-200">
+                  <img
+                    src="/404.svg"
+                    alt="No matches"
+                    className="w-32 h-32 mb-6 opacity-60"
+                  />
+                  <p className="text-gray-500 font-medium text-lg">No matches found for this date</p>
                 </div>
               )}
             </div>
