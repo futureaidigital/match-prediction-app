@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { MatchCard } from '@/components/MatchCard';
 import { useCurrentSmartCombo } from '@/hooks/useSmartCombo';
 import { useSmartComboPredictions } from '@/hooks/usePredictions';
@@ -8,6 +9,8 @@ interface SmartComboProps {
 }
 
 export function SmartCombo({ isPremium = false }: SmartComboProps) {
+  const navigate = useNavigate();
+
   // Fetch combo metadata and fixture details from /smart-combos/current
   const {
     data: comboResponse,
@@ -236,7 +239,10 @@ export function SmartCombo({ isPremium = false }: SmartComboProps) {
 
           {/* See More Button - Inside white area */}
           <div className="px-4 pb-4">
-            <button className="w-full py-2 px-4 border border-[#091143] text-[#091143] font-semibold rounded-lg hover:bg-[#091143] hover:text-white transition-all duration-200 text-sm">
+            <button
+              onClick={() => navigate('/smart-combo')}
+              className="w-full py-2 px-4 border border-[#091143] text-[#091143] font-semibold rounded-lg hover:bg-[#091143] hover:text-white transition-all duration-200 text-sm"
+            >
               See more
             </button>
           </div>

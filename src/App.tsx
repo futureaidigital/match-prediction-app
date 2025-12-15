@@ -3,6 +3,7 @@ import { DemoPage } from './pages/DemoPage';
 import { MatchesPage } from './pages/MatchesPage';
 import { MatchDetailPage } from './pages/MatchDetailPage';
 import { PricingPage } from './pages/PricingPage';
+import { SmartComboPage } from './pages/SmartComboPage';
 
 function App() {
   return (
@@ -18,6 +19,9 @@ function App() {
 
         {/* Pricing page */}
         <Route path="/pricing" element={<PricingPage />} />
+
+        {/* Smart Combo page */}
+        <Route path="/smart-combo" element={<SmartComboPage />} />
 
         {/* Catch-all route */}
         <Route path="*" element={<div>Page not found - Go to <a href="/" className="text-blue-600 underline">Demo</a></div>} />
