@@ -121,28 +121,28 @@ export function SmartComboPage() {
                 <div className="flex items-center gap-6">
                   <div className="text-center">
                     <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center mb-2 mx-auto">
-                      <span className="text-2xl">🎯</span>
+                      <img src="/icon-success.svg" alt="Success Rate" className="w-8 h-8" />
                     </div>
                     <p className="text-white font-bold">{combo?.confidence ? Math.round(combo.confidence) : 87}%</p>
                     <p className="text-white/60 text-xs">Success Rate</p>
                   </div>
                   <div className="text-center">
                     <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center mb-2 mx-auto">
-                      <span className="text-2xl">📊</span>
+                      <img src="/icon-proven.svg" alt="Proven" className="w-8 h-8" />
                     </div>
                     <p className="text-white font-bold">Proven</p>
                     <p className="text-white/60 text-xs">Track Record</p>
                   </div>
                   <div className="text-center">
                     <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center mb-2 mx-auto">
-                      <span className="text-2xl">👤</span>
+                      <img src="/icon-expert.svg" alt="Expert" className="w-8 h-8" />
                     </div>
                     <p className="text-white font-bold">Expert</p>
                     <p className="text-white/60 text-xs">Analysis</p>
                   </div>
                   <div className="text-center">
                     <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center mb-2 mx-auto">
-                      <span className="text-2xl">🌍</span>
+                      <img src="/icon-global.svg" alt="Global" className="w-8 h-8" />
                     </div>
                     <p className="text-white font-bold">Global</p>
                     <p className="text-white/60 text-xs">Coverage</p>
