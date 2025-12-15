@@ -61,7 +61,7 @@ export function SmartComboPage() {
       <Header currentPage="smart-combo" />
 
       <main className="flex-1">
-        <div className="max-w-5xl mx-auto px-4 py-8">
+        <div className="max-w-[1400px] mx-auto px-6 py-8">
           {/* Main Card Container - Same style as SmartCombo component */}
           <div
             className="rounded-2xl overflow-hidden shadow-lg"
