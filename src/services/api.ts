@@ -79,6 +79,7 @@ export interface Fixture {
   home_score?: number;
   away_score?: number;
   has_predictions: boolean;
+  number_of_predictions?: number;
   created_at: string;
   updated_at: string;
 }

@@ -294,7 +294,7 @@ export function MatchesPage() {
           timeframe: '13 min',
         },
       })),
-      totalPredictions: predictions.length || 5,
+      totalPredictions: fixture.number_of_predictions || predictions.length || 5,
       lastUpdated: '2 mins ago',
     };
   };

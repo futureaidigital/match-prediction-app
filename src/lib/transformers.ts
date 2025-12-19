@@ -68,7 +68,7 @@ export function fixtureToMatchCard(fixtureItem: FixtureWithPredictions): MatchCa
 
   return {
     id: fixture.fixture_id.toString(),
-    competition: fixture.league_name || DEFAULTS.COMPETITION,
+    competition: fixture.league_name?.trim() || DEFAULTS.COMPETITION,
     homeTeam: {
       id: fixture.home_team_id.toString(),
       name: fixture.home_team_name || fixture.home_team_short_code || DEFAULTS.HOME_TEAM,
@@ -96,7 +96,7 @@ export function fixtureToMatchCard(fixtureItem: FixtureWithPredictions): MatchCa
     currentMinute: fixture.minutes_elapsed ?? undefined,
     kickoffTime: formatKickoffTime(fixture.starting_at),
     predictions: transformPredictions(predictions),
-    totalPredictions: predictions.length || DEFAULTS.PREDICTION_COUNT,
+    totalPredictions: fixture.number_of_predictions || predictions.length || DEFAULTS.PREDICTION_COUNT,
     lastUpdated: '2 mins ago',
   };
 }
@@ -152,7 +152,7 @@ export function groupFixturesByLeague(
   const grouped = new Map<string, FixtureWithPredictions[]>();
 
   fixtures.forEach((fixtureItem) => {
-    const leagueName = fixtureItem.fixture.league_name || DEFAULTS.COMPETITION;
+    const leagueName = fixtureItem.fixture.league_name?.trim() || DEFAULTS.COMPETITION;
     const existing = grouped.get(leagueName) || [];
     existing.push(fixtureItem);
     grouped.set(leagueName, existing);

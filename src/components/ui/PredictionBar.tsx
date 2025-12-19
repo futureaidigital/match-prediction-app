@@ -15,8 +15,8 @@ interface PredictionBarProps {
 }
 
 const barHeightClasses = {
-  sm: 'h-1.5',
-  md: 'h-2',
+  sm: 'h-[8px]',
+  md: 'h-[8px]',
 };
 
 const textSizeClasses = {
@@ -40,13 +40,13 @@ export function PredictionBar({
   className,
 }: PredictionBarProps) {
   const content = (
-    <div className={cn(isBlurred && 'blur-[4px] select-none pointer-events-none')}>
+    <div className={cn('h-[64px]', isBlurred && 'blur-[4px] select-none pointer-events-none')}>
       {/* Label and Percentage */}
       <div className="flex items-center justify-between mb-1">
-        <span className={cn('text-gray-800 font-medium', size === 'sm' ? 'text-sm' : 'text-sm')}>
+        <span className={cn('text-gray-800 font-medium text-[14px]')}>
           {label}
         </span>
-        <span className={cn('text-green-600 font-bold', textSizeClasses[size])}>
+        <span className="text-green-600 font-semibold text-[14px]">
           {percentage}%
         </span>
       </div>
@@ -64,7 +64,7 @@ export function PredictionBar({
 
       {/* Trend Indicator */}
       {trend && (
-        <div className="flex items-center text-xs">
+        <div className="flex items-center text-[12px]">
           <span
             className={cn(
               'font-medium',
@@ -83,7 +83,7 @@ export function PredictionBar({
 
   if (showBackground) {
     return (
-      <div className={cn('bg-gray-50/50 rounded-lg p-3', className)}>
+      <div className={cn(className)}>
         {content}
       </div>
     );
