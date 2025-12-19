@@ -154,36 +154,35 @@ export function MatchCard({
   // Default variant (for Featured Matches)
   return (
     <div
-      onClick={handleCardClick}
-      className="bg-white rounded-2xl border-2 border-gray-200 shadow-sm p-5 w-full flex flex-col cursor-pointer hover:shadow-md transition-shadow"
+      className="bg-white rounded-2xl p-[15px] md:p-5 w-[334px] h-[293px] md:w-[290px] md:h-[478px] flex flex-col hover:shadow-md transition-shadow overflow-hidden"
     >
       {/* Competition Header */}
-      <div className="text-center text-gray-400 text-xs font-medium mb-4 truncate px-2">
-        {competition}
+      <div className="text-center text-gray-500 text-[12px] md:text-[14px] font-medium mb-3 truncate px-2 shrink-0 h-[17px] md:h-auto">
+        {competition && competition.trim() ? competition : 'SPORTS Pred League'}
       </div>
 
       {/* Teams and Score Section - Horizontal Layout */}
-      <div className="flex items-center justify-between mb-5 px-2">
+      <div className="flex items-center justify-between mb-[10px] md:mb-4 px-2 shrink-0">
         {/* Home Team */}
-        <div className="flex flex-col items-center w-20">
-          <div className="mb-2">
+        <div className="flex flex-col items-center justify-center gap-1 w-[101px] h-[57px] shrink-0 md:w-20 md:h-auto">
+          <div className="md:mb-2">
             <TeamAvatar
               logo={homeTeam.logo}
               name={homeTeam.name}
               shortName={homeTeam.shortName}
-              size="lg"
+              size="md"
             />
           </div>
-          <span className="font-bold text-gray-900 text-sm tracking-wide">{homeTeam.shortName}</span>
+          <span className="font-semibold md:font-bold text-black text-[12px] md:text-[14px] md:tracking-wide">{homeTeam.shortName}</span>
         </div>
 
         {/* Score */}
-        <div className="flex flex-col items-center">
-          <div className="text-3xl font-bold text-gray-900 tracking-tight">
+        <div className="flex flex-col items-center justify-center w-[101px] h-[57px] shrink-0 md:w-auto md:h-auto">
+          <div className="text-[22px] md:text-3xl font-bold text-gray-900 md:tracking-tight">
             {score ? `${score.home} - ${score.away}` : 'vs'}
           </div>
           {status === 'live' && currentMinute && (
-            <span className="text-blue-500 text-sm font-bold mt-1">
+            <span className="text-blue-500 text-[13px] md:text-[14px] font-semibold md:font-bold mt-1">
               {currentMinute}'
             </span>
           )}
@@ -195,21 +194,24 @@ export function MatchCard({
         </div>
 
         {/* Away Team */}
-        <div className="flex flex-col items-center w-20">
-          <div className="mb-2">
+        <div className="flex flex-col items-center justify-center gap-1 w-[101px] h-[57px] shrink-0 md:w-20 md:h-auto">
+          <div className="md:mb-2">
             <TeamAvatar
               logo={awayTeam.logo}
               name={awayTeam.name}
               shortName={awayTeam.shortName}
-              size="lg"
+              size="md"
             />
           </div>
-          <span className="font-bold text-gray-900 text-sm tracking-wide">{awayTeam.shortName}</span>
+          <span className="font-semibold md:font-bold text-black text-[12px] md:text-[14px] md:tracking-wide">{awayTeam.shortName}</span>
         </div>
       </div>
 
+      {/* Divider */}
+      <div className="h-px bg-gray-200 w-full md:-mx-2 md:w-auto mb-[10px] md:mb-4" />
+
       {/* Predictions Section */}
-      <div className="flex-1 space-y-3">
+      <div className="flex-1 space-y-2 overflow-hidden min-h-0 md:-mx-2">
         {/* Visible Predictions */}
         {visiblePredictions.map((prediction, index) => (
           <PredictionBar
@@ -237,26 +239,29 @@ export function MatchCard({
       </div>
 
       {/* Footer */}
-      <div className="mt-4 pt-3">
+      <div className="mt-0 pt-2 shrink-0">
         {/* Predictions Count Divider */}
         {totalPredictions && totalPredictions > 0 && (
-          <div className="flex items-center justify-center mb-4">
+          <div className="flex items-center justify-center mb-3">
             <div className="flex-1 h-px bg-gray-200" />
-            <span className="px-4 text-xs text-gray-500 font-medium whitespace-nowrap">
-              {predictions.length} out of {totalPredictions} Predictions
+            <span className="px-3 text-xs text-gray-500 font-medium whitespace-nowrap">
+              <span className="md:hidden">{visiblePredictions.length} out of {totalPredictions} Predictions</span>
+              <span className="hidden md:inline">{predictions.length} out of {totalPredictions} Predictions</span>
             </span>
             <div className="flex-1 h-px bg-gray-200" />
           </div>
         )}
 
         {/* See More Button */}
-        <Button
-          onClick={onSeeMore}
-          className="w-full bg-[#0d1a67] hover:bg-[#0a1452] text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors"
-        >
+        <div className="flex justify-center">
+          <Button
+            onClick={handleCardClick}
+            className="w-[304px] md:w-[262px] h-[40px] bg-[#0d1a67] hover:bg-[#0a1452] text-white font-semibold rounded-xl flex items-center justify-center gap-2 transition-colors"
+          >
           {!isPremium && <img src="/Lock.svg" alt="" className="w-3.5 h-4" />}
-          {isPremium ? 'View Details' : 'See More'}
-        </Button>
+            See More
+          </Button>
+        </div>
 
         {/* Last Updated */}
         {lastUpdated && (

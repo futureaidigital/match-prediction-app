@@ -12,7 +12,7 @@ interface TeamAvatarProps {
 
 const sizeClasses = {
   sm: 'w-8 h-8',
-  md: 'w-10 h-10',
+  md: 'w-[34px] h-[34px]',
   lg: 'w-12 h-12',
 };
 
