@@ -74,3 +74,16 @@ export function useMultiplePlayerStatistics(playerIds: number[]) {
     })),
   });
 }
+
+// Fetch player details for multiple players using /players/player endpoint
+export function useMultiplePlayerDetails(playerIds: number[]) {
+  return useQueries({
+    queries: playerIds.map((player_id) => ({
+      queryKey: queryKeys.players.detail({ player_id }),
+      queryFn: () => api.getPlayer({ player_id }),
+      staleTime: 5 * 60 * 1000,
+      enabled: player_id > 0,
+      retry: false, // Don't retry 404s - player may not exist
+    })),
+  });
+}

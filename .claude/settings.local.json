@@ -6,7 +6,17 @@
       "Bash(TOKEN=\"eyJhbGciOiJSUzI1NiIsImtpZCI6IjdjNzQ5NTFmNjBhMDE0NzE3ZjFlMzA4ZDZiMjgwZjQ4ZjFlODhmZGEiLCJ0eXAiOiJKV1QifQ.eyJuYW1lIjoiRnJlZSBVc2VyIDE3NjI4NTI3ODkiLCJzdWJzY3JpcHRpb24iOnsidGllciI6ImZyZWUiLCJzdGF0dXMiOiJhY3RpdmUiLCJjcmVhdGVkX2F0IjoiMjAyNS0xMS0xMVQwOToxOTo1MS4xOTExNjUifSwiY291bnRyeSI6IkdCIiwiaXNzIjoiaHR0cHM6Ly9zZWN1cmV0b2tlbi5nb29nbGUuY29tL2ZvdXJ0aC1vZmZpY2lhbC1wcm9kIiwiYXVkIjoiZm91cnRoLW9mZmljaWFsLXByb2QiLCJhdXRoX3RpbWUiOjE3NjQ1NzUzODAsInVzZXJfaWQiOiJPRVRaYkFZSXhDZXdtSFRNNXcxTXU3Q0xjdGYxIiwic3ViIjoiT0VUWmJBWUl4Q2V3bUhUTTV3MU11N0NMY3RmMSIsImlhdCI6MTc2NDU3NTM4MCwiZXhwIjoxNzY0NTc4OTgwLCJlbWFpbCI6ImZyZWVAZm91cnRob2ZmaWNpYWwuYWkiLCJlbWFpbF92ZXJpZmllZCI6ZmFsc2UsImZpcmViYXNlIjp7ImlkZW50aXRpZXMiOnsiZW1haWwiOlsiZnJlZUBmb3VydGhvZmZpY2lhbC5haSJdfSwic2lnbl9pbl9wcm92aWRlciI6InBhc3N3b3JkIn19.r0bl6onznVUsCJOZlZKZeLW309H7KCjcS4tsFoO42QsVcNX4MIlYiqbhYgz1MKy5onGTrwtwDTKqpTM-_7Fue6SKyflz2HZLA7GOuCSBLoQxXD3roq3H_7q42oIAsgCGL7VXd5PENkK0aGTTPpLSiWt3HMBa8FiS3UZdB55PMqLonDzEtRefbdT0nWd5UgwSR3iJcrTOV_yoDq-GeMpf5qFngD_7DTeCo2SCW8zaJf0wycRPGJuV3oMuRHzV819-O1tsezJTa5dyRtk61-utoGHPkUyWYiH_-yaPfMNsLHjmmtz7jw-vWw-wH9DQUaWAm500voKRJVgOIRmttAhK2A\")",
       "Bash(curl:*)",
       "Bash(cmd /c dir \"C:\\Users\\USER\\Documents\\Development\\match-prediction-app\\public\\stadium-bg.jpg\")",
-      "Bash(powershell -Command \"Rename-Item ''C:\\Users\\USER\\Documents\\Development\\match-prediction-app\\public\\Group.png'' ''logo.png''\")"
+      "Bash(powershell -Command \"Rename-Item ''C:\\Users\\USER\\Documents\\Development\\match-prediction-app\\public\\Group.png'' ''logo.png''\")",
+      "Bash(tree:*)",
+      "Bash(TOKEN=\"eyJhbGciOiJSUzI1NiIsImtpZCI6IjM4MTFiMDdmMjhiODQxZjRiNDllNDgyNTg1ZmQ2NmQ1NWUzOGRiNWQiLCJ0eXAiOiJKV1QifQ.eyJuYW1lIjoiRnJlZSBVc2VyIDE3NjI4NTI4MDAiLCJzdWJzY3JpcHRpb24iOnsidGllciI6InByZW1pdW0iLCJzdGF0dXMiOiJhY3RpdmUiLCJzdWJzY3JpcHRpb25faWQiOiJzdWJfMVNTRGxIMDRDTkV3R1h4cnFPZmhuTlhGIiwiYWNjZXNzX2V4cGlyZXNfYXQiOm51bGwsInVwZGF0ZWRfYXQiOiIyMDI1LTEyLTExVDA5OjIyOjEyLjg3MjM1NCswMDowMCJ9LCJyb2xlIjoiYWN0aXZlIiwiaXNzIjoiaHR0cHM6Ly9zZWN1cmV0b2tlbi5nb29nbGUuY29tL2ZvdXJ0aC1vZmZpY2lhbC1wcm9kIiwiYXVkIjoiZm91cnRoLW9mZmljaWFsLXByb2QiLCJhdXRoX3RpbWUiOjE3NjU3Mzg5ODIsInVzZXJfaWQiOiJtWjRRODBueHBpV09GV0JSZU4zMVBtbHdDeUkyIiwic3ViIjoibVo0UTgwbnhwaVdPRldCUmVOMzFQbWx3Q3lJMiIsImlhdCI6MTc2NTczODk4MiwiZXhwIjoxNzY1NzQyNTgyLCJlbWFpbCI6InByZW1pdW1AZm91cnRob2ZmaWNpYWwuYWkiLCJlbWFpbF92ZXJpZmllZCI6ZmFsc2UsImZpcmViYXNlIjp7ImlkZW50aXRpZXMiOnsiZW1haWwiOlsicHJlbWl1bUBmb3VydGhvZmZpY2lhbC5haSJdfSwic2lnbl9pbl9wcm92aWRlciI6InBhc3N3b3JkIn19.Mq8y6BjTqEDbl9FhESRs_9u-smwUwqIhAPzPikY0eSK_WdmM1jnRVYQW_gDIh-cvLkIfptjiQskJ48iLnibXhYhdvXc1K6bJpzY8srVuNxY3_2ABNqBj1kWCytKxMKfsEigjagz-bDNqOsd6a_pycWJ2wuAaewBw7oy0V7TsI-b2ob_RTw2hNuGUdmi47YDGbKl96m_4Az_22q-D3TX5I8XwNq3Ewk56bjz6vGqywsMCNdr3ZhSIdtbcQn0A72ltBRNp1Nj2va7lrHGDPbg_fmhCf1XW99kIMxgR7c8eRlmQWQRELeSMjfdXG8vbNbdavwCzAkqoMyrUiGZ7rzdTvg\")",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push)",
+      "Bash(copy \"C:\\Users\\USER\\Downloads\\Unock.svg\" \"C:\\Users\\USER\\Documents\\Development\\match-prediction-app\\public\\icon-unlock.svg\")",
+      "Bash(copy \"C:\\Users\\USER\\Downloads\\Frame 2147224179.svg\" \"C:\\Users\\USER\\Documents\\Development\\match-prediction-app\\public\\cta-overlay.svg\")",
+      "Bash(cmd /c copy \"C:\\Users\\USER\\Downloads\\Unock.svg\" \"C:\\Users\\USER\\Documents\\Development\\match-prediction-app\\public\\icon-unlock.svg\")",
+      "Bash(cmd /c copy \"C:\\Users\\USER\\Downloads\\Frame 2147224179.svg\" \"C:\\Users\\USER\\Documents\\Development\\match-prediction-app\\public\\cta-overlay.svg\")",
+      "Bash(powershell -Command:*)"
     ],
     "deny": [],
     "ask": []

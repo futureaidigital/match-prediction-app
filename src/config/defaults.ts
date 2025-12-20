@@ -17,7 +17,7 @@ export const DEFAULTS = {
   UNKNOWN_TEAM: 'TBD',
 
   // Competition
-  COMPETITION: 'International Match',
+  COMPETITION: 'SPORTS Pred League',
   SMART_COMBO_COMPETITION: 'International • WC Qualification, UEFA',
 
   // Predictions

@@ -98,6 +98,8 @@ export const queryKeys = {
     all: ['players'] as const,
     list: (params?: Record<string, unknown>) =>
       ['players', 'list', params] as const,
+    detail: (params?: Record<string, unknown>) =>
+      ['players', 'detail', params] as const,
     watchlist: (params?: Record<string, unknown>) =>
       ['players', 'watchlist', params] as const,
     statistics: (params?: Record<string, unknown>) =>

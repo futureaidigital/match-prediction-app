@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo } from 'react';
-import { usePlayersWatchlist, useMultiplePlayerStatistics } from '@/hooks/usePlayers';
+import { usePlayersWatchlist, useMultiplePlayerStatistics, useMultiplePlayerDetails } from '@/hooks/usePlayers';
 import { ApiDebugInfo } from '@/components/ApiDebugInfo';
 import { PlayerStatisticsResponse } from '@/services/api';
 
@@ -115,72 +115,79 @@ function PlayerCard({ player, onViewProfile, variant = 'default' }: PlayerCardPr
     );
   }
 
-  // Default variant - compact card for desktop
+  // Default variant - compact card for desktop (335x302px)
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 px-4 py-2 flex-1 min-w-0 shadow-sm hover:shadow-md transition-shadow">
-      {/* Player Image */}
-      <div className="flex justify-center mb-4">
-        {player.image_path ? (
-          <img
-            src={player.image_path}
-            alt={playerName}
-            className="w-20 h-20 rounded-full object-cover border-4 border-gray-100 shadow-sm"
-          />
-        ) : (
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center border-4 border-gray-100 shadow-sm">
-            <span className="text-2xl font-bold text-white">
-              {playerName.slice(0, 2).toUpperCase()}
-            </span>
-          </div>
-        )}
+    <div className="bg-white rounded-2xl border border-gray-200 w-[335px] h-[302px] shrink-0 shadow-sm hover:shadow-md transition-shadow flex flex-col items-center pt-4">
+      {/* Top section: Photo, Name, Position/Team/Country - 224x142px box */}
+      <div className="w-[224px] h-[142px] flex flex-col items-center">
+        {/* Player Image - 80x80px */}
+        <div className="mb-2">
+          {player.image_path ? (
+            <img
+              src={player.image_path}
+              alt={playerName}
+              className="w-[80px] h-[80px] rounded-full object-cover border-4 border-gray-100 shadow-sm"
+            />
+          ) : (
+            <div className="w-[80px] h-[80px] rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center border-4 border-gray-100 shadow-sm">
+              <span className="text-2xl font-bold text-white">
+                {playerName.slice(0, 2).toUpperCase()}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Player Name - 18px Semibold Montserrat */}
+        <h3
+          className="text-center font-semibold text-gray-900 text-[18px] mb-1"
+          style={{ fontFamily: 'Montserrat, sans-serif' }}
+        >
+          {playerName}
+        </h3>
+
+        {/* Position with Club & Country - only show items that have values */}
+        <div className="flex items-center justify-center gap-1.5 text-[13px]">
+          <span className="font-medium text-[#0d1a67]">{positionName}</span>
+          {player.team_name && player.team_name !== 'Unknown' && (
+            <>
+              <span className="text-gray-300">|</span>
+              <span className="font-medium text-gray-600">{player.team_name.slice(0, 3).toUpperCase()}</span>
+            </>
+          )}
+          {player.country_name && player.country_name !== 'Unknown' && (
+            <>
+              <span className="text-gray-300">|</span>
+              <span className="font-medium text-gray-600">{player.country_name}</span>
+            </>
+          )}
+        </div>
       </div>
 
-      {/* Player Name */}
-      <h3 className="text-center font-bold text-gray-900 text-base mb-1">
-        {playerName}
-      </h3>
-
-      {/* Position with Club & Country */}
-      <div className="flex items-center justify-center gap-1.5 mb-4 text-xs text-gray-500">
-        <span className="font-medium">{positionName}</span>
-        {player.team_name && (
-          <>
-            <span className="text-gray-300">|</span>
-            <span className="font-medium text-gray-600">{player.team_name.slice(0, 3).toUpperCase()}</span>
-          </>
-        )}
-        {player.country_name && (
-          <>
-            <span className="text-gray-300">|</span>
-            <span className="font-medium text-gray-600">{player.country_name}</span>
-          </>
-        )}
-      </div>
-
-      {/* Stats Row - Each stat in its own box */}
-      <div className="flex items-center gap-2 mb-4">
-        <div className="flex-1 bg-gray-50 rounded-xl py-3 text-center">
-          <div className="text-lg font-bold text-gray-900">{player.goals ?? 0}</div>
-          <div className="text-xs text-gray-400">Goals</div>
+      {/* Stats Row - Each stat in its own grey box */}
+      <div className="flex items-center gap-2 px-4 mt-3 w-full">
+        <div className="flex-1 bg-gray-100 rounded-xl py-2.5 text-center">
+          <div className="text-[18px] font-bold text-gray-900">{player.goals ?? 0}</div>
+          <div className="text-[11px] text-gray-400">Goals</div>
         </div>
-        <div className="flex-1 bg-gray-50 rounded-xl py-3 text-center">
-          <div className="text-lg font-bold text-gray-900">{player.assists ?? 0}</div>
-          <div className="text-xs text-gray-400">Assists</div>
+        <div className="flex-1 bg-gray-100 rounded-xl py-2.5 text-center">
+          <div className="text-[18px] font-bold text-gray-900">{player.assists ?? 0}</div>
+          <div className="text-[11px] text-gray-400">Assists</div>
         </div>
-        <div className="flex-1 bg-gray-50 rounded-xl py-3 text-center">
-          <div className="text-lg font-bold text-gray-900">{player.appearances ?? 0}</div>
-          <div className="text-xs text-gray-400">Matches</div>
+        <div className="flex-1 bg-gray-100 rounded-xl py-2.5 text-center">
+          <div className="text-[18px] font-bold text-gray-900">{player.appearances ?? 0}</div>
+          <div className="text-[11px] text-gray-400">Matches</div>
         </div>
-        <div className="flex-1 bg-gray-50 rounded-xl py-3 text-center">
-          <div className="text-lg font-bold text-gray-900">{player.minutes_played ?? '-'}</div>
-          <div className="text-xs text-gray-400">Minutes</div>
+        <div className="flex-1 bg-gray-100 rounded-xl py-2.5 text-center">
+          <div className="text-[18px] font-bold text-gray-900">{player.minutes_played?.toLocaleString() ?? '-'}</div>
+          <div className="text-[11px] text-gray-400">Minutes</div>
         </div>
       </div>
 
       {/* View Profile Link */}
       <button
         onClick={() => onViewProfile?.(player.player_id)}
-        className="w-full text-center text-[#1e3a5f] text-sm font-semibold hover:text-[#1e3a5f]/80 transition-colors py-2"
+        className="w-full text-center text-[#0d1a67] text-[14px] font-semibold hover:text-[#0d1a67]/80 transition-colors py-3 mt-auto"
+        style={{ fontFamily: 'Montserrat, sans-serif' }}
       >
         View Profile
       </button>
@@ -209,34 +216,54 @@ export function PlayersToWatch() {
     return latestEntry?.player_ids || [];
   }, [watchlistResponse]);
 
-  // Step 2: Fetch statistics for each player
+  // Step 2: Fetch player details (name, image, team, nationality) from /players/player endpoint
+  const playerDetailsQueries = useMultiplePlayerDetails(playerIds);
+
+  // Step 3: Fetch statistics for each player
   const playerStatsQueries = useMultiplePlayerStatistics(playerIds);
 
-  // Check if any player stats are still loading
+  // Check if any queries are still loading
+  const isLoadingDetails = playerDetailsQueries.some((q) => q.isLoading);
   const isLoadingStats = playerStatsQueries.some((q) => q.isLoading);
 
-  // Transform player stats into display format
-  // NOTE: /players/statistics does NOT return image_path or player name - backend needs to add these
+  // Transform and merge player data from both endpoints
   const players = useMemo(() => {
-    return playerStatsQueries
-      .map((query) => {
-        if (!query.data?.data) return null;
-        const data = query.data.data as PlayerStatisticsResponse;
+    return playerIds
+      .map((playerId, index) => {
+        const detailsQuery = playerDetailsQueries[index];
+        const statsQuery = playerStatsQueries[index];
+
+        const playerData = detailsQuery?.data?.data?.player;
+        const statsData = statsQuery?.data?.data as PlayerStatisticsResponse | undefined;
+
+        // If we have neither details nor stats, skip this player
+        if (!playerData && !statsData) return null;
+
+        // Get nationality name from the nested object
+        const nationalityName = playerData?.nationality?.name || playerData?.country?.name;
+
+        // Get position from nested object or position_id
+        const positionId = playerData?.position?.id || playerData?.position_id || statsData?.position_id;
+
         return {
-          player_id: data.player_id,
-          position_id: data.position_id,
-          // These fields are NOT returned by the API currently:
-          // player_name, image_path, team_name, country_name
-          goals: data.statistics?.attacking?.goals || 0,
-          assists: data.statistics?.attacking?.assists || 0,
-          appearances: data.statistics?.appearances?.appearances || 0,
-          minutes_played: data.statistics?.appearances?.minutes_played || 0,
+          player_id: playerId,
+          position_id: positionId,
+          // Player details from /players/player endpoint
+          player_name: playerData?.display_name || playerData?.common_name || playerData?.player_name,
+          image_path: playerData?.image_path,
+          team_name: playerData?.team_name,
+          country_name: nationalityName,
+          // Statistics from /players/statistics endpoint
+          goals: statsData?.statistics?.attacking?.goals || 0,
+          assists: statsData?.statistics?.attacking?.assists || 0,
+          appearances: statsData?.statistics?.appearances?.appearances || 0,
+          minutes_played: statsData?.statistics?.appearances?.minutes_played || 0,
         };
       })
       .filter((p): p is NonNullable<typeof p> => p !== null);
-  }, [playerStatsQueries]);
+  }, [playerDetailsQueries, playerStatsQueries, playerIds]);
 
-  const isLoading = isLoadingWatchlist || isLoadingStats;
+  const isLoading = isLoadingWatchlist || isLoadingDetails || isLoadingStats;
   const error = watchlistError;
 
   const updateScrollButtons = () => {
@@ -280,7 +307,7 @@ export function PlayersToWatch() {
   if (isLoading) {
     return (
       <div
-        className="w-full rounded-2xl overflow-hidden"
+        className="w-full md:w-[1440px] md:h-[397px] md:rounded-2xl overflow-hidden"
         style={{ background: 'linear-gradient(to top right, #091143 65%, #11207f 100%)' }}
       >
         <div className="px-4 py-2">
@@ -318,12 +345,12 @@ export function PlayersToWatch() {
           </div>
         </div>
         {/* Desktop Loading */}
-        <div className="hidden md:block px-3 py-3">
-          <div className="flex gap-3">
+        <div className="hidden md:block px-[20px] py-[20px]">
+          <div className="flex gap-[20px]">
             {[1, 2, 3, 4].map((i) => (
               <div
                 key={i}
-                className="bg-white rounded-2xl border border-gray-200 p-4 flex-1 animate-pulse shadow-sm"
+                className="bg-white rounded-2xl border border-gray-200 p-4 w-[335px] h-[302px] shrink-0 animate-pulse shadow-sm"
               >
                 <div className="flex justify-center mb-4">
                   <div className="w-20 h-20 rounded-full bg-gray-200" />
@@ -351,7 +378,7 @@ export function PlayersToWatch() {
   if (error) {
     return (
       <div
-        className="w-full rounded-2xl overflow-hidden"
+        className="w-full md:w-[1440px] md:h-[397px] md:rounded-2xl overflow-hidden"
         style={{ background: 'linear-gradient(to top right, #091143 65%, #11207f 100%)' }}
       >
         <div className="px-4 py-2">
@@ -388,7 +415,7 @@ export function PlayersToWatch() {
   if (players.length === 0) {
     return (
       <div
-        className="w-full rounded-2xl overflow-hidden"
+        className="w-full md:w-[1440px] md:h-[397px] md:rounded-2xl overflow-hidden"
         style={{ background: 'linear-gradient(to top right, #091143 65%, #11207f 100%)' }}
       >
         <div className="px-4 py-2">
@@ -428,7 +455,7 @@ export function PlayersToWatch() {
 
   return (
     <div
-      className="w-full md:rounded-2xl overflow-hidden"
+      className="w-full md:w-[1440px] md:h-[397px] md:rounded-2xl overflow-hidden"
       style={{ background: 'linear-gradient(to top right, #091143 65%, #11207f 100%)' }}
     >
       {/* Header */}
@@ -529,12 +556,12 @@ export function PlayersToWatch() {
         </div>
       </div>
 
-      {/* Desktop: Horizontal Scroll */}
-      <div className="hidden md:block px-3 py-3">
+      {/* Desktop: Horizontal Scroll - 20px margin from container edges */}
+      <div className="hidden md:block px-[20px] py-[20px]">
         <div
           ref={scrollContainerRef}
           onScroll={updateScrollButtons}
-          className="flex gap-3"
+          className="flex gap-[20px]"
         >
           {players.map((player) => (
             <PlayerCard

@@ -7,15 +7,29 @@ export function LiveMatchBanner() {
 
   // Fetch live fixtures for carousel display
   const {
-    data: fixturesResponse,
-    isLoading: isLoadingFixtures,
-    error: fixturesError,
+    data: liveResponse,
+    isLoading: isLoadingLive,
   } = useFixtures({
     match_type: 'live',
     sort_by: 'kickoff_asc',
   });
 
-  const fixtures = fixturesResponse?.data?.fixtures || [];
+  // Fetch featured fixtures as fallback when no live matches
+  const {
+    data: featuredResponse,
+    isLoading: isLoadingFeatured,
+  } = useFixtures({
+    sort_by: 'kickoff_asc',
+  });
+
+  const liveFixtures = liveResponse?.data?.fixtures || [];
+  const featuredFixtures = featuredResponse?.data?.fixtures || [];
+
+  // Use live fixtures if available, otherwise fall back to featured
+  const isLive = liveFixtures.length > 0;
+  const fixtures = isLive ? liveFixtures : featuredFixtures;
+  const isLoading = isLoadingLive || (liveFixtures.length === 0 && isLoadingFeatured);
+
   const fixtureData = fixtures[activeIndex];
   const fixture = fixtureData?.fixture;
   const predictions = fixtureData?.predictions || [];
@@ -40,63 +54,137 @@ export function LiveMatchBanner() {
   }, [hasMultipleFixtures, fixtures.length]);
 
   // Loading state
-  if (isLoadingFixtures) {
+  if (isLoading) {
     return (
-      <div className="w-full rounded-xl overflow-hidden bg-gradient-to-b from-[#1a2a4a] to-[#0d1829] animate-pulse">
-        <div className="px-8 py-8">
-          <div className="h-4 bg-white/20 rounded w-48 mx-auto mb-4" />
-          <div className="flex items-center justify-center gap-8">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-white/20" />
-              <div className="h-6 bg-white/20 rounded w-16" />
+      <>
+        {/* Mobile Skeleton - matches MatchBanner mobile: 358x195px, rounded-[14px] */}
+        <div className="md:hidden w-[358px] h-[195px] mx-auto rounded-[14px] overflow-hidden animate-pulse"
+          style={{
+            backgroundImage: `linear-gradient(180deg, rgba(9, 17, 67, 0) 0%, rgba(9, 17, 67, 1) 100%), linear-gradient(0deg, rgba(13, 26, 103, 0.55) 0%, rgba(13, 26, 103, 0.55) 100%)`,
+            backgroundColor: '#0d1a67',
+          }}
+        >
+          <div className="flex flex-col h-full pt-[12px]">
+            {/* League Name & Live Badge */}
+            <div className="flex flex-col items-center gap-[2px] mb-[8px]">
+              <div className="h-[21px] bg-white/20 rounded w-40" />
+              <div className="h-[18px] bg-white/20 rounded w-12 mt-1" />
             </div>
-            <div className="h-12 bg-white/20 rounded w-24" />
-            <div className="flex items-center gap-4">
-              <div className="h-6 bg-white/20 rounded w-16" />
-              <div className="w-16 h-16 rounded-full bg-white/20" />
+
+            {/* Teams and Score Row */}
+            <div className="flex items-center justify-between px-[4px] mx-auto w-full max-w-[350px]">
+              {/* Home Team */}
+              <div className="w-[104px] flex items-center gap-[10px]">
+                <div className="w-[50px] h-[50px] rounded-lg bg-white/20" />
+                <div className="h-[24px] bg-white/20 rounded w-10" />
+              </div>
+
+              {/* Score */}
+              <div className="flex items-center gap-[4px]">
+                <div className="h-[46px] bg-white/20 rounded w-[90px]" />
+              </div>
+
+              {/* Away Team */}
+              <div className="w-[104px] flex items-center justify-end gap-[10px]">
+                <div className="h-[24px] bg-white/20 rounded w-10" />
+                <div className="w-[50px] h-[50px] rounded-lg bg-white/20" />
+              </div>
+            </div>
+
+            {/* Minutes */}
+            <div className="text-center mt-[4px]">
+              <div className="h-[21px] bg-white/20 rounded w-8 mx-auto" />
+            </div>
+
+            {/* Predictions */}
+            <div className="px-[14px] pb-[10px] mt-auto">
+              <div className="h-[17px] bg-white/20 rounded w-36 mb-[10px]" />
+              <div className="flex gap-[14px]">
+                <div className="h-[22px] bg-white/20 rounded w-24" />
+                <div className="h-[22px] bg-white/20 rounded w-28" />
+              </div>
             </div>
           </div>
         </div>
-        <div className="h-16 bg-[#0d1829]" />
-      </div>
+
+        {/* Desktop Skeleton - matches MatchBanner desktop: 1440x330px, rounded-[20px] */}
+        <div className="hidden md:block w-full max-w-[1440px] mx-auto h-[330px] rounded-[20px] overflow-hidden animate-pulse"
+          style={{
+            backgroundImage: `linear-gradient(180deg, rgba(9, 17, 67, 0) 0%, rgba(9, 17, 67, 1) 100%), linear-gradient(0deg, rgba(13, 26, 103, 0.55) 0%, rgba(13, 26, 103, 0.55) 100%)`,
+            backgroundColor: '#0d1a67',
+          }}
+        >
+          <div className="flex flex-col h-full pt-[12px]">
+            {/* League Name & Live Badge - 285x61px box */}
+            <div className="flex flex-col items-center mb-[20px] w-[285px] h-[61px] mx-auto">
+              {/* League name - 27px height */}
+              <div className="h-[27px] bg-white/20 rounded w-[285px]" />
+              {/* Live badge - 62x24px */}
+              <div className="h-[24px] bg-white/20 rounded w-[62px] mt-[10px]" />
+            </div>
+
+            {/* Teams and Score Row - 1228x92px */}
+            <div className="flex flex-col items-center w-[1228px] mx-auto">
+              {/* Main row with teams and score */}
+              <div className="flex items-center justify-between w-full">
+                {/* Home Team - 350px */}
+                <div className="flex items-center gap-[20px] w-[350px]">
+                  <div className="w-[90px] h-[90px] rounded-lg bg-white/20" />
+                  <div className="h-[33px] bg-white/20 rounded w-32" />
+                </div>
+
+                {/* Score - 150px center */}
+                <div className="flex items-center justify-center w-[150px]">
+                  <div className="h-[66px] bg-white/20 rounded w-[150px]" />
+                </div>
+
+                {/* Away Team - 350px */}
+                <div className="flex items-center justify-end gap-[20px] w-[350px]">
+                  <div className="h-[33px] bg-white/20 rounded w-32" />
+                  <div className="w-[90px] h-[90px] rounded-lg bg-white/20" />
+                </div>
+              </div>
+
+              {/* Minutes below score */}
+              <div className="h-[27px] bg-white/20 rounded w-10 mt-[8px]" />
+            </div>
+
+            {/* Predictions - 55px container */}
+            <div className="mt-auto h-[55px] px-6 flex flex-col justify-center mb-[20px]">
+              {/* Label - 12px height */}
+              <div className="h-[17px] bg-white/20 rounded w-40 mb-[6px]" />
+              {/* Pills - 22px height each */}
+              <div className="flex gap-[14px]">
+                <div className="h-[22px] bg-white/20 rounded-[4px] w-24" />
+                <div className="h-[22px] bg-white/20 rounded-[4px] w-28" />
+                <div className="h-[22px] bg-white/20 rounded-[4px] w-24" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </>
     );
   }
 
-  // Error or no data state
-  if (fixturesError || !fixture) {
+  // No data state (both live and featured are empty)
+  if (!fixture) {
     return (
-      <div className="w-full rounded-xl overflow-hidden bg-gradient-to-b from-[#1a2a4a] to-[#0d1829]">
+      <div className="w-[358px] h-[195px] md:w-full md:h-auto mx-auto rounded-xl overflow-hidden bg-gradient-to-b from-[#1a2a4a] to-[#0d1829]">
         <div className="px-8 py-12 text-center">
-          <p className="text-white/70">No live match available</p>
+          <p className="text-white/70">No matches available</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="relative">
-      <MatchBanner
-        fixture={fixture}
-        predictions={predictions}
-        showPredictions={true}
-      />
-
-      {/* Carousel Dots - Overlay on banner */}
-      {hasMultipleFixtures && (
-        <div className="absolute bottom-16 left-1/2 -translate-x-1/2 hidden md:flex items-center gap-1">
-          {fixtures.map((_, idx) => (
-            <button
-              key={idx}
-              onClick={() => setActiveIndex(idx)}
-              className={`h-0.5 rounded-full transition-all hover:bg-white/40 ${
-                idx === activeIndex
-                  ? 'w-5 bg-white/70'
-                  : 'w-2.5 bg-white/25'
-              }`}
-            />
-          ))}
-        </div>
-      )}
-    </div>
+    <MatchBanner
+      fixture={fixture}
+      predictions={predictions}
+      showPredictions={true}
+      carouselCount={fixtures.length}
+      activeIndex={activeIndex}
+      onCarouselChange={setActiveIndex}
+    />
   );
 }

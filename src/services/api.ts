@@ -208,22 +208,51 @@ export interface SmartComboPredictionList {
 // Player details from /players endpoint
 export interface Player {
   player_id: number;
+  player_name?: string;
   display_name?: string;
   name?: string;
   common_name?: string;
   firstname?: string;
   lastname?: string;
   position_id?: number;
-  position?: string;
+  position?: {
+    id?: number;
+    name?: string;
+    code?: string;
+  };
   country_id?: number;
-  nationality?: string;
+  nationality?: {
+    country_id?: number;
+    name?: string;
+    iso2?: string;
+  };
+  country?: {
+    country_id?: number;
+    name?: string;
+    iso2?: string;
+  };
   image_path?: string;
   team_id?: number;
   team_name?: string;
+  current_team?: {
+    team_id?: number;
+    jersey_number?: number;
+  };
   goals?: number;
   assists?: number;
   appearances?: number;
   minutes_played?: number;
+}
+
+// Response from /players/player endpoint (single player)
+export interface PlayerDetailResponse {
+  player: Player;
+  predictions?: Array<{
+    prediction_id?: number;
+    prediction_display_name?: string;
+    prediction?: number;
+    pre_game_prediction?: number;
+  }>;
 }
 
 export interface PlayersResponse {
@@ -338,6 +367,7 @@ export interface FixtureWithPredictions {
     home_team_score?: number;
     away_team_score?: number;
     minutes_elapsed?: number | null;
+    number_of_predictions?: number;
   };
   predictions: Array<{
     prediction_id?: number;
@@ -585,6 +615,17 @@ class ApiClient {
   }
 
   // Player endpoints
+
+  // Get single player details from /players/player endpoint
+  async getPlayer(params: {
+    player_id: number;
+  }): Promise<ApiResponse<PlayerDetailResponse>> {
+    const query = new URLSearchParams();
+    query.append('player_id', params.player_id.toString());
+    return this.request<PlayerDetailResponse>(`/players/player?${query.toString()}`);
+  }
+
+  // Legacy: kept for backwards compatibility but may not work with current API
   async getPlayers(params: {
     player_id?: number | number[];
     limit?: number;

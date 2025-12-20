@@ -47,18 +47,28 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
 
   const pageNumbers = getPageNumbers();
 
+  const canGoPrevious = currentPage > 1;
+  const canGoNext = currentPage < totalPages;
+
   return (
-    <div className="flex items-center justify-center gap-1">
+    <div className="flex items-center justify-center gap-2">
       {/* Previous Button */}
       <button
         onClick={() => onPageChange(currentPage - 1)}
-        disabled={currentPage === 1}
-        className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        disabled={!canGoPrevious}
+        className={`w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${
+          canGoPrevious
+            ? 'border border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
+            : 'border border-gray-200 bg-white text-gray-300 cursor-not-allowed'
+        }`}
         aria-label="Previous page"
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="15 18 9 12 15 6" />
-        </svg>
+        <img
+          src="/arrow-down.svg"
+          alt=""
+          className="w-[15px] h-auto rotate-90"
+          style={{ opacity: canGoPrevious ? 1 : 0.4 }}
+        />
       </button>
 
       {/* Page Numbers */}
@@ -66,7 +76,7 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
         page === '...' ? (
           <span
             key={`ellipsis-${index}`}
-            className="w-9 h-9 flex items-center justify-center text-gray-400 text-sm"
+            className="w-10 h-10 flex items-center justify-center text-gray-400 text-sm"
           >
             ...
           </span>
@@ -74,10 +84,10 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
           <button
             key={page}
             onClick={() => onPageChange(page as number)}
-            className={`w-9 h-9 flex items-center justify-center rounded-lg text-sm font-medium transition-colors ${
+            className={`w-10 h-10 flex items-center justify-center rounded-lg text-sm font-medium transition-colors ${
               currentPage === page
-                ? 'bg-[#1e3a5f] text-white'
-                : 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                ? 'border-2 border-[#091143] bg-white text-[#091143]'
+                : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
             }`}
           >
             {page}
@@ -88,13 +98,20 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
       {/* Next Button */}
       <button
         onClick={() => onPageChange(currentPage + 1)}
-        disabled={currentPage === totalPages}
-        className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        disabled={!canGoNext}
+        className={`w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${
+          canGoNext
+            ? 'bg-[#091143] text-white hover:bg-[#0a1452]'
+            : 'border border-gray-200 bg-white text-gray-300 cursor-not-allowed'
+        }`}
         aria-label="Next page"
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="9 18 15 12 9 6" />
-        </svg>
+        <img
+          src="/arrow-down.svg"
+          alt=""
+          className="w-[15px] h-auto -rotate-90"
+          style={{ filter: canGoNext ? 'brightness(0) invert(1)' : 'opacity(0.4)' }}
+        />
       </button>
     </div>
   );
