@@ -21,9 +21,10 @@ interface MatchBannerProps {
   carouselCount?: number;
   activeIndex?: number;
   onCarouselChange?: (index: number) => void;
+  isPremium?: boolean;
 }
 
-export function MatchBanner({ fixture, predictions = [], showPredictions = false, carouselCount = 0, activeIndex = 0, onCarouselChange }: MatchBannerProps) {
+export function MatchBanner({ fixture, predictions = [], showPredictions = false, carouselCount = 0, activeIndex = 0, onCarouselChange, isPremium = false }: MatchBannerProps) {
   const homeScore = fixture.home_team_score ?? 0;
   const awayScore = fixture.away_team_score ?? 0;
 
@@ -167,6 +168,7 @@ export function MatchBanner({ fixture, predictions = [], showPredictions = false
                   const percentage = Math.round(pred.prediction || pred.pre_game_prediction || 0);
                   const isHighConfidence = percentage >= 70;
                   const isLowConfidence = percentage < 50;
+                  const shouldBlur = !isPremium && idx > 0;
 
                   return (
                     <div
@@ -175,7 +177,7 @@ export function MatchBanner({ fixture, predictions = [], showPredictions = false
                       style={{ boxShadow: '0 0 20px rgba(0, 0, 0, 0.04)' }}
                     >
                       <span
-                        className={`text-[12px] font-semibold leading-[18px] ${
+                        className={`text-[12px] font-semibold leading-[18px] ${shouldBlur ? 'blur-[2px] select-none' : ''} ${
                           isHighConfidence
                             ? 'text-[#27ae60]'
                             : isLowConfidence
@@ -187,7 +189,7 @@ export function MatchBanner({ fixture, predictions = [], showPredictions = false
                         {percentage}%
                       </span>
                       <span
-                        className="text-white text-[12px] font-medium leading-[18px] whitespace-nowrap"
+                        className={`text-white text-[12px] font-medium leading-[18px] whitespace-nowrap ${shouldBlur ? 'blur-[2px] select-none' : ''}`}
                         style={{ fontFamily: 'Montserrat, sans-serif' }}
                       >
                         {pred.prediction_display_name || 'Prediction'}
@@ -357,6 +359,7 @@ export function MatchBanner({ fixture, predictions = [], showPredictions = false
                   const percentage = Math.round(pred.prediction || pred.pre_game_prediction || 0);
                   const isHighConfidence = percentage >= 70;
                   const isLowConfidence = percentage < 50;
+                  const shouldBlur = !isPremium && idx > 0;
 
                   return (
                     <div
@@ -365,7 +368,7 @@ export function MatchBanner({ fixture, predictions = [], showPredictions = false
                       style={{ boxShadow: '0 0 20px rgba(0, 0, 0, 0.04)' }}
                     >
                       <span
-                        className={`text-[12px] font-semibold leading-[18px] ${
+                        className={`text-[12px] font-semibold leading-[18px] ${shouldBlur ? 'blur-[2px] select-none' : ''} ${
                           isHighConfidence
                             ? 'text-[#27ae60]'
                             : isLowConfidence
@@ -377,7 +380,7 @@ export function MatchBanner({ fixture, predictions = [], showPredictions = false
                         {percentage}%
                       </span>
                       <span
-                        className="text-white text-[12px] font-medium leading-[18px] whitespace-nowrap"
+                        className={`text-white text-[12px] font-medium leading-[18px] whitespace-nowrap ${shouldBlur ? 'blur-[2px] select-none' : ''}`}
                         style={{ fontFamily: 'Montserrat, sans-serif' }}
                       >
                         {pred.prediction_display_name || 'Prediction'}

@@ -2,7 +2,11 @@ import { useState, useEffect } from 'react';
 import { useFixtures } from '@/hooks/useFixtures';
 import { MatchBanner } from '@/components/MatchBanner';
 
-export function LiveMatchBanner() {
+interface LiveMatchBannerProps {
+  isPremium?: boolean;
+}
+
+export function LiveMatchBanner({ isPremium = false }: LiveMatchBannerProps) {
   const [activeIndex, setActiveIndex] = useState(0);
 
   // Fetch live fixtures for carousel display
@@ -185,6 +189,7 @@ export function LiveMatchBanner() {
       carouselCount={fixtures.length}
       activeIndex={activeIndex}
       onCarouselChange={setActiveIndex}
+      isPremium={isPremium}
     />
   );
 }
