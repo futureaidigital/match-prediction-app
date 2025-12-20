@@ -7,11 +7,13 @@ interface PlayerCardProps {
   player: {
     player_id: number;
     position_id?: number;
+    position_name?: string;
     goals?: number;
     assists?: number;
     appearances?: number;
     minutes_played?: number;
     player_name?: string;
+    team_id?: number;
     team_name?: string;
     country_name?: string;
     image_path?: string;
@@ -20,8 +22,9 @@ interface PlayerCardProps {
   variant?: 'default' | 'mobile';
 }
 
-// Map position IDs to display names
-const getPositionName = (positionId?: number): string => {
+// Map position IDs to display names (fallback if API doesn't provide name)
+const getPositionName = (positionName?: string, positionId?: number): string => {
+  if (positionName) return positionName;
   const positions: Record<number, string> = {
     24: 'Goalkeeper',
     25: 'Defender',
@@ -38,7 +41,9 @@ const getPlayerName = (playerId: number, name?: string): string => {
 };
 
 function PlayerCard({ player, onViewProfile, variant = 'default' }: PlayerCardProps) {
-  const positionName = getPositionName(player.position_id);
+  const positionName = getPositionName(player.position_name, player.position_id);
+  // Use team_name if available, otherwise show team_id
+  const teamDisplay = player.team_name || (player.team_id ? `Team ${player.team_id}` : undefined);
   const playerName = getPlayerName(player.player_id, player.player_name);
 
   // Mobile variant - larger card with more details
@@ -70,10 +75,10 @@ function PlayerCard({ player, onViewProfile, variant = 'default' }: PlayerCardPr
         {/* Position with Club & Country */}
         <div className="flex items-center justify-center gap-2 mb-6 text-sm text-gray-500">
           <span className="font-medium text-[#0d1a67]">{positionName}</span>
-          {player.team_name && (
+          {teamDisplay && (
             <>
               <span className="text-gray-300">|</span>
-              <span className="font-medium text-gray-600">{player.team_name.slice(0, 3).toUpperCase()}</span>
+              <span className="font-medium text-gray-600">{teamDisplay.slice(0, 3).toUpperCase()}</span>
             </>
           )}
           {player.country_name && (
@@ -148,10 +153,10 @@ function PlayerCard({ player, onViewProfile, variant = 'default' }: PlayerCardPr
         {/* Position with Club & Country - only show items that have values */}
         <div className="flex items-center justify-center gap-1.5 text-[13px]">
           <span className="font-medium text-[#0d1a67]">{positionName}</span>
-          {player.team_name && player.team_name !== 'Unknown' && (
+          {teamDisplay && teamDisplay !== 'Unknown' && (
             <>
               <span className="text-gray-300">|</span>
-              <span className="font-medium text-gray-600">{player.team_name.slice(0, 3).toUpperCase()}</span>
+              <span className="font-medium text-gray-600">{teamDisplay.slice(0, 3).toUpperCase()}</span>
             </>
           )}
           {player.country_name && player.country_name !== 'Unknown' && (
@@ -244,14 +249,21 @@ export function PlayersToWatch() {
 
         // Get position from nested object or position_id
         const positionId = playerData?.position?.id || playerData?.position_id || statsData?.position_id;
+        const positionName = playerData?.position?.name;
+
+        // Get team info - team_id is available, team_name might not be
+        const teamId = playerData?.current_team?.team_id;
+        const teamName = playerData?.team_name;
 
         return {
           player_id: playerId,
           position_id: positionId,
+          position_name: positionName,
           // Player details from /players/player endpoint
           player_name: playerData?.display_name || playerData?.common_name || playerData?.player_name,
           image_path: playerData?.image_path,
-          team_name: playerData?.team_name,
+          team_id: teamId,
+          team_name: teamName,
           country_name: nationalityName,
           // Statistics from /players/statistics endpoint
           goals: statsData?.statistics?.attacking?.goals || 0,
