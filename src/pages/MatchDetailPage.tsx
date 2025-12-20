@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react'; // useState still used for activeTab
 import { useParams, useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
@@ -9,7 +9,9 @@ type TabType = 'predictions' | 'commentary' | 'stats' | 'lineups';
 
 // Prediction card component with expand/collapse
 function PredictionCard({ prediction, index, isLive }: { prediction: any; index: number; isLive: boolean }) {
-  const [isExpanded, setIsExpanded] = useState(index === 1); // Second card expanded by default
+  // Featured predictions are always expanded, non-featured are always collapsed
+  const isFeatured = prediction.is_featured === true;
+  const isExpanded = isFeatured;
 
   const percentage = Math.round(prediction.prediction || prediction.pre_game_prediction || 0);
   const preGamePercentage = Math.round(prediction.pre_game_prediction || 0);
@@ -26,9 +28,8 @@ function PredictionCard({ prediction, index, isLive }: { prediction: any; index:
   return (
     <div className={`rounded-xl overflow-hidden ${isExpanded ? 'bg-[#0d1a67] pt-4 px-2.5 pb-2.5' : 'border border-gray-200'}`}>
       {/* Header */}
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className={`w-full flex items-center justify-between transition-colors ${
+      <div
+        className={`w-full flex items-center justify-between ${
           isExpanded ? 'px-1 pb-4' : 'bg-white px-5 py-4'
         }`}
       >
@@ -45,19 +46,8 @@ function PredictionCard({ prediction, index, isLive }: { prediction: any; index:
               Player
             </span>
           )}
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            className={`transition-transform ${isExpanded ? 'text-white rotate-180' : 'text-gray-400'}`}
-          >
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
         </div>
-      </button>
+      </div>
 
       {/* Content - White background */}
       <div className={`bg-white px-5 py-4 ${isExpanded ? 'rounded-lg' : ''}`}>
