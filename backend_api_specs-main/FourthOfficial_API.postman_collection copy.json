@@ -1,0 +1,1833 @@
+{
+  "info": {
+    "_postman_id": "fourthofficial-api-collection",
+    "name": "FourthOfficial Complete API Collection",
+    "description": "Complete API testing collection for FourthOfficial sports betting platform.\n\n## Features\n- Firebase Authentication\n- Sports Data Endpoints (Leagues, Teams, Fixtures)\n- Smart Combos & Predictions\n- Complete Payment Integration (Stripe & Paystack)\n- User Management\n- Subscription Management\n\n## Payment Providers\n\n### Stripe (UK, EU, US)\n- Card subscriptions (weekly, monthly, yearly)\n- Payment Element integration\n- Subscription management\n\n### Paystack (Ghana, Nigeria, Kenya, South Africa)\n- One-time payments for time-based access (3, 7, 30 days)\n- Mobile money (MTN, Vodafone, Tigo, M-Pesa)\n- Card subscriptions\n- USSD payments\n\n## Setup\n1. Import this collection and environment file\n2. Set base_url (default: http://localhost:8000)\n3. Register/login to get auth token\n4. Test endpoints based on your region\n\n## Testing Flow\n1. Authentication → Register/Login\n2. User Profile → Get/Update user info\n3. Sports Data → Browse leagues, teams, fixtures\n4. Payments → Create customer, initialize payment\n5. Subscriptions → Check status, manage subscription",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Registration successful\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains user data\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success', true);",
+                  "    pm.expect(jsonData.data).to.have.property('user');",
+                  "    pm.expect(jsonData.data.user).to.have.property('id');",
+                  "    pm.expect(jsonData.data.user).to.have.property('email');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test{{$timestamp}}@fourthofficial.ai\",\n  \"password\": \"TestPassword123!\",\n  \"name\": \"Test User {{$timestamp}}\",\n  \"country\": \"GB\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/auth/register",
+            "description": "Register a new user with Firebase Authentication"
+          }
+        },
+        {
+          "name": "Login User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Login successful\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains Firebase tokens\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success', true);",
+                  "    pm.expect(jsonData.data).to.have.property('access_token');",
+                  "    pm.expect(jsonData.data).to.have.property('refresh_token');",
+                  "    ",
+                  "    // Set Firebase ID token for subsequent requests",
+                  "    if (jsonData.data.access_token) {",
+                  "        pm.environment.set('auth_token', jsonData.data.access_token);",
+                  "    }",
+                  "    ",
+                  "    // Store refresh token",
+                  "    if (jsonData.data.refresh_token) {",
+                  "        pm.environment.set('refresh_token', jsonData.data.refresh_token);",
+                  "    }",
+                  "",
+                  "    // Set user ID if available",
+                  "    if (jsonData.data.user && jsonData.data.user.id) {",
+                  "        pm.environment.set('user_id', jsonData.data.user.id);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@fourthofficial.ai\",\n  \"password\": \"TestPassword123!\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/auth/login",
+            "description": "Login with email and password to get Firebase tokens"
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/auth/refresh-token",
+            "description": "Refresh Firebase ID token using refresh token"
+          }
+        },
+        {
+          "name": "Forgot Password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Password reset email sent\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response confirms email sent\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success', true);",
+                  "    pm.expect(jsonData.data).to.have.property('message');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/auth/forgot-password",
+            "description": "Send password reset email to user"
+          }
+        },
+        {
+          "name": "Reset Password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Password reset successful\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response confirms password reset\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success', true);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"oob_code\": \"{{reset_code}}\",\n  \"new_password\": \"NewPassword123!\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/auth/reset-password",
+            "description": "Reset password using code from email"
+          }
+        },
+        {
+          "name": "Update Password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Password updated successfully\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response confirms password update\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success', true);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"CurrentPassword123!\",\n  \"new_password\": \"NewPassword123!\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/auth/update-password",
+            "description": "Update password for authenticated user (requires current password)"
+          }
+        },
+        {
+          "name": "Logout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Logout successful\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Clear stored tokens\", function () {",
+                  "    pm.environment.unset('auth_token');",
+                  "    pm.environment.unset('refresh_token');",
+                  "    pm.environment.unset('user_id');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/auth/logout",
+            "description": "Logout user and invalidate session"
+          }
+        },
+        {
+          "name": "Verify Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"oob_code\": \"{{verification_code}}\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/auth/verify-email",
+            "description": "Verify email address using code from email"
+          }
+        },
+        {
+          "name": "Resend Verification Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/auth/resend-verification",
+            "description": "Resend email verification link to current user"
+          }
+        }
+      ]
+    },
+    {
+      "name": "User Management",
+      "item": [
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/users/me",
+            "description": "Get current authenticated user profile"
+          }
+        },
+        {
+          "name": "Update User Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Name\",\n  \"country\": \"GH\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/users/me",
+            "description": "Update user profile information"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "Get Subscription Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/payments/subscription-status",
+            "description": "Get current subscription status. Works for both Stripe subscriptions and Paystack time-based access.\n\nReturns:\n- access_type: 'subscription' or 'time_based'\n- access_expires_at: When access ends\n- provider: Payment provider being used"
+          }
+        },
+        {
+          "name": "Get Subscription Pricing",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "description": "Optional - uses CF-IPCountry if not authenticated",
+                "disabled": false
+              }
+            ],
+            "url": "{{base_url}}/api/v1/payments/subscription-pricing",
+            "description": "Get pricing based on user's country. Authentication optional.\n\nReturns country-specific pricing in appropriate currency."
+          }
+        },
+        {
+          "name": "Create Customer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Customer created successfully\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains customer ID\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('customer_id');",
+                  "    ",
+                  "    // Save customer ID",
+                  "    if (jsonData.data.customer_id) {",
+                  "        pm.environment.set('customer_id', jsonData.data.customer_id);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{user_email}}\",\n  \"name\": \"John Doe\",\n  \"phone\": \"+447700900000\",\n  \"address\": {\n    \"line1\": \"123 Main Street\",\n    \"city\": \"London\",\n    \"postal_code\": \"SW1A 1AA\",\n    \"country\": \"GB\"\n  }\n}"
+            },
+            "url": "{{base_url}}/api/v1/payments/create-customer",
+            "description": "Create or get existing payment customer.\n\nProvider auto-selected based on country:\n- UK/EU/US → Stripe\n- GH/NG/KE/ZA → Paystack"
+          }
+        },
+        {
+          "name": "Cancel Subscription",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Too expensive\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/payments/cancel-subscription",
+            "description": "Cancel subscription at period end.\n\n**Subscriptions:** Cancels at period end\n**Time-based access:** Prevents renewal\n\nWorks for both Stripe and Paystack."
+          }
+        },
+        {
+          "name": "Create Subscription Intent",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Subscription intent created\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains client secret\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('client_secret');",
+                  "    pm.expect(jsonData.data).to.have.property('subscription_id');",
+                  "    ",
+                  "    // Save for later use",
+                  "    if (jsonData.data.client_secret) {",
+                  "        pm.environment.set('payment_client_secret', jsonData.data.client_secret);",
+                  "    }",
+                  "    if (jsonData.data.subscription_id) {",
+                  "        pm.environment.set('subscription_id', jsonData.data.subscription_id);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"provider_subscription_type_id\": \"price_monthly_premium\",\n  \"metadata\": {\n    \"source\": \"mobile_app\"\n  }\n}"
+            },
+            "url": "{{base_url}}/api/v1/payments/create-subscription-intent",
+            "description": "Create subscription with payment intent.\n\n**For Stripe (UK/EU/US):**\n- provider_subscription_type_id: price_monthly_premium, price_yearly_premium, etc.\n- Returns client_secret for Payment Element\n\n**For Paystack (GH/NG/KE/ZA):**\n- provider_subscription_type_id: Plan code (PLN_monthly_premium)\n- Returns authorization_url\n\nProvider auto-selected by user's country."
+          }
+        },
+        {
+          "name": "Change Subscription Plan",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subscription_id\": \"{{subscription_id}}\",\n  \"new_provider_subscription_type_id\": \"price_yearly_premium\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/payments/change-subscription-plan",
+            "description": "Change subscription plan.\n\n- Upgrades: Immediate with proration\n- Downgrades: Scheduled for period end"
+          }
+        },
+        {
+          "name": "Update Payment Setup",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subscription_id\": \"{{subscription_id}}\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/payments/update-payment-setup",
+            "description": "Create setup intent for updating payment method on existing subscription"
+          }
+        },
+        {
+          "name": "List Invoices",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/payments/invoices?limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payments", "invoices"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "starting_after",
+                  "value": "in_ABC123",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List customer invoices with pagination"
+          }
+        },
+        {
+          "name": "Test Complete Payment (Dev Only)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Test payment completed\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Subscription activated\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('subscription_id');",
+                  "    pm.expect(jsonData.data).to.have.property('subscription_status');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"client_secret\": \"{{payment_client_secret}}\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/payments/test-complete-payment",
+            "description": "TEST ONLY: Complete payment with test card.\n\n**Stripe Test Mode Only** (sk_test_*)\nAutomatically uses pm_card_visa test card."
+          }
+        },
+        {
+          "name": "Initialize Payment (One-time)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Payment initialized\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains payment info\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('reference');",
+                  "    ",
+                  "    // Save reference",
+                  "    if (jsonData.data.reference) {",
+                  "        pm.environment.set('payment_reference', jsonData.data.reference);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 5000,\n  \"payment_method\": \"mtn\",\n  \"phone_number\": \"+233201234567\",\n  \"currency\": \"GHS\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/payments/initialize-payment",
+            "description": "Initialize payment (Paystack-specific for one-time/mobile money).\n\n**One-Time Payment (Time-based access):**\n- payment_method: mtn, vodafone, tigo, mpesa, ussd, card\n- amount: Required (500=3days, 1000=7days, 3500=30days)\n- phone_number: Required for mobile money\n- currency: GHS, NGN, etc.\n\n**Subscription (Card only):**\n- payment_method: card\n- plan_code: Required (no amount needed)\n\nProvider is auto-selected based on country."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sports Data",
+      "item": [
+        {
+          "name": "Get Fixtures (Default - 7 Days)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has fixture_ids array\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('fixture_ids');",
+                  "    pm.expect(jsonData.data.fixture_ids).to.be.an('array');",
+                  "    ",
+                  "    // Store some fixture IDs for testing pagination",
+                  "    if (jsonData.data.fixture_ids.length > 0) {",
+                  "        pm.environment.set('test_fixture_ids', jsonData.data.fixture_ids.slice(6, 12).join(','));",
+                  "        pm.environment.set('first_fixture_id', jsonData.data.fixture_ids[0]);",
+                  "    }",
+                  "});",
+                  "",
+                  "pm.test(\"Response has fixtures array with max 6 items\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('fixtures');",
+                  "    pm.expect(jsonData.data.fixtures).to.be.an('array');",
+                  "    pm.expect(jsonData.data.fixtures.length).to.be.at.most(6);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/fixtures",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "fixtures"]
+            },
+            "description": "Get all fixture IDs for the next 7 days (default date range) and full data for the first 6 fixtures. No filters applied."
+          }
+        },
+        {
+          "name": "Get Fixtures (With Filters)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has correct structure\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('fixture_ids');",
+                  "    pm.expect(jsonData.data).to.have.property('fixtures');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/fixtures?leagues=1,2,3&match_type=upcoming&sort_by=kickoff_asc&date_from=2025-09-10&date_to=2025-09-17",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "fixtures"],
+              "query": [
+                {
+                  "key": "leagues",
+                  "value": "1,2,3",
+                  "description": "Comma-separated league IDs to filter by (optional)"
+                },
+                {
+                  "key": "match_type",
+                  "value": "upcoming",
+                  "description": "Filter by match state: 'live', 'upcoming', or 'finished' (optional)"
+                },
+                {
+                  "key": "sort_by",
+                  "value": "kickoff_asc",
+                  "description": "Sort by: 'kickoff_asc', 'kickoff_desc', 'prediction_accuracy_asc', 'prediction_accuracy_desc'"
+                },
+                {
+                  "key": "date_from",
+                  "value": "2025-09-10",
+                  "description": "Start date in YYYY-MM-DD format (optional)"
+                },
+                {
+                  "key": "date_to",
+                  "value": "2025-09-17",
+                  "description": "End date in YYYY-MM-DD format (optional)"
+                }
+              ]
+            },
+            "description": "Get fixtures with filtering options:\n- **leagues**: Filter by specific league IDs\n- **match_type**: Filter by match state (live/upcoming/finished)\n- **sort_by**: Sort results by kickoff time or prediction accuracy\n- **date_from/date_to**: Custom date range (defaults to 7 days if not provided)\n\nReturns all matching fixture IDs and full data for first 6."
+          }
+        },
+        {
+          "name": "Get Fixtures (Live Matches)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/fixtures?match_type=live&sort_by=kickoff_desc",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "fixtures"],
+              "query": [
+                {
+                  "key": "match_type",
+                  "value": "live",
+                  "description": "Get only live matches"
+                },
+                {
+                  "key": "sort_by",
+                  "value": "kickoff_desc",
+                  "description": "Sort by most recent kickoff first"
+                }
+              ]
+            },
+            "description": "Get only live/in-play matches, sorted by kickoff time (most recent first)."
+          }
+        },
+        {
+          "name": "Get Fixtures (Sort by Prediction Accuracy)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/fixtures?sort_by=prediction_accuracy_desc",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "fixtures"],
+              "query": [
+                {
+                  "key": "sort_by",
+                  "value": "prediction_accuracy_desc",
+                  "description": "Sort by highest prediction accuracy first"
+                },
+                {
+                  "key": "leagues",
+                  "value": "1,2",
+                  "description": "Optional: Filter by specific leagues",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get fixtures sorted by prediction accuracy (highest prediction values first). This uses MongoDB aggregation to join with predictions and sort by the maximum prediction value per fixture."
+          }
+        },
+        {
+          "name": "Get Fixtures (Custom Date Range)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/fixtures?date_from=2025-09-15&date_to=2025-09-16",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "fixtures"],
+              "query": [
+                {
+                  "key": "date_from",
+                  "value": "2025-09-15",
+                  "description": "Start date (inclusive)"
+                },
+                {
+                  "key": "date_to",
+                  "value": "2025-09-16",
+                  "description": "End date (inclusive - includes entire day)"
+                }
+              ]
+            },
+            "description": "Get fixtures for a specific date range. Date range overrides the default 7-day window."
+          }
+        },
+        {
+          "name": "Get Fixtures (Specific IDs)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has fixtures array only\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('fixtures');",
+                  "    pm.expect(jsonData.data.fixtures).to.be.an('array');",
+                  "    // Should NOT have fixture_ids when requesting specific fixtures",
+                  "    pm.expect(jsonData.data).to.not.have.property('fixture_ids');",
+                  "});",
+                  "",
+                  "pm.test(\"Each fixture has basic info and predictions\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    if (jsonData.data.fixtures.length > 0) {",
+                  "        const fixture = jsonData.data.fixtures[0];",
+                  "        pm.expect(fixture).to.have.property('fixture');",
+                  "        pm.expect(fixture).to.have.property('predictions');",
+                  "        pm.expect(fixture.fixture).to.have.property('fixture_id');",
+                  "        pm.expect(fixture.predictions).to.be.an('array');",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/fixtures?fixture_ids={{test_fixture_ids}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "fixtures"],
+              "query": [
+                {
+                  "key": "fixture_ids",
+                  "value": "{{test_fixture_ids}}",
+                  "description": "Comma-separated fixture IDs (e.g., '123,456,789'). Use for pagination - fetches full data for specific fixtures."
+                }
+              ]
+            },
+            "description": "Get full fixture data with predictions for specific fixture IDs. Used for pagination when user scrolls to load more fixtures."
+          }
+        },
+        {
+          "name": "Get Fixture Commentary (Success)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Test for successful response",
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has correct structure\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success', true);",
+                  "    pm.expect(jsonData.data).to.have.property('fixture_id');",
+                  "    pm.expect(jsonData.data).to.have.property('total_commentaries');",
+                  "    pm.expect(jsonData.data).to.have.property('league_id');",
+                  "    pm.expect(jsonData.data).to.have.property('starting_at');",
+                  "    pm.expect(jsonData.data).to.have.property('commentaries');",
+                  "});",
+                  "",
+                  "pm.test(\"Commentaries array is valid\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.commentaries).to.be.an('array');",
+                  "    pm.expect(jsonData.data.total_commentaries).to.equal(jsonData.data.commentaries.length);",
+                  "    ",
+                  "    // Validate commentary structure",
+                  "    if (jsonData.data.commentaries.length > 0) {",
+                  "        const commentary = jsonData.data.commentaries[0];",
+                  "        pm.expect(commentary).to.have.property('commentary_id');",
+                  "        pm.expect(commentary).to.have.property('comment');",
+                  "        pm.expect(commentary).to.have.property('is_goal');",
+                  "        pm.expect(commentary).to.have.property('is_important');",
+                  "        pm.expect(commentary).to.have.property('order');",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/fixtures/19427561/commentary",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "fixtures", "19427561", "commentary"]
+            },
+            "description": "Get all commentary entries for a specific fixture from the commentaries_refactor collection.\n\n**Example:** Manchester City vs Liverpool (fixture_id: 19427561)\n\n**Returns:**\n- fixture_id: The fixture identifier (int)\n- total_commentaries: Count of commentary entries (int)\n- league_id: League identifier - 8 = Premier League (int)\n- starting_at: Match start time (string: \"YYYY-MM-DD HH:MM:SS\")\n- commentaries: Array of commentary objects with:\n  - commentary_id: Unique commentary ID (int)\n  - comment: The commentary text (string)\n  - minute: Match minute (int or null for pre/post match)\n  - extra_minute: Extra time minute (int or null)\n  - is_goal: Boolean flag for goal events (bool)\n  - is_important: Boolean flag for important events (bool)\n  - order: Sort order for frontend display (int)\n\n**Success Response Example:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"fixture_id\": 19427561,\n    \"total_commentaries\": 126,\n    \"league_id\": 8,\n    \"starting_at\": \"2025-11-09 16:30:00\",\n    \"commentaries\": [\n      {\n        \"commentary_id\": 9761129,\n        \"comment\": \"The opening half kicks off...\",\n        \"minute\": null,\n        \"extra_minute\": null,\n        \"is_goal\": false,\n        \"is_important\": false,\n        \"order\": 1\n      },\n      ...\n    ]\n  }\n}\n```"
+          }
+        },
+        {
+          "name": "Get Fixture Commentary (No Commentary Available)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Test for 404 error response",
+                  "pm.test(\"Status code is 404\", function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test(\"Error message contains COMMENTARIES_NOT_AVAILABLE\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.detail).to.include('COMMENTARIES_NOT_AVAILABLE');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/fixtures/18446328/commentary",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "fixtures", "18446328", "commentary"]
+            },
+            "description": "Test error case when commentaries are not available for a fixture.\n\n**Example:** Cambridge United vs Northampton Town (fixture_id: 18446328)\nThis fixture has an empty commentaries array.\n\n**Error Response (404):**\n```json\n{\n  \"status_code\": 404,\n  \"detail\": \"COMMENTARIES_NOT_AVAILABLE: Commentaries are not available for this fixture.\"\n}\n```\n\n**Error Conditions:**\n- Fixture document not found in database\n- Commentaries field is null\n- Commentaries array is empty []\n\n**Frontend Usage:**\nParse the error detail for \"COMMENTARIES_NOT_AVAILABLE\" to display a custom graphic informing users that commentaries are unavailable for this match."
+          }
+        },
+        {
+          "name": "Get Fixture Weather",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/fixtures/{{fixture_id}}/weather",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "fixtures", "{{fixture_id}}", "weather"]
+            },
+            "description": "Get weather snapshot for the fixture window."
+          }
+        },
+        {
+          "name": "Get Fixture Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/fixtures/{{fixture_id}}/statistics",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "fixtures", "{{fixture_id}}", "statistics"]
+            },
+            "description": "Get basic and advanced statistics for a fixture."
+          }
+        },
+        {
+          "name": "List Fixture Predictions (Detailed)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/fixtures/predictions?fixture_id={{fixture_id}}&sort_by=pct_change&sort_order=desc&limit=50",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "fixtures", "predictions"],
+              "query": [
+                {
+                  "key": "fixture_id",
+                  "value": "{{fixture_id}}",
+                  "description": "Filter by single fixture ID",
+                  "disabled": true
+                },
+                {
+                  "key": "fixture_ids",
+                  "value": "{{fixture_ids}}",
+                  "description": "Comma-separated list of fixture IDs",
+                  "disabled": true
+                },
+                {
+                  "key": "sort_by",
+                  "value": "pct_change",
+                  "description": "Sort by: pct_change, prediction_pre_game, prediction, created_at"
+                },
+                {
+                  "key": "sort_order",
+                  "value": "desc",
+                  "description": "Sort direction: asc or desc"
+                },
+                {
+                  "key": "limit",
+                  "value": "50",
+                  "description": "Maximum number of predictions to return (1-500)"
+                }
+              ]
+            },
+            "description": "DEPRECATED: Use GET /fixtures/{fixture_id}/predictions instead. Get detailed fixture predictions. Premium users see all prediction details. Free users see only the top prediction with full details, other predictions have values obfuscated."
+          }
+        },
+        {
+          "name": "Stream Fixtures (SSE)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "text/event-stream"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/fixtures/stream?fixture_ids={{fixture_ids}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "fixtures", "stream"],
+              "query": [
+                {
+                  "key": "fixture_ids",
+                  "value": "{{fixture_ids}}",
+                  "description": "Comma-separated fixture IDs (max 10)"
+                }
+              ]
+            },
+            "description": "**SSE Stream for Fixture Updates**\n\nServer-Sent Events stream for real-time fixture card updates.\n\n**Usage Pattern:**\n1. Call GET /fixtures?fixture_ids=... for initial data\n2. Open this SSE stream for live updates\n3. Close stream on navigation away\n\n**Channel:** fixture_updates:{fixture_id}\n**Event Type:** fixture_update\n\n**Note:** This is an SSE endpoint. In Postman, the response will remain open. Use browser DevTools or a dedicated SSE client for proper testing."
+          }
+        },
+        {
+          "name": "Get Fixture Predictions (Single)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/fixtures/{{fixture_id}}/predictions?sort_by=pct_change&sort_order=desc&limit=50",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "fixtures", "{{fixture_id}}", "predictions"],
+              "query": [
+                {
+                  "key": "sort_by",
+                  "value": "pct_change",
+                  "description": "Sort by: pct_change, prediction_pre_game, prediction, created_at"
+                },
+                {
+                  "key": "sort_order",
+                  "value": "desc",
+                  "description": "Sort direction: asc or desc"
+                },
+                {
+                  "key": "limit",
+                  "value": "50",
+                  "description": "Maximum number of predictions to return (1-500)"
+                }
+              ]
+            },
+            "description": "**Get predictions for a single fixture**\n\nReplaces the deprecated GET /fixtures/predictions endpoint.\n\n**Premium users:** See all prediction details\n**Free users:** See only the top prediction with full details, other predictions have values obfuscated."
+          }
+        },
+        {
+          "name": "Stream Fixture Predictions (SSE)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "text/event-stream"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/fixtures/{{fixture_id}}/predictions/stream",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "fixtures", "{{fixture_id}}", "predictions", "stream"]
+            },
+            "description": "**SSE Stream for Prediction Updates**\n\nServer-Sent Events stream for real-time prediction updates on a single fixture.\n\n**Usage Pattern:**\n1. Call GET /fixtures/{fixture_id}/predictions for initial data\n2. Open this SSE stream for live updates\n3. Close stream on navigation away\n\n**Channel:** prediction_updates:{fixture_id}\n**Event Type:** prediction_update\n\n**Note:** This is an SSE endpoint. In Postman, the response will remain open. Use browser DevTools or a dedicated SSE client for proper testing."
+          }
+        },
+        {
+          "name": "Get Leagues",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has leagues array\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success', true);",
+                  "    pm.expect(jsonData.data).to.have.property('leagues');",
+                  "    pm.expect(jsonData.data.leagues).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test(\"Leagues have required fields\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    if (jsonData.data.leagues.length > 0) {",
+                  "        const league = jsonData.data.leagues[0];",
+                  "        pm.expect(league).to.have.property('league_id');",
+                  "        pm.expect(league).to.have.property('league_name');",
+                  "        pm.expect(league).to.have.property('image_path');",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/leagues",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "leagues"]
+            },
+            "description": "**Get all production leagues** - Returns list of leagues available in the app.\n\n**Public endpoint** - No authentication required.\n\n**Use this endpoint for:**\n- Populating league selection dropdown/list\n- Showing available leagues on homepage\n\n**Returns:**\n- **leagues**: Array of league objects sorted alphabetically\n  - league_id, league_name, short_code\n  - country_id, league_type, league_sub_type\n  - image_path (logo URL)\n\n**Response Example:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"leagues\": [\n      {\n        \"league_id\": 82,\n        \"league_name\": \"Bundesliga\",\n        \"short_code\": \"GER BI\",\n        \"country_id\": 11,\n        \"league_type\": \"league\",\n        \"league_sub_type\": \"domestic\",\n        \"image_path\": \"https://cdn.sportmonks.com/images/soccer/leagues/18/82.png\"\n      },\n      {\n        \"league_id\": 24,\n        \"league_name\": \"FA Cup\",\n        \"short_code\": \"UK FA Cup\",\n        \"country_id\": 462,\n        \"league_type\": \"cup\",\n        \"league_sub_type\": \"domestic_cup\",\n        \"image_path\": \"https://cdn.sportmonks.com/images/soccer/leagues/24/24.png\"\n      },\n      ...\n    ]\n  }\n}\n```"
+          }
+        },
+        {
+          "name": "Get League Current",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has correct structure\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success', true);",
+                  "    pm.expect(jsonData.data).to.have.property('league');",
+                  "    pm.expect(jsonData.data).to.have.property('current_season');",
+                  "    pm.expect(jsonData.data).to.have.property('available_seasons');",
+                  "    pm.expect(jsonData.data).to.have.property('standings');",
+                  "});",
+                  "",
+                  "pm.test(\"League info is present\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    const league = jsonData.data.league;",
+                  "    pm.expect(league).to.have.property('league_id');",
+                  "    pm.expect(league).to.have.property('league_name');",
+                  "});",
+                  "",
+                  "pm.test(\"Current season is marked correctly\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    const currentSeason = jsonData.data.current_season;",
+                  "    pm.expect(currentSeason).to.have.property('season_id');",
+                  "    pm.expect(currentSeason).to.have.property('season_name');",
+                  "    pm.expect(currentSeason).to.have.property('is_current', true);",
+                  "});",
+                  "",
+                  "pm.test(\"Available seasons has 5 or fewer entries\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.available_seasons).to.be.an('array');",
+                  "    pm.expect(jsonData.data.available_seasons.length).to.be.at.most(5);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/leagues/current?league_id={{league_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "leagues", "current"],
+              "query": [
+                {
+                  "key": "league_id",
+                  "value": "{{league_id}}",
+                  "description": "League ID (required) - e.g., 8 for Premier League"
+                }
+              ]
+            },
+            "description": "**Primary Leagues Page Endpoint** - Get current league season with standings and available seasons for dropdown.\n\n**Public endpoint** - No authentication required.\n\n**Use this endpoint when:**\n- User clicks on Leagues page\n- Frontend needs current season standings AND season dropdown options\n\n**Returns:**\n- **league**: League info (league_id, league_name, league_short_code, country_name)\n- **current_season**: Current season details (season_id, season_name, is_current: true)\n- **available_seasons**: Last 5 seasons for dropdown selection\n- **standings**: Current season standings with team stats, form, and next fixtures\n- **updated_at**: Latest update timestamp\n\n**Response Example:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"league\": {\n      \"league_id\": 8,\n      \"league_name\": \"Premier League\",\n      \"league_short_code\": \"UK PL\",\n      \"country_name\": \"England\"\n    },\n    \"current_season\": {\n      \"season_id\": 25583,\n      \"season_name\": \"2025/2026\",\n      \"is_current\": true\n    },\n    \"available_seasons\": [\n      { \"season_id\": 25583, \"season_name\": \"2025/2026\", \"is_current\": true },\n      { \"season_id\": 24263, \"season_name\": \"2024/2025\", \"is_current\": false },\n      ...\n    ],\n    \"standings\": [...],\n    \"updated_at\": \"2025-12-06T10:00:00Z\"\n  }\n}\n```\n\n**Error Response (400):**\n```json\n{\n  \"detail\": \"league_id query parameter is required.\"\n}\n```"
+          }
+        },
+        {
+          "name": "Get League Standings by Season",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has correct structure\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success', true);",
+                  "    pm.expect(jsonData.data).to.have.property('league_id');",
+                  "    pm.expect(jsonData.data).to.have.property('season_id');",
+                  "    pm.expect(jsonData.data).to.have.property('standings');",
+                  "    pm.expect(jsonData.data.standings).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test(\"Standings have required fields\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    if (jsonData.data.standings.length > 0) {",
+                  "        const standing = jsonData.data.standings[0];",
+                  "        pm.expect(standing).to.have.property('position');",
+                  "        pm.expect(standing).to.have.property('points');",
+                  "        pm.expect(standing).to.have.property('goal_difference');",
+                  "        pm.expect(standing).to.have.property('wins');",
+                  "        pm.expect(standing).to.have.property('draws');",
+                  "        pm.expect(standing).to.have.property('losses');",
+                  "        pm.expect(standing).to.have.property('matches_played');",
+                  "        pm.expect(standing).to.have.property('form');",
+                  "        pm.expect(standing.form).to.be.an('array');",
+                  "        pm.expect(standing).to.have.property('team');",
+                  "        pm.expect(standing.team).to.have.property('team_id');",
+                  "        pm.expect(standing.team).to.have.property('team_name');",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/leagues/standings/23614?league_id={{league_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "leagues", "standings", "23614"],
+              "query": [
+                {
+                  "key": "league_id",
+                  "value": "{{league_id}}",
+                  "description": "League ID (required) - e.g., 8 for Premier League"
+                }
+              ]
+            },
+            "description": "**Get standings for a specific season** - Use this when user selects a different season from dropdown.\n\n**Public endpoint** - No authentication required.\n\n**Use this endpoint when:**\n- User changes season in dropdown (after initial page load)\n- Only need standings, not the full season list again\n\n**Path Parameter:**\n- **season_id**: The season ID to fetch standings for (e.g., 23614 for 2024/2025)\n\n**Query Parameter:**\n- **league_id**: League ID (required)\n\n**Returns:**\n- **league_id**, **season_id**: Identifiers\n- **standings**: Standings with team stats, form, and next fixtures\n- **updated_at**: Latest update timestamp\n\n**Note:** This endpoint does NOT return available_seasons list - use `/leagues/current` for initial page load.\n\n**Response Example:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"league_id\": 8,\n    \"season_id\": 23614,\n    \"standings\": [\n      {\n        \"position\": 1,\n        \"points\": 84,\n        \"goal_difference\": 45,\n        \"wins\": 25,\n        \"draws\": 9,\n        \"losses\": 4,\n        \"matches_played\": 38,\n        \"form\": [\"W\", \"W\", \"D\", \"W\", \"L\"],\n        \"team\": {\n          \"team_id\": 8,\n          \"team_name\": \"Liverpool\",\n          \"team_logo\": \"https://...\"\n        },\n        \"next_fixture\": null\n      },\n      ...\n    ],\n    \"updated_at\": \"2025-12-06T10:00:00Z\"\n  }\n}\n```"
+          }
+        },
+        {
+          "name": "Get League Fixtures",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has fixtures array\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success', true);",
+                  "    pm.expect(jsonData.data).to.have.property('fixtures');",
+                  "    pm.expect(jsonData.data.fixtures).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test(\"Fixtures have required fields\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    if (jsonData.data.fixtures.length > 0) {",
+                  "        const fixtureItem = jsonData.data.fixtures[0];",
+                  "        pm.expect(fixtureItem).to.have.property('fixture');",
+                  "        pm.expect(fixtureItem).to.have.property('predictions');",
+                  "        pm.expect(fixtureItem.fixture).to.have.property('fixture_id');",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/leagues/8/fixtures?season_id=25583",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "leagues", "8", "fixtures"],
+              "query": [
+                {
+                  "key": "season_id",
+                  "value": "25583",
+                  "description": "Season ID (required) - e.g., 25583 for 2025/2026"
+                }
+              ]
+            },
+            "description": "**Get fixtures for a league and season** - Returns fixture cards with predictions.\n\n**Public endpoint** - No authentication required (predictions obfuscated for non-premium users).\n\n**Behavior:**\n- **Current season**: Returns next 10 matches from now (live + upcoming, sorted by kickoff asc)\n- **Past season**: Returns last 10 matches of the season (in chronological order)\n\n**Path Parameter:**\n- **league_id**: League ID (e.g., 8 for Premier League)\n\n**Query Parameter:**\n- **season_id**: Season ID (required)\n\n**Returns:**\n- **fixtures**: Array of fixture items with:\n  - fixture: Basic fixture info (teams, scores, kickoff time)\n  - predictions: Up to 3 predictions per fixture\n  - number_of_predictions: Total prediction count"
+          }
+        },
+        {
+          "name": "Get Player",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has player data with BasePlayer object\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success', true);",
+                  "    pm.expect(jsonData.data).to.have.property('player');",
+                  "    ",
+                  "    // Verify BasePlayer structure",
+                  "    const player = jsonData.data.player;",
+                  "    pm.expect(player).to.have.property('player_id');",
+                  "    pm.expect(player).to.have.property('display_name');",
+                  "    pm.expect(player).to.have.property('country');",
+                  "    pm.expect(player).to.have.property('nationality');",
+                  "    pm.expect(player).to.have.property('position');",
+                  "    pm.expect(player).to.have.property('current_team');",
+                  "    pm.expect(player).to.have.property('preferred_foot');",
+                  "});",
+                  "",
+                  "pm.test(\"Current team has contract information\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    const currentTeam = jsonData.data.player.current_team;",
+                  "    if (currentTeam) {",
+                  "        pm.expect(currentTeam).to.have.property('team_id');",
+                  "        pm.expect(currentTeam).to.have.property('jersey_number');",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/players/player?player_id={{player_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "players", "player"],
+              "query": [
+                {
+                  "key": "player_id",
+                  "value": "{{player_id}}",
+                  "description": "Player ID (required) - Default: Bukayo Saka (16827155)"
+                }
+              ]
+            },
+            "description": "**Fundamental Player Endpoint** - Returns the latest core player information from players_refactor collection.\n\n**This endpoint does NOT require season_id** - it returns the most up-to-date player profile.\n\n**Core Player Data (BasePlayer):**\n- **Basic info:** player_id, player_name, common_name, firstname, lastname, display_name\n- **Country object:** country_id, name, official_name, iso2, iso3, image_path\n- **Nationality object:** country_id, name, official_name, fifa_name, iso2, iso3, image_path\n- **Position object:** id, name, code, developer_name, stat_group\n- **Physical attributes:** height (cm), weight (kg), gender, date_of_birth, image_path\n- **Preferred foot:** Extracted from metadata (\"left\" or \"right\")\n- **Current team:** team_id, club_team_id, jersey_number, position_id, detailed_position_id, contract start/end dates, captain status\n\n**Use Cases:**\n- Display player profile page\n- Show basic player information in lists\n- Get current team and contract details\n\n**For season-specific statistics,** use dedicated endpoints like:\n- `/api/v1/players/statistics` (with season filter)\n- `/api/v1/players/predictions` (for match predictions)\n\n**Example:** Bukayo Saka (player_id: 16827155) playing for Arsenal\n\n**Response Structure:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"player\": {\n      \"player_id\": 16827155,\n      \"display_name\": \"Bukayo Saka\",\n      \"country\": { \"country_id\": 462, \"name\": \"England\" },\n      \"nationality\": { \"fifa_name\": \"ENG\" },\n      \"position\": { \"id\": 27, \"name\": \"Attacker\" },\n      \"preferred_foot\": \"left\",\n      \"current_team\": {\n        \"team_id\": 2157,\n        \"jersey_number\": 7,\n        \"end\": \"2027-06-30\"\n      }\n    }\n  }\n}\n```"
+          }
+        },
+        {
+          "name": "Get Player Statistics",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has correct structure\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success', true);",
+                  "    pm.expect(jsonData.data).to.have.property('player_id');",
+                  "    pm.expect(jsonData.data).to.have.property('season_id');",
+                  "    pm.expect(jsonData.data).to.have.property('statistics');",
+                  "    pm.expect(jsonData.data).to.have.property('season_source');",
+                  "});",
+                  "",
+                  "pm.test(\"Statistics has all grouped categories\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    const stats = jsonData.data.statistics;",
+                  "    pm.expect(stats).to.have.property('appearances');",
+                  "    pm.expect(stats).to.have.property('attacking');",
+                  "    pm.expect(stats).to.have.property('shooting');",
+                  "    pm.expect(stats).to.have.property('passing');",
+                  "    pm.expect(stats).to.have.property('dribbling');",
+                  "    pm.expect(stats).to.have.property('defending');",
+                  "    pm.expect(stats).to.have.property('duels');",
+                  "    pm.expect(stats).to.have.property('discipline');",
+                  "    pm.expect(stats).to.have.property('goalkeeper');",
+                  "    pm.expect(stats).to.have.property('penalties');",
+                  "    pm.expect(stats).to.have.property('team_results');",
+                  "    pm.expect(stats).to.have.property('rating');",
+                  "});",
+                  "",
+                  "pm.test(\"Attacking stats has correct fields\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    const attacking = jsonData.data.statistics.attacking;",
+                  "    pm.expect(attacking).to.have.property('goals');",
+                  "    pm.expect(attacking).to.have.property('assists');",
+                  "    pm.expect(attacking).to.have.property('big_chances_created');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/players/statistics?player_id={{player_id}}&season_id={{season_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "players", "statistics"],
+              "query": [
+                {
+                  "key": "player_id",
+                  "value": "{{player_id}}",
+                  "description": "Player ID (required) - e.g., 16827155 for Bukayo Saka"
+                },
+                {
+                  "key": "season_id",
+                  "value": "{{season_id}}",
+                  "description": "Season ID (optional) - If not provided, uses current/latest season",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "**Get Player Season Statistics** - Returns grouped statistics for a player in a specific season.\n\n**Parameters:**\n- **player_id** (required): The player ID\n- **season_id** (optional): If not provided, automatically uses the current/latest season for the player\n\n**Statistics Groups:**\n- **appearances**: games, lineups, bench, minutes_played, captain, substitutions (in/out)\n- **attacking**: goals, assists, big_chances_created, big_chances_missed, offsides, hit_woodwork\n- **shooting**: shots_total, shots_on_target, shots_off_target, shots_blocked, shots_insidebox, shots_outsidebox\n- **passing**: passes, accurate_passes, accurate_passes_percentage, key_passes, total_crosses, accurate_crosses, long_balls, through_balls\n- **dribbling**: dribble_attempts, successful_dribbles, dribbled_past, dispossessed, touches, ball_recovery, possession_lost\n- **defending**: tackles, interceptions, clearances, blocked_shots, goals_conceded, cleansheets, errors_leading_to_goal/shot, last_man_tackle\n- **duels**: duels_total, duels_won, duels_lost, aerials_won, aerials_lost\n- **discipline**: fouls, fouls_drawn, yellowcards, redcards, yellowred_cards\n- **goalkeeper**: saves, saves_insidebox, punches, goalkeeper_goals_conceded, goalkeeper_cleansheets, penalties_saved, goalkeeper_comes_out, good_high_claim\n- **penalties**: penalties_won, penalties_scored, penalties_missed, penalties_committed\n- **team_results**: team_wins, team_draws, team_lost\n- **rating**: average, highest, lowest\n\n**Response includes:**\n- player_id, season_id, team_id, jersey_number, position_id\n- statistics (grouped object with all categories)\n- season_source: 'provided' or 'current_season_lookup'\n\n**Example Response:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"player_id\": 16827155,\n    \"season_id\": 16036,\n    \"team_id\": 19,\n    \"jersey_number\": 77,\n    \"position_id\": 27,\n    \"statistics\": {\n      \"appearances\": { \"appearances\": 26, \"lineups\": 19, ... },\n      \"attacking\": { \"goals\": 1, \"assists\": 5, ... },\n      \"shooting\": { \"shots_total\": 13, ... },\n      ...\n    },\n    \"season_source\": \"current_season_lookup\"\n  }\n}\n```"
+          }
+        },
+        {
+          "name": "Get Player Watchlist",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has watchlist data\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success', true);",
+                  "    pm.expect(jsonData.data).to.have.property('watchlist');",
+                  "    pm.expect(jsonData.data.watchlist).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test(\"Check for warning if data is stale\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    if (jsonData.data.warning) {",
+                  "        console.log('⚠️  WARNING:', jsonData.data.warning);",
+                  "        pm.expect(jsonData.data.warning).to.be.a('string');",
+                  "    }",
+                  "});",
+                  "",
+                  "pm.test(\"Watchlist entries have correct structure\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    if (jsonData.data.watchlist.length > 0) {",
+                  "        const entry = jsonData.data.watchlist[0];",
+                  "        pm.expect(entry).to.have.property('year');",
+                  "        pm.expect(entry).to.have.property('day');",
+                  "        pm.expect(entry).to.have.property('player_ids');",
+                  "        pm.expect(entry.player_ids).to.be.an('array');",
+                  "        pm.expect(entry.player_ids.length).to.be.within(4, 6);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/players/watchlist",
+            "description": "**Player Watchlist Endpoint** - Returns today's watchlist of featured players.\n\n**Simple GET Request** - No parameters required. Automatically returns today's data.\n\n**Data Source:** `players_watchlist_temp` collection in `fourthofficial_refactor` database\n\n**Features:**\n- Returns 4-6 famous players per day\n- Data available for all 365 days of 2025\n- Automatically uses current date (year and day)\n- Famous players include: Bukayo Saka, Jude Bellingham, Erling Haaland, Phil Foden, Vinicius Jr, Kevin De Bruyne, Mohamed Salah, Harry Kane, Kylian Mbappe, and more\n\n**Graceful Fallback:**\nIf today's data is not found:\n1. The endpoint will find the most recent available data\n2. Returns that data with a `warning` field\n3. Frontend can still operate normally\n4. Warning message indicates potential data pipeline issue for monitoring\n\n**Response Structure:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"watchlist\": [\n      {\n        \"year\": 2025,\n        \"day\": 320,\n        \"player_ids\": [16827155, 161604, 149205, 165153, 180182, 563],\n        \"created_at\": \"2025-11-16T00:00:00Z\",\n        \"updated_at\": \"2025-11-16T00:00:00Z\"\n      }\n    ],\n    \"warning\": null\n  }\n}\n```\n\n**Warning Example (Stale Data):**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"watchlist\": [...],\n    \"warning\": \"Watchlist data for 2025-11-16 not available. Returning most recent data from 2025-11-15. This may indicate a data pipeline issue.\"\n  }\n}\n```\n\n**Use Cases:**\n- Display featured players on homepage\n- Show daily player highlights\n- Monitor data pipeline health via warning field\n- Track player feature rotations"
+          }
+        },
+        {
+          "name": "List Player Predictions (Detailed)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/players/predictions?player_id={{player_id}}&sort_by=pct_change&sort_order=desc&limit=50",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "players", "predictions"],
+              "query": [
+                {
+                  "key": "player_id",
+                  "value": "{{player_id}}",
+                  "description": "Player ID (required)"
+                },
+                {
+                  "key": "sort_by",
+                  "value": "pct_change",
+                  "description": "Sort by: pct_change, prediction_pre_game, prediction, created_at"
+                },
+                {
+                  "key": "sort_order",
+                  "value": "desc",
+                  "description": "Sort direction: asc or desc"
+                },
+                {
+                  "key": "limit",
+                  "value": "50",
+                  "description": "Maximum number of predictions to return (1-500)"
+                }
+              ]
+            },
+            "description": "Get detailed player predictions from last 3 fixtures. Premium users see all prediction details. Free users see all predictions with text obfuscation (random prediction names but real numeric values)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Predictions",
+      "item": [
+        {
+          "name": "List Smart Combo Predictions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/smart-combos/predictions?smart_combo_id={{smart_combo_id}}&fixture_id={{fixture_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "smart-combos", "predictions"],
+              "query": [
+                {
+                  "key": "smart_combo_id",
+                  "value": "{{smart_combo_id}}",
+                  "description": "Filter by smart combo ID",
+                  "disabled": true
+                },
+                {
+                  "key": "fixture_id",
+                  "value": "{{fixture_id}}",
+                  "description": "Filter by fixture ID",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Retrieve smart combo prediction rows from /api/v1/smart-combos/predictions."
+          }
+        },
+        {
+          "name": "Get Current Smart Combo",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/smart-combos/current",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "smart-combos", "current"]
+            },
+            "description": "Return the active (or next upcoming) smart combo with its fixtures and predictions."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health Check",
+      "item": [
+        {
+          "name": "API Health",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/health",
+            "description": "Check if API is running"
+          }
+        },
+        {
+          "name": "Database Health",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/health/db",
+            "description": "Check database connectivity"
+          }
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global pre-request script",
+          "// Can be used to refresh tokens if needed"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global test script",
+          "// Check for standard response format",
+          "if (pm.response.code === 200) {",
+          "    pm.test('Response has success format', function() {",
+          "        const jsonData = pm.response.json();",
+          "        pm.expect(jsonData).to.have.property('success');",
+          "        pm.expect(jsonData).to.have.property('data');",
+          "    });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refresh_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "customer_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "subscription_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "payment_client_secret",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "payment_reference",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "league_id",
+      "value": "8",
+      "type": "string"
+    },
+    {
+      "key": "season_id",
+      "value": "23685",
+      "type": "string",
+      "description": "Premier League 2024/2025 season"
+    },
+    {
+      "key": "team_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "fixture_id",
+      "value": "19427561",
+      "type": "string",
+      "description": "Manchester City vs Liverpool (Premier League)"
+    },
+    {
+      "key": "player_id",
+      "value": "16827155",
+      "type": "string",
+      "description": "Bukayo Saka (Arsenal)"
+    },
+    {
+      "key": "smart_combo_id",
+      "value": "1000",
+      "type": "string"
+    },
+    {
+      "key": "date_from",
+      "value": "2024-09-01",
+      "type": "string"
+    },
+    {
+      "key": "date_to",
+      "value": "2024-09-30",
+      "type": "string"
+    }
+  ]
+}

@@ -4,7 +4,7 @@ interface TeamAvatarProps {
   logo?: string;
   name: string;
   shortName?: string;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
   showName?: boolean;
   namePosition?: 'bottom' | 'right';
@@ -14,18 +14,21 @@ const sizeClasses = {
   sm: 'w-8 h-8',
   md: 'w-[34px] h-[34px]',
   lg: 'w-12 h-12',
+  xl: 'w-[40px] h-[40px]',
 };
 
 const textSizeClasses = {
   sm: 'text-[10px]',
   md: 'text-xs',
   lg: 'text-sm',
+  xl: 'text-sm',
 };
 
 const nameSizeClasses = {
   sm: 'text-xs',
   md: 'text-xs',
   lg: 'text-sm',
+  xl: 'text-sm',
 };
 
 /**

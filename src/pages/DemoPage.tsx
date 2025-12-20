@@ -22,14 +22,39 @@ export function DemoPage() {
   const [showAuthPanel, setShowAuthPanel] = useState(false);
   const itemsPerPage = DEFAULTS.ITEMS_PER_PAGE;
 
-  // Fetch fixtures (default: 7 days, returns fixture_ids + first 6 fixtures)
-  // No match_type = backend defaults to upcoming matches for next 7 days
-  const { data: fixturesResponse, isLoading, error, refetch } = useFixtures({
+  // First fetch to get all fixture_ids
+  const { data: initialResponse, isLoading: isLoadingInitial, error } = useFixtures({
     sort_by: 'kickoff_asc',
   });
 
-  // Safely extract fixtures array from response
-  const fixtures = fixturesResponse?.data?.fixtures ?? [];
+  // Get all fixture IDs from initial response
+  const allFixtureIds = initialResponse?.data?.fixture_ids ?? [];
+
+  // Calculate which fixture IDs to fetch for current page
+  const pageFixtureIds = useMemo(() => {
+    if (allFixtureIds.length === 0) return [];
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return allFixtureIds.slice(startIndex, endIndex);
+  }, [allFixtureIds, currentPage, itemsPerPage]);
+
+  // Fetch fixtures for current page by IDs
+  const { data: fixturesResponse, isLoading: isLoadingPage, refetch } = useFixtures(
+    {
+      fixture_ids: pageFixtureIds.length > 0 ? pageFixtureIds : undefined,
+      sort_by: 'kickoff_asc',
+    },
+    {
+      enabled: pageFixtureIds.length > 0 || currentPage === 1,
+    }
+  );
+
+  // Use initial response for page 1, fetched response for other pages
+  const fixtures = currentPage === 1 && initialResponse?.data?.fixtures
+    ? initialResponse.data.fixtures
+    : fixturesResponse?.data?.fixtures ?? [];
+
+  const isLoading = isLoadingInitial || (currentPage > 1 && isLoadingPage && pageFixtureIds.length > 0);
 
   // Login handlers
   const handleFreeLogin = async () => {
@@ -68,72 +93,120 @@ export function DemoPage() {
   // Check if user is premium
   const isPremium = user?.email?.includes('premium') || false;
 
-  // Transform fixture data to match MatchCard interface and paginate
-  const { matchCards, totalPages, paginatedCards } = useMemo(() => {
+  // Calculate total pages from fixture_ids (minimum 10 for demo)
+  const totalPages = useMemo(() => {
+    const totalCount = allFixtureIds.length > 0 ? allFixtureIds.length : fixtures.length;
+    return Math.max(Math.ceil(totalCount / itemsPerPage), 10);
+  }, [allFixtureIds, fixtures.length, itemsPerPage]);
+
+  // Transform fixture data to match MatchCard interface
+  const paginatedCards = useMemo(() => {
     if (!fixtures || fixtures.length === 0) {
-      return { matchCards: [], totalPages: 0, paginatedCards: [] };
+      return [];
     }
 
     // Use shared transformer for consistent data transformation
-    const allMatchCards = fixtures.map((fixtureItem) => ({
+    return fixtures.map((fixtureItem) => ({
       ...fixtureToMatchCard(fixtureItem),
       onSeeMore: () => console.log('See more clicked for:', fixtureItem.fixture.fixture_id),
     }));
+  }, [fixtures]);
 
-    const totalPages = Math.ceil(allMatchCards.length / itemsPerPage);
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    const paginatedCards = allMatchCards.slice(startIndex, endIndex);
-
-    return {
-      matchCards: allMatchCards,
-      totalPages,
-      paginatedCards
-    };
-  }, [fixtures, currentPage, itemsPerPage]);
+  // For empty state check
+  const hasNoMatches = !isLoading && paginatedCards.length === 0 && currentPage === 1;
 
 
-  if (isLoading) {
+  if (isLoadingInitial) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
-        <div className="max-w-[1400px] mx-auto px-6 py-8">
+        <div className="mx-auto px-6 md:px-0 py-8 flex flex-col items-center">
           {/* Banner Skeleton */}
-          <div className="mb-8">
+          <div className="w-full mb-8 md:w-[1440px]">
             <MatchCardSkeleton variant="banner" />
           </div>
 
           {/* Main Content Layout */}
-          <div className="flex gap-8">
+          <div className="w-full md:flex md:gap-[30px] md:w-[1440px] md:min-h-[1124px]">
             {/* Left Side: Featured Matches */}
-            <div className="flex-1">
+            <div className="flex-1 md:w-[960px] md:flex-none">
+              {/* Header */}
               <div className="flex items-center justify-between mb-6">
-                <div className="h-8 bg-gray-200 rounded w-48 animate-pulse" />
-                <div className="flex gap-3">
-                  <div className="w-10 h-10 bg-gray-200 rounded-lg animate-pulse" />
-                  <div className="w-20 h-10 bg-gray-200 rounded-lg animate-pulse" />
+                <div className="flex items-center gap-3">
+                  <div className="h-6 md:h-8 bg-gray-200 rounded w-40 md:w-48 animate-pulse" />
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-[40px] h-[40px] bg-gray-200 rounded-lg animate-pulse" />
+                  <div className="w-[80px] h-[40px] bg-gray-200 rounded-lg animate-pulse" />
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <MatchCardSkeleton key={i} />
+
+              {/* Match Cards Grid Skeleton - Same as finished layout */}
+              <div className="bg-gray-100 rounded-2xl p-5 w-[358px] min-h-[622px] md:w-[950px] md:min-h-[1016px] mb-8 mx-auto">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5 place-items-center md:place-items-start">
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div key={i} className={i > 2 ? 'hidden md:block' : ''}>
+                      <MatchCardSkeleton />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Pagination Skeleton */}
+              <div className="hidden md:flex items-center justify-center gap-2">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="w-10 h-10 bg-gray-200 rounded-lg animate-pulse" />
                 ))}
               </div>
             </div>
 
             {/* Right Side: Smart Combo Skeleton */}
-            <div className="hidden md:block w-[360px]">
-              <div className="rounded-2xl overflow-hidden" style={{ background: `linear-gradient(to top right, ${COLORS.primary.dark} 65%, ${COLORS.primary.light} 100%)` }}>
+            <div className="hidden xl:block w-[450px] min-h-[959px]">
+              <div className="rounded-2xl overflow-hidden h-full p-[3px]" style={{ background: `linear-gradient(to top right, ${COLORS.primary.dark} 65%, ${COLORS.primary.light} 100%)` }}>
                 <div className="text-white px-4 py-3">
                   <div className="h-6 bg-white/20 rounded w-32 animate-pulse" />
                 </div>
                 <div className="bg-white rounded-xl mx-1 mb-1 p-4">
+                  {/* Accuracy Section Skeleton */}
+                  <div className="px-4 py-3 border-b border-gray-100 mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-5 bg-gray-200 rounded w-12 animate-pulse" />
+                      <div className="h-4 bg-gray-200 rounded w-32 animate-pulse" />
+                      <div className="flex-1 bg-gray-200 rounded-full h-2 animate-pulse" />
+                    </div>
+                  </div>
                   <div className="space-y-4">
                     <MatchCardSkeleton variant="compact" />
                     <MatchCardSkeleton variant="compact" />
                   </div>
+                  {/* See More Button Skeleton */}
+                  <div className="mt-4 px-4">
+                    <div className="w-full h-10 bg-gray-200 rounded-lg animate-pulse" />
+                  </div>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Mobile: Smart Combo Skeleton */}
+          <div className="xl:hidden mt-8 w-full">
+            <div className="rounded-2xl overflow-hidden p-[3px]" style={{ background: `linear-gradient(to top right, ${COLORS.primary.dark} 65%, ${COLORS.primary.light} 100%)` }}>
+              <div className="text-white px-4 py-3">
+                <div className="h-6 bg-white/20 rounded w-32 animate-pulse" />
+              </div>
+              <div className="bg-white rounded-xl mx-1 mb-1 p-4">
+                <div className="space-y-4">
+                  <MatchCardSkeleton variant="compact" />
+                  <MatchCardSkeleton variant="compact" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Players to Watch Skeleton */}
+          <div className="hidden md:block mt-8 w-[1440px] h-[397px] rounded-2xl animate-pulse" style={{ background: `linear-gradient(to top right, ${COLORS.primary.dark} 65%, ${COLORS.primary.light} 100%)` }}>
+            <div className="px-4 py-3">
+              <div className="h-6 bg-white/20 rounded w-40" />
             </div>
           </div>
         </div>
@@ -210,9 +283,9 @@ export function DemoPage() {
         </div>
       )}
 
-      <div className="max-w-[1400px] mx-auto px-6 py-8">
+      <div className="mx-auto px-6 md:px-0 py-8 flex flex-col items-center">
         {/* Live Match Banner - Full Width */}
-        <div className="mb-8">
+        <div className="w-full mb-8 md:w-[1440px]">
           <LiveMatchBanner />
         </div>
 
@@ -224,9 +297,9 @@ export function DemoPage() {
         )}
 
         {/* Main Content Layout */}
-        <div className="flex gap-8">
+        <div className="w-full md:flex md:gap-[30px] md:w-[1440px] md:min-h-[1124px]">
           {/* Left Side: Featured Matches */}
-          <div className="flex-1">
+          <div className="flex-1 md:w-[960px] md:flex-none">
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
@@ -234,8 +307,8 @@ export function DemoPage() {
                 <div className="text-gray-600">
                   <ApiDebugInfo
                     endpoint="/api/v1/fixtures?limit=100&with_predictions=true"
-                    response={fixturesResponse?.data}
-                    isLoading={isLoading}
+                    response={initialResponse?.data}
+                    isLoading={isLoadingInitial}
                     error={error?.message}
                   />
                 </div>
@@ -256,16 +329,31 @@ export function DemoPage() {
             {/* Match Cards Grid - Desktop: 3 columns, Mobile: single column, both in off-white container */}
             <div className="bg-gray-100 rounded-2xl p-5 w-[358px] min-h-[622px] md:w-[950px] md:min-h-[1016px] mb-8 mx-auto">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5 place-items-center md:place-items-start">
-                {paginatedCards.map((match, index) => (
-                  <div key={match.id} className={index >= 2 ? 'hidden md:block' : ''}>
-                    <MatchCard {...match} isPremium={isPremium} />
-                  </div>
-                ))}
+                {isLoadingPage && currentPage > 1 ? (
+                  // Show skeletons while loading new page
+                  <>
+                    {[1, 2, 3, 4, 5, 6].map((i) => (
+                      <div key={i} className={i > 2 ? 'hidden md:block' : ''}>
+                        <MatchCardSkeleton />
+                      </div>
+                    ))}
+                  </>
+                ) : (
+                  paginatedCards.map((match, index) => (
+                    <div key={match.id} className={index >= 2 ? 'hidden md:block' : ''}>
+                      <MatchCard
+                        {...match}
+                        isPremium={isPremium}
+                        blurAllPredictions={!isPremium && currentPage > 1}
+                      />
+                    </div>
+                  ))
+                )}
               </div>
             </div>
 
             {/* Empty State */}
-            {matchCards.length === 0 && !isLoading && (
+            {hasNoMatches && (
               <div className="flex flex-col items-center justify-center min-h-[400px] bg-white rounded-xl border border-gray-200">
                 <img
                   src="/404.svg"
@@ -285,16 +373,14 @@ export function DemoPage() {
               </button>
             </div>
 
-            {/* Desktop: Pagination */}
-            {totalPages > 1 && (
-              <div className="hidden md:block mt-8">
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={setCurrentPage}
-                />
-              </div>
-            )}
+            {/* Desktop: Pagination - Always visible, greyed out for free users */}
+            <div className="hidden md:block mt-8">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
+            </div>
           </div>
 
           {/* Right Side: Smart Combo - Desktop only */}

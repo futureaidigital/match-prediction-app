@@ -42,6 +42,8 @@ interface MatchCardProps {
   lastUpdated?: string;
   onSeeMore?: () => void;
   isPremium?: boolean;
+  // Blur all predictions (for free users beyond first page)
+  blurAllPredictions?: boolean;
   // Variant for different layouts
   variant?: 'default' | 'compact';
   // For compact variant
@@ -60,8 +62,9 @@ export function MatchCard({
   predictions,
   totalPredictions,
   lastUpdated,
-  onSeeMore,
+  onSeeMore: _onSeeMore,
   isPremium = false,
+  blurAllPredictions = false,
   variant = 'default',
   isToday = false
 }: MatchCardProps) {
@@ -73,59 +76,89 @@ export function MatchCard({
   };
 
   // For premium users: show ALL predictions (none blurred)
-  // For free users: show 1 visible, blur the rest (for both default and compact)
-  const visibleCount = isPremium ? predictions.length : 1;
+  // For free users on page 1: show 1 visible, blur the rest
+  // For free users on page 2+: blur ALL predictions (blurAllPredictions=true)
+  const visibleCount = isPremium ? predictions.length : (blurAllPredictions ? 0 : 1);
 
   const visiblePredictions = predictions.slice(0, visibleCount);
   const blurredPredictions = isPremium ? [] : predictions.slice(visibleCount);
 
   // Compact variant (for Smart Combo) - vertical team layout
+  // Desktop: 412px width, Mobile: 318x295px
+  // Only show 2 predictions in compact variant
+  const compactVisiblePredictions = visiblePredictions.slice(0, 2);
+  const compactBlurredPredictions = blurredPredictions.slice(0, Math.max(0, 2 - compactVisiblePredictions.length));
+
   if (isCompact) {
     return (
       <div
         onClick={handleCardClick}
-        className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+        className="bg-white rounded-xl p-3 md:p-4 shadow-md md:shadow-lg cursor-pointer hover:shadow-lg md:hover:shadow-xl transition-shadow w-[318px] md:w-[412px] h-[295px] md:h-auto mx-auto flex flex-col"
       >
         {/* Competition Header */}
-        <div className="text-gray-400 text-xs font-medium mb-3 text-center">
+        <div className="text-gray-400 text-[14px] md:text-xs font-medium mb-2 md:mb-3 text-center">
           {competition}
         </div>
 
-        {/* Teams and Time Row - Vertical team layout */}
-        <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-100">
-          {/* Home Team - Vertical */}
-          <TeamAvatar
-            logo={homeTeam.logo}
-            name={homeTeam.name}
-            shortName={homeTeam.shortName}
-            size="md"
-            showName
-            namePosition="bottom"
-          />
+        {/* Teams and Time Row - Mobile: 288x63px with 20px gap, Desktop: 382x66px with original spacing */}
+        <div className="flex items-center justify-center w-[288px] md:w-[382px] h-[63px] md:h-[66px] mx-auto mb-[20px] md:mb-4 pb-[20px] md:pb-4 border-b border-gray-100 md:justify-between">
+          {/* Home Team - Vertical, Mobile: 40x40 logo, Desktop: 34x34 logo */}
+          <div className="md:hidden">
+            <TeamAvatar
+              logo={homeTeam.logo}
+              name={homeTeam.name}
+              shortName={homeTeam.shortName}
+              size="xl"
+              showName
+              namePosition="bottom"
+            />
+          </div>
+          <div className="hidden md:block">
+            <TeamAvatar
+              logo={homeTeam.logo}
+              name={homeTeam.name}
+              shortName={homeTeam.shortName}
+              size="md"
+              showName
+              namePosition="bottom"
+            />
+          </div>
 
-          {/* Time */}
-          <div className="flex flex-col items-center">
+          {/* Time - 40px gap from team names on mobile, auto spacing on desktop */}
+          <div className="flex flex-col items-center mx-[40px] md:mx-0">
             <span className="font-bold text-gray-900 text-lg">{kickoffTime || DEFAULTS.KICKOFF_TIME}</span>
             {isToday && (
               <span className="text-gray-400 text-xs font-medium">{DEFAULTS.TODAY_LABEL}</span>
             )}
           </div>
 
-          {/* Away Team - Vertical */}
-          <TeamAvatar
-            logo={awayTeam.logo}
-            name={awayTeam.name}
-            shortName={awayTeam.shortName}
-            size="md"
-            showName
-            namePosition="bottom"
-          />
+          {/* Away Team - Vertical, Mobile: 40x40 logo, Desktop: 34x34 logo */}
+          <div className="md:hidden">
+            <TeamAvatar
+              logo={awayTeam.logo}
+              name={awayTeam.name}
+              shortName={awayTeam.shortName}
+              size="xl"
+              showName
+              namePosition="bottom"
+            />
+          </div>
+          <div className="hidden md:block">
+            <TeamAvatar
+              logo={awayTeam.logo}
+              name={awayTeam.name}
+              shortName={awayTeam.shortName}
+              size="md"
+              showName
+              namePosition="bottom"
+            />
+          </div>
         </div>
 
-        {/* Predictions */}
-        <div className="space-y-3">
-          {/* Visible Predictions */}
-          {visiblePredictions.map((prediction) => (
+        {/* Predictions - Only show 2 in compact variant, Mobile: 288x134px box, stuck to bottom */}
+        <div className="w-[288px] h-[134px] md:w-[382px] md:h-auto mx-auto space-y-3 flex flex-col justify-start mb-2 md:mb-0">
+          {/* Visible Predictions (max 2) */}
+          {compactVisiblePredictions.map((prediction) => (
             <PredictionBar
               key={prediction.id}
               label={prediction.label}
@@ -135,8 +168,8 @@ export function MatchCard({
             />
           ))}
 
-          {/* Blurred Predictions */}
-          {!isPremium && blurredPredictions.map((prediction) => (
+          {/* Blurred Predictions (fill up to 2 total) */}
+          {!isPremium && compactBlurredPredictions.map((prediction) => (
             <PredictionBar
               key={prediction.id}
               label={prediction.label}
@@ -162,7 +195,7 @@ export function MatchCard({
       </div>
 
       {/* Teams and Score Section - Horizontal Layout */}
-      <div className="flex items-center justify-between mb-[10px] md:mb-4 px-2 shrink-0">
+      <div className="flex items-center justify-between mb-[5px] md:mb-4 px-2 shrink-0">
         {/* Home Team */}
         <div className="flex flex-col items-center justify-center gap-1 w-[101px] h-[57px] shrink-0 md:w-20 md:h-auto">
           <div className="md:mb-2">
@@ -208,10 +241,10 @@ export function MatchCard({
       </div>
 
       {/* Divider */}
-      <div className="h-px bg-gray-200 w-full md:-mx-2 md:w-auto mb-[10px] md:mb-4" />
+      <div className="h-px bg-gray-200 w-full md:-mx-2 md:w-auto mb-[5px] md:mb-4" />
 
       {/* Predictions Section */}
-      <div className="flex-1 space-y-2 overflow-hidden min-h-0 md:-mx-2">
+      <div className="flex-1 space-y-2 overflow-hidden min-h-0 md:-mx-2 flex flex-col justify-center md:justify-start">
         {/* Visible Predictions */}
         {visiblePredictions.map((prediction, index) => (
           <PredictionBar
@@ -239,7 +272,7 @@ export function MatchCard({
       </div>
 
       {/* Footer */}
-      <div className="mt-0 pt-2 shrink-0">
+      <div className="pt-[5px] md:pt-2 shrink-0">
         {/* Predictions Count Divider */}
         {totalPredictions && totalPredictions > 0 && (
           <div className="flex items-center justify-center mb-3">

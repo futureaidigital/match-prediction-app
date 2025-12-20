@@ -1,11 +1,14 @@
+import asyncio
 import time
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from bson import ObjectId
 from fastapi import APIRouter, HTTPException, Query
+from sse_starlette.sse import EventSourceResponse
 
 from app.core.auth import get_current_user_optional
+from app.core.redis_pubsub import get_redis_pubsub
 from app.core.database import get_database
 from app.schemas.fixtures_schemas import (
     FixtureBasic,
@@ -14,6 +17,8 @@ from app.schemas.fixtures_schemas import (
     FixturesResponse,
     FixtureCommentaryItem,
     FixtureCommentaryResponse,
+    CommentaryItem,
+    FixtureCommentaryDetailedResponse,
     FixtureStatistics,
     FixtureStatisticsResponse,
     FixtureWeather,
@@ -153,11 +158,89 @@ async def get_fixtures(
         error = ErrorObject(code="FIXTURES_ERROR", message=str(exc))
         return StandardResponse.error_response(
             errors=[error],
-  
+
         )
 
 
-@router.get("/predictions", response_model=StandardResponse[FixturePredictionList])
+@router.get("/stream")
+async def stream_fixtures(
+    fixture_ids: str = Query(..., description="Comma-separated fixture IDs (max 10)"),
+    _current_user: Optional[Dict[str, Any]] = get_current_user_optional(),
+):
+    """
+    SSE stream for real-time fixture updates.
+
+    Frontend should:
+    1. Call GET /fixtures?fixture_ids=... for initial data
+    2. Open this stream for subsequent updates
+    3. Close stream on navigation away
+
+    Channel: fixture_updates:{fixture_id}
+    Event type: fixture_update
+    """
+    # Parse and validate fixture IDs
+    try:
+        id_list = [int(id.strip()) for id in fixture_ids.split(",") if id.strip()]
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail="fixture_ids must be comma-separated integers"
+        )
+
+    if not id_list:
+        raise HTTPException(
+            status_code=400,
+            detail="fixture_ids cannot be empty"
+        )
+
+    if len(id_list) > 10:
+        raise HTTPException(
+            status_code=400,
+            detail="Maximum 10 fixture IDs allowed for streaming"
+        )
+
+    logger.debug(
+        "SSE stream requested for fixtures",
+        extra={"fixture_ids": id_list, "count": len(id_list)}
+    )
+
+    async def event_generator():
+        redis_client = get_redis_pubsub()
+        if redis_client is None:
+            logger.error("Redis pub/sub not available for SSE stream")
+            return
+
+        pubsub = redis_client.pubsub()
+        channels = [f"fixture_updates:{fid}" for fid in id_list]
+
+        try:
+            await pubsub.subscribe(*channels)
+            logger.debug(f"Subscribed to channels: {channels}")
+
+            async for message in pubsub.listen():
+                if message["type"] == "message":
+                    yield {
+                        "event": "fixture_update",
+                        "data": message["data"],
+                    }
+        except asyncio.CancelledError:
+            logger.debug("SSE connection cancelled by client")
+        except Exception as e:
+            logger.error(f"SSE stream error: {e}")
+        finally:
+            await pubsub.unsubscribe(*channels)
+            await pubsub.close()
+            logger.debug(f"Unsubscribed from channels: {channels}")
+
+    return EventSourceResponse(event_generator())
+
+
+@router.get(
+    "/predictions",
+    response_model=StandardResponse[FixturePredictionList],
+    deprecated=True,
+    description="DEPRECATED: Use GET /fixtures/{fixture_id}/predictions instead.",
+)
 async def list_fixture_predictions(
     fixture_id: Optional[int] = Query(None, description="Filter by single fixture ID."),
     fixture_ids: Optional[List[int]] = Query(None, description="Filter by multiple fixture IDs."),
@@ -387,15 +470,129 @@ async def list_fixtures_simao(
         )
 "SIMAO SUGESTION END"
 
+
+@router.get(
+    "/{fixture_id}/predictions",
+    response_model=StandardResponse[FixturePredictionList],
+)
+async def get_fixture_predictions(
+    fixture_id: int,
+    sort_by: str = Query(
+        "pct_change",
+        description="Sort field: pct_change, prediction_pre_game, prediction, created_at.",
+    ),
+    sort_order: str = Query("desc", description="Sort direction: asc or desc."),
+    limit: int = Query(100, ge=1, le=500, description="Maximum number of predictions to return."),
+    _current_user: Optional[Dict[str, Any]] = get_current_user_optional(),
+) -> StandardResponse[FixturePredictionList]:
+    """
+    Get detailed predictions for a single fixture.
+
+    Premium users see all prediction details. Non-premium users see only the top prediction
+    with full details, while other predictions have their values obfuscated.
+    """
+    request_start = time.time()
+
+    try:
+        # Use the FixturesService to get predictions with obfuscation applied
+        raw_predictions = await FixturesService.get_fixture_predictions_detailed(
+            fixture_id=fixture_id,
+            fixture_ids=None,
+            sort_by=sort_by,
+            sort_order=sort_order,
+            limit=limit,
+            current_user=_current_user,
+        )
+
+        # Convert to Pydantic models with defaults for optional fields
+        predictions = []
+        for doc in raw_predictions:
+            # Add defaults for optional fields if missing
+            if "created_at" not in doc:
+                doc["created_at"] = datetime.utcnow()
+            if "updated_at" not in doc:
+                doc["updated_at"] = datetime.utcnow()
+            if "prediction_type" not in doc:
+                doc["prediction_type"] = "fixture"
+            if doc.get("pct_change_interval") is None:
+                doc["pct_change_interval"] = 5.0
+
+            predictions.append(FixturePrediction(**doc))
+
+        payload = FixturePredictionList(predictions=predictions)
+        return StandardResponse[FixturePredictionList].success_response(
+            data=payload,
+            request_start_time=request_start,
+        )
+    except Exception as exc:
+        error = ErrorObject(code="FIXTURE_PREDICTION_ERROR", message=str(exc))
+        return StandardResponse.error_response(
+            errors=[error],
+            request_start_time=request_start,
+        )
+
+
+@router.get("/{fixture_id}/predictions/stream")
+async def stream_fixture_predictions(
+    fixture_id: int,
+    _current_user: Optional[Dict[str, Any]] = get_current_user_optional(),
+):
+    """
+    SSE stream for real-time prediction updates on a single fixture.
+
+    Frontend should:
+    1. Call GET /fixtures/{fixture_id}/predictions for initial data
+    2. Open this stream for subsequent updates
+    3. Close stream on navigation away
+
+    Channel: prediction_updates:{fixture_id}
+    Event type: prediction_update
+    """
+    logger.debug(
+        "SSE prediction stream requested",
+        extra={"fixture_id": fixture_id}
+    )
+
+    async def event_generator():
+        redis_client = get_redis_pubsub()
+        if redis_client is None:
+            logger.error("Redis pub/sub not available for SSE stream")
+            return
+
+        pubsub = redis_client.pubsub()
+        channel = f"prediction_updates:{fixture_id}"
+
+        try:
+            await pubsub.subscribe(channel)
+            logger.debug(f"Subscribed to channel: {channel}")
+
+            async for message in pubsub.listen():
+                if message["type"] == "message":
+                    yield {
+                        "event": "prediction_update",
+                        "data": message["data"],
+                    }
+        except asyncio.CancelledError:
+            logger.debug("SSE prediction stream cancelled by client")
+        except Exception as e:
+            logger.error(f"SSE prediction stream error: {e}")
+        finally:
+            await pubsub.unsubscribe(channel)
+            await pubsub.close()
+            logger.debug(f"Unsubscribed from channel: {channel}")
+
+    return EventSourceResponse(event_generator())
+
+
 @router.get(
     "/{fixture_id}/commentary",
-    response_model=StandardResponse[FixtureCommentaryResponse],
+    response_model=StandardResponse[FixtureCommentaryDetailedResponse],
 )
 async def get_fixture_commentary(
     fixture_id: int,
     _current_user: Optional[Dict[str, Any]] = get_current_user_optional(),
-) -> StandardResponse[FixtureCommentaryResponse]:
-    """Return commentary entries for a specific fixture."""
+) -> StandardResponse[FixtureCommentaryDetailedResponse]:
+    """Return all commentary entries for a specific fixture from commentaries_refactor collection."""
     request_start = time.time()
 
     try:
@@ -404,39 +601,38 @@ async def get_fixture_commentary(
         db_client = db.client
         fixtures_db = db_client["fourthofficial_refactor"]
 
-        # Query the fixture_commentary collection in the refactor database
-        cursor = fixtures_db["fixture_commentary"].find(
-            {"fixture_id": fixture_id}
-        ).sort("created_at", 1)
+        # Query the commentaries_refactor collection using fixture_id as _id
+        document = await fixtures_db["commentaries_refactor"].find_one({"_id": fixture_id})
 
-        documents = []
-        async for doc in cursor:
-            serialized = _serialize_document(doc)
-            if serialized is not None:
-                documents.append(serialized)
-
-        if not documents:
+        # Check if document not found
+        if document is None:
             raise HTTPException(
                 status_code=404,
-                detail="Fixture commentary not found.",
+                detail="COMMENTARIES_NOT_AVAILABLE: Commentaries are not available for this fixture.",
             )
 
-        commentary_items = []
-        for doc in documents:
-            # Map commentary to commentary_details
-            if 'commentary' in doc:
-                doc['commentary_details'] = doc.pop('commentary')
-            # Remove fixture_id from individual items since it's at root level
-            doc.pop('fixture_id', None)
-            commentary_items.append(FixtureCommentaryItem(**doc))
-        data = FixtureCommentaryResponse(
-            fixture_id=fixture_id,
-            commentary=commentary_items,
+        # Check if commentaries field is null or empty array
+        commentaries = document.get("commentaries")
+        if commentaries is None or len(commentaries) == 0:
+            raise HTTPException(
+                status_code=404,
+                detail="COMMENTARIES_NOT_AVAILABLE: Commentaries are not available for this fixture.",
+            )
+
+        # Build commentary items from the commentaries array
+        commentary_items = [CommentaryItem(**item) for item in commentaries]
+
+        # Build response with only required top-level fields
+        data = FixtureCommentaryDetailedResponse(
+            fixture_id=document["_id"],
+            total_commentaries=len(commentary_items),
+            league_id=document["league_id"],
+            starting_at=document["starting_at"],
+            commentaries=commentary_items,
         )
 
-        return StandardResponse[FixtureCommentaryResponse].success_response(
+        return StandardResponse[FixtureCommentaryDetailedResponse].success_response(
             data=data,
-  
         )
     except HTTPException:
         raise
@@ -444,7 +640,6 @@ async def get_fixture_commentary(
         error = ErrorObject(code="FIXTURE_COMMENTARY_ERROR", message=str(exc))
         return StandardResponse.error_response(
             errors=[error],
-  
         )
 
 

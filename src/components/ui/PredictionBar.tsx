@@ -19,11 +19,6 @@ const barHeightClasses = {
   md: 'h-[8px]',
 };
 
-const textSizeClasses = {
-  sm: 'text-sm',
-  md: 'text-base',
-};
-
 /**
  * PredictionBar - Reusable component for displaying predictions with progress bars
  *
@@ -40,7 +35,7 @@ export function PredictionBar({
   className,
 }: PredictionBarProps) {
   const content = (
-    <div className={cn('h-[64px]', isBlurred && 'blur-[4px] select-none pointer-events-none')}>
+    <div className={cn('h-auto md:h-[64px]', isBlurred && 'blur-[4px] select-none pointer-events-none')}>
       {/* Label and Percentage */}
       <div className="flex items-center justify-between mb-1">
         <span className={cn('text-gray-800 font-medium text-[14px]')}>
