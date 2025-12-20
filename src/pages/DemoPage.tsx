@@ -286,7 +286,7 @@ export function DemoPage() {
       <div className="mx-auto px-6 md:px-0 py-8 flex flex-col items-center">
         {/* Live Match Banner - Full Width */}
         <div className="w-full mb-8 md:w-[1440px]">
-          <LiveMatchBanner />
+          <LiveMatchBanner isPremium={isPremium} />
         </div>
 
         {/* Error Display */}

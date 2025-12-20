@@ -93,7 +93,12 @@ export function MatchCard({
     return (
       <div
         onClick={handleCardClick}
-        className="bg-white rounded-xl p-3 md:p-4 shadow-md md:shadow-lg cursor-pointer hover:shadow-lg md:hover:shadow-xl transition-shadow w-[318px] md:w-[412px] h-[295px] md:h-auto mx-auto flex flex-col"
+        className="bg-white rounded-xl p-3 md:p-4 cursor-pointer transition-shadow w-[318px] md:w-[412px] h-[295px] md:h-auto mx-auto flex flex-col"
+        style={{
+          boxShadow: '0 0 12px rgba(0, 0, 0, 0.08)'
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 0 20px rgba(0, 0, 0, 0.12)'}
+        onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 0 12px rgba(0, 0, 0, 0.08)'}
       >
         {/* Competition Header */}
         <div className="text-gray-400 text-[14px] md:text-xs font-medium mb-2 md:mb-3 text-center">
@@ -187,7 +192,12 @@ export function MatchCard({
   // Default variant (for Featured Matches)
   return (
     <div
-      className="bg-white rounded-2xl p-[15px] md:p-5 w-[334px] h-[293px] md:w-[290px] md:h-[478px] flex flex-col hover:shadow-md transition-shadow overflow-hidden"
+      className="bg-white rounded-2xl p-[15px] md:p-5 w-[334px] h-[293px] md:w-[290px] md:h-[478px] flex flex-col transition-shadow overflow-hidden"
+      style={{
+        boxShadow: '0 0 12px rgba(0, 0, 0, 0.08)'
+      }}
+      onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 0 20px rgba(0, 0, 0, 0.12)'}
+      onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 0 12px rgba(0, 0, 0, 0.08)'}
     >
       {/* Competition Header */}
       <div className="text-center text-gray-500 text-[12px] md:text-[14px] font-medium mb-3 truncate px-2 shrink-0 h-[17px] md:h-auto">
@@ -244,7 +254,7 @@ export function MatchCard({
       <div className="h-px bg-gray-200 w-full md:-mx-2 md:w-auto mb-[5px] md:mb-4" />
 
       {/* Predictions Section */}
-      <div className="flex-1 space-y-2 overflow-hidden min-h-0 md:-mx-2 flex flex-col justify-center md:justify-start">
+      <div className="flex-1 space-y-2 overflow-visible min-h-0 md:-mx-2 flex flex-col justify-center md:justify-start">
         {/* Visible Predictions */}
         {visiblePredictions.map((prediction, index) => (
           <PredictionBar
@@ -276,12 +286,12 @@ export function MatchCard({
         {/* Predictions Count Divider */}
         {totalPredictions && totalPredictions > 0 && (
           <div className="flex items-center justify-center mb-3">
-            <div className="flex-1 h-px bg-gray-200" />
+            <div className="flex-1 h-px bg-gradient-to-r from-white to-gray-200" />
             <span className="px-3 text-xs text-gray-500 font-medium whitespace-nowrap">
               <span className="md:hidden">{visiblePredictions.length} out of {totalPredictions} Predictions</span>
               <span className="hidden md:inline">{predictions.length} out of {totalPredictions} Predictions</span>
             </span>
-            <div className="flex-1 h-px bg-gray-200" />
+            <div className="flex-1 h-px bg-gradient-to-r from-gray-200 to-white" />
           </div>
         )}
 
