@@ -46,10 +46,10 @@ function PlayerCard({ player, onViewProfile, variant = 'default' }: PlayerCardPr
   const teamDisplay = player.team_name || (player.team_id ? `Team ${player.team_id}` : undefined);
   const playerName = getPlayerName(player.player_id, player.player_name);
 
-  // Mobile variant - larger card with more details
+  // Mobile variant - 335x303px card per Figma specs
   if (variant === 'mobile') {
     return (
-      <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+      <div className="bg-white rounded-2xl border border-gray-200 w-[335px] h-[303px] mx-auto shadow-sm flex flex-col">
         {/* Player Image */}
         <div className="flex justify-center mb-4">
           {player.image_path ? (
@@ -89,23 +89,71 @@ function PlayerCard({ player, onViewProfile, variant = 'default' }: PlayerCardPr
           )}
         </div>
 
-        {/* Stats Row - Each stat in its own bordered box */}
-        <div className="flex items-center gap-3 mb-6">
-          <div className="flex-1 border border-gray-200 rounded-xl py-3 text-center">
-            <div className="text-xl font-bold text-gray-900">{player.goals ?? 0}</div>
-            <div className="text-xs text-gray-400">Goals</div>
+        {/* Stats Row - 295x59px container, 10px gap, each box 66.25x59px with grey bg */}
+        <div className="flex items-center gap-[10px] w-[295px] h-[59px] mx-auto mb-6">
+          <div
+            className="w-[66.25px] h-[59px] bg-[#f7f8fa] rounded-[8px] p-[6px] flex flex-col items-center justify-center gap-[4px]"
+          >
+            <div
+              className="text-[16px] font-semibold text-[#0a0a0a]"
+              style={{ fontFamily: 'Montserrat, sans-serif' }}
+            >
+              {player.goals ?? 0}
+            </div>
+            <div
+              className="text-[14px] font-medium text-[#7c8a9c]"
+              style={{ fontFamily: 'Montserrat, sans-serif' }}
+            >
+              Goals
+            </div>
           </div>
-          <div className="flex-1 border border-gray-200 rounded-xl py-3 text-center">
-            <div className="text-xl font-bold text-gray-900">{player.assists ?? 0}</div>
-            <div className="text-xs text-gray-400">Assists</div>
+          <div
+            className="w-[66.25px] h-[59px] bg-[#f7f8fa] rounded-[8px] p-[6px] flex flex-col items-center justify-center gap-[4px]"
+          >
+            <div
+              className="text-[16px] font-semibold text-[#0a0a0a]"
+              style={{ fontFamily: 'Montserrat, sans-serif' }}
+            >
+              {player.assists ?? 0}
+            </div>
+            <div
+              className="text-[14px] font-medium text-[#7c8a9c]"
+              style={{ fontFamily: 'Montserrat, sans-serif' }}
+            >
+              Assists
+            </div>
           </div>
-          <div className="flex-1 border border-gray-200 rounded-xl py-3 text-center">
-            <div className="text-xl font-bold text-gray-900">{player.appearances ?? 0}</div>
-            <div className="text-xs text-gray-400">Matches</div>
+          <div
+            className="w-[66.25px] h-[59px] bg-[#f7f8fa] rounded-[8px] p-[6px] flex flex-col items-center justify-center gap-[4px]"
+          >
+            <div
+              className="text-[16px] font-semibold text-[#0a0a0a]"
+              style={{ fontFamily: 'Montserrat, sans-serif' }}
+            >
+              {player.appearances ?? 0}
+            </div>
+            <div
+              className="text-[14px] font-medium text-[#7c8a9c]"
+              style={{ fontFamily: 'Montserrat, sans-serif' }}
+            >
+              Matches
+            </div>
           </div>
-          <div className="flex-1 border border-gray-200 rounded-xl py-3 text-center">
-            <div className="text-xl font-bold text-gray-900">{player.minutes_played?.toLocaleString() ?? '-'}</div>
-            <div className="text-xs text-gray-400">Minutes</div>
+          <div
+            className="w-[66.25px] h-[59px] bg-[#f7f8fa] rounded-[8px] p-[6px] flex flex-col items-center justify-center gap-[4px]"
+          >
+            <div
+              className="text-[16px] font-semibold text-[#0a0a0a]"
+              style={{ fontFamily: 'Montserrat, sans-serif' }}
+            >
+              {player.minutes_played?.toLocaleString() ?? '-'}
+            </div>
+            <div
+              className="text-[14px] font-medium text-[#7c8a9c]"
+              style={{ fontFamily: 'Montserrat, sans-serif' }}
+            >
+              Minutes
+            </div>
           </div>
         </div>
 
@@ -319,33 +367,41 @@ export function PlayersToWatch() {
   if (isLoading) {
     return (
       <div
-        className="w-full md:w-[1440px] md:h-[397px] md:rounded-2xl overflow-hidden"
+        className="w-full max-w-[100vw] h-[381px] md:w-[1440px] md:h-[397px] md:mx-auto md:rounded-2xl overflow-hidden box-border"
         style={{ background: 'linear-gradient(to top right, #091143 65%, #11207f 100%)' }}
       >
-        <div className="px-4 py-2">
-          <div className="flex items-center justify-between min-h-[40px]">
-            <div className="flex items-center gap-3">
-              <img src="/players-star-icon.png" alt="" className="w-6 h-6" />
-              <h2 className="text-white font-bold text-lg">Players to Watch</h2>
+        <div className="px-4 pt-[16px] md:pt-2 pb-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <img src="/players-star-icon.png" alt="" className="w-[26px] h-[26px] md:w-6 md:h-6" />
+              <h2
+                className="text-white font-semibold text-[22px] md:text-lg md:font-bold"
+                style={{ fontFamily: 'Montserrat, sans-serif' }}
+              >
+                Players to Watch
+              </h2>
             </div>
-            <div className="text-white">
+            <div className="hidden md:block text-white">
               <ApiDebugInfo
                 endpoint="/api/v1/players/watchlist + /api/v1/players/statistics"
                 response={null}
                 isLoading={true}
               />
             </div>
+            {/* Mobile arrow placeholder */}
+            <div className="md:hidden flex items-center gap-[10px] w-[70px] h-[30px]">
+              <div className="w-[30px] h-[30px] rounded-lg bg-transparent border-2 border-white/50" />
+              <div className="w-[30px] h-[30px] rounded-lg bg-transparent border-2 border-white/50" />
+            </div>
           </div>
         </div>
-        {/* Mobile Loading */}
-        <div className="md:hidden px-4 py-4">
-          <div className="bg-white rounded-2xl p-6 animate-pulse">
-            <div className="flex justify-center mb-4">
-              <div className="w-28 h-28 rounded-full bg-gray-200" />
-            </div>
-            <div className="h-6 bg-gray-200 rounded mx-auto w-40 mb-3" />
-            <div className="h-4 bg-gray-200 rounded mx-auto w-48 mb-6" />
-            <div className="flex gap-3 mb-6">
+        {/* Mobile Loading - 335x303px card */}
+        <div className="md:hidden pt-[15px] pb-[16px] flex justify-center">
+          <div className="bg-white rounded-2xl w-[335px] h-[303px] animate-pulse flex flex-col items-center pt-4">
+            <div className="w-28 h-28 rounded-full bg-gray-200 mb-4" />
+            <div className="h-6 bg-gray-200 rounded w-40 mb-3" />
+            <div className="h-4 bg-gray-200 rounded w-48 mb-6" />
+            <div className="flex gap-3 w-full px-4 mb-6">
               {[1, 2, 3, 4].map((i) => (
                 <div key={i} className="flex-1 border border-gray-200 rounded-xl py-3">
                   <div className="h-6 bg-gray-200 rounded mx-auto w-8 mb-1" />
@@ -353,7 +409,7 @@ export function PlayersToWatch() {
                 </div>
               ))}
             </div>
-            <div className="h-10 bg-gray-200 rounded mx-auto w-32" />
+            <div className="h-5 bg-gray-200 rounded w-24" />
           </div>
         </div>
         {/* Desktop Loading */}
@@ -390,16 +446,21 @@ export function PlayersToWatch() {
   if (error) {
     return (
       <div
-        className="w-full md:w-[1440px] md:h-[397px] md:rounded-2xl overflow-hidden"
+        className="w-full max-w-[100vw] h-[381px] md:w-[1440px] md:h-[397px] md:mx-auto md:rounded-2xl overflow-hidden box-border"
         style={{ background: 'linear-gradient(to top right, #091143 65%, #11207f 100%)' }}
       >
-        <div className="px-4 py-2">
-          <div className="flex items-center justify-between min-h-[40px]">
-            <div className="flex items-center gap-3">
-              <img src="/players-star-icon.png" alt="" className="w-6 h-6" />
-              <h2 className="text-white font-bold text-lg">Players to Watch</h2>
+        <div className="px-4 pt-[16px] md:pt-2 pb-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <img src="/players-star-icon.png" alt="" className="w-[26px] h-[26px] md:w-6 md:h-6" />
+              <h2
+                className="text-white font-semibold text-[22px] md:text-lg md:font-bold"
+                style={{ fontFamily: 'Montserrat, sans-serif' }}
+              >
+                Players to Watch
+              </h2>
             </div>
-            <div className="text-white">
+            <div className="hidden md:block text-white">
               <ApiDebugInfo
                 endpoint="/api/v1/players/watchlist + /api/v1/players/statistics"
                 response={watchlistResponse?.data}
@@ -427,16 +488,21 @@ export function PlayersToWatch() {
   if (players.length === 0) {
     return (
       <div
-        className="w-full md:w-[1440px] md:h-[397px] md:rounded-2xl overflow-hidden"
+        className="w-full max-w-[100vw] h-[381px] md:w-[1440px] md:h-[397px] md:mx-auto md:rounded-2xl overflow-hidden box-border"
         style={{ background: 'linear-gradient(to top right, #091143 65%, #11207f 100%)' }}
       >
-        <div className="px-4 py-2">
-          <div className="flex items-center justify-between min-h-[40px]">
-            <div className="flex items-center gap-3">
-              <img src="/players-star-icon.png" alt="" className="w-6 h-6" />
-              <h2 className="text-white font-bold text-lg">Players to Watch</h2>
+        <div className="px-4 pt-[16px] md:pt-2 pb-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <img src="/players-star-icon.png" alt="" className="w-[26px] h-[26px] md:w-6 md:h-6" />
+              <h2
+                className="text-white font-semibold text-[22px] md:text-lg md:font-bold"
+                style={{ fontFamily: 'Montserrat, sans-serif' }}
+              >
+                Players to Watch
+              </h2>
             </div>
-            <div className="text-white">
+            <div className="hidden md:block text-white">
               <ApiDebugInfo
                 endpoint="/api/v1/players/watchlist + /api/v1/players/statistics"
                 response={watchlistResponse?.data}
@@ -467,15 +533,20 @@ export function PlayersToWatch() {
 
   return (
     <div
-      className="w-full md:w-[1440px] md:h-[397px] md:rounded-2xl overflow-hidden"
+      className="w-full max-w-[100vw] h-[381px] md:w-[1440px] md:h-[397px] md:mx-auto md:rounded-2xl overflow-hidden box-border"
       style={{ background: 'linear-gradient(to top right, #091143 65%, #11207f 100%)' }}
     >
-      {/* Header */}
-      <div className="px-4 pt-2 pb-0">
-        <div className="flex items-center justify-between min-h-[40px]">
-          <div className="flex items-center gap-3">
-            <img src="/players-star-icon.png" alt="" className="w-6 h-6" />
-            <h2 className="text-white font-bold text-lg">Players to Watch</h2>
+      {/* Header - Mobile: pt-16px, Desktop: pt-2 */}
+      <div className="px-4 pt-[16px] md:pt-2 pb-0">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <img src="/players-star-icon.png" alt="" className="w-[26px] h-[26px] md:w-6 md:h-6" />
+            <h2
+              className="text-white font-semibold text-[22px] md:text-lg md:font-bold"
+              style={{ fontFamily: 'Montserrat, sans-serif' }}
+            >
+              Players to Watch
+            </h2>
           </div>
 
           <div className="flex items-center gap-4">
@@ -487,31 +558,31 @@ export function PlayersToWatch() {
               />
             </div>
 
-            {/* Mobile Navigation Arrows */}
-            <div className="md:hidden flex items-center gap-2">
+            {/* Mobile Navigation Arrows - 70x30px total, each arrow box 30x30, arrow icon 24x24, gap 10px */}
+            <div className="md:hidden flex items-center gap-[10px] w-[70px] h-[30px]">
               <button
                 onClick={() => scrollMobile('left')}
                 disabled={!canScrollMobileLeft}
-                className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
+                className={`w-[30px] h-[30px] rounded-lg flex items-center justify-center transition-all ${
                   canScrollMobileLeft
                     ? 'bg-white text-[#091143]'
                     : 'bg-transparent border-2 border-white/50 text-white/50 cursor-not-allowed'
                 }`}
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <polyline points="15 18 9 12 15 6" />
                 </svg>
               </button>
               <button
                 onClick={() => scrollMobile('right')}
                 disabled={!canScrollMobileRight}
-                className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
+                className={`w-[30px] h-[30px] rounded-lg flex items-center justify-center transition-all ${
                   canScrollMobileRight
                     ? 'bg-white text-[#091143]'
                     : 'bg-transparent border-2 border-white/50 text-white/50 cursor-not-allowed'
                 }`}
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
               </button>
@@ -550,14 +621,14 @@ export function PlayersToWatch() {
         </div>
       </div>
 
-      {/* Mobile: Simple Carousel */}
-      <div className="md:hidden py-4 overflow-hidden">
+      {/* Mobile: Carousel with peek - 15px gap after header, 16px padding left/bottom, peek of next card on right */}
+      <div className="md:hidden pt-[15px] pb-[16px] overflow-hidden">
         <div
-          className="flex transition-transform duration-300 ease-out"
-          style={{ transform: `translateX(-${mobileIndex * 100}%)` }}
+          className="flex gap-[12px] transition-transform duration-300 ease-out pl-[16px]"
+          style={{ transform: `translateX(-${mobileIndex * (335 + 12)}px)` }}
         >
           {players.map((player) => (
-            <div key={player.player_id} className="flex-shrink-0 w-full px-4">
+            <div key={player.player_id} className="flex-shrink-0">
               <PlayerCard
                 player={player}
                 onViewProfile={handleViewProfile}

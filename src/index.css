@@ -53,9 +53,17 @@
   * {
     @apply border-border;
   }
-  body {
+  html, body {
     @apply bg-background text-foreground;
     font-family: 'Montserrat', sans-serif;
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+  @media (min-width: 768px) {
+    html, body {
+      max-width: none;
+      overflow-x: visible;
+    }
   }
 }
 

@@ -12,7 +12,7 @@ export function Footer({ onNavigate }: FooterProps) {
 
   return (
     <footer className="w-full bg-[#0d1a67]">
-      <div className="max-w-7xl mx-auto px-4 md:px-6 py-4">
+      <div className="w-full max-w-[100vw] md:max-w-7xl mx-auto px-4 md:px-6 py-4 box-border">
         {/* Mobile Layout - Stacked */}
         <div className="md:hidden flex flex-col items-center gap-4">
           <nav className="flex items-center gap-8">
