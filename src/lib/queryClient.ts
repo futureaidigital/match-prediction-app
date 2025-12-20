@@ -105,4 +105,9 @@ export const queryKeys = {
     statistics: (params?: Record<string, unknown>) =>
       ['players', 'statistics', params] as const,
   },
+
+  // Leagues keys
+  leagues: {
+    all: () => ['leagues'] as const,
+  },
 } as const;

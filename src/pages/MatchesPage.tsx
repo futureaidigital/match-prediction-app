@@ -4,6 +4,7 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { MatchCard } from '@/components/MatchCard';
 import { useFixtures } from '@/hooks/useFixtures';
+import { useLeagueNames } from '@/hooks/useLeagues';
 
 type TabType = 'live' | 'all';
 
@@ -77,7 +78,7 @@ function SkeletonLeagueSection() {
 }
 
 // Upcoming match card component (simpler design)
-function UpcomingMatchCard({ fixture }: { fixture: any }) {
+function UpcomingMatchCard({ fixture, leagueName }: { fixture: any; leagueName?: string }) {
   const navigate = useNavigate();
   const match = fixture.fixture;
 
@@ -96,7 +97,7 @@ function UpcomingMatchCard({ fixture }: { fixture: any }) {
     >
       {/* League Name */}
       <div className="text-center text-gray-400 text-xs font-medium mb-1">
-        {match.league_name || 'League'}
+        {leagueName || match.league_name || 'League'}
       </div>
 
       {/* Date/Time */}
@@ -221,6 +222,9 @@ export function MatchesPage() {
         }
   );
 
+  // Fetch league names and images to fill in missing data from fixtures
+  const { getLeagueName, getLeagueImage } = useLeagueNames();
+
   const fixtures = fixturesResponse?.data?.fixtures || [];
 
   // Separate live and upcoming fixtures, group all by league
@@ -235,11 +239,16 @@ export function MatchesPage() {
 
       // Group ALL fixtures by league (not just upcoming)
       const leagueId = match.league_id || 'unknown';
+      // Use league_name from fixture if available, otherwise look up from leagues endpoint
+      const leagueName = match.league_name || (match.league_id ? getLeagueName(match.league_id) : 'Unknown League');
+      // Use league_logo from fixture if available, otherwise look up from leagues endpoint
+      const leagueLogo = match.league_logo || (match.league_id ? getLeagueImage(match.league_id) : undefined);
+
       if (!byLeague[leagueId]) {
         byLeague[leagueId] = {
-          leagueName: match.league_name || 'Unknown League',
+          leagueName,
           country: match.country_name || '',
-          logo: match.league_logo,
+          logo: leagueLogo,
           fixtures: []
         };
       }
@@ -253,7 +262,7 @@ export function MatchesPage() {
     });
 
     return { liveFixtures: live, fixturesByLeague: byLeague };
-  }, [fixtures]);
+  }, [fixtures, getLeagueName, getLeagueImage]);
 
   // Transform fixture to MatchCard format
   const transformToMatchCard = (fixtureItem: any) => {
@@ -262,7 +271,7 @@ export function MatchesPage() {
 
     return {
       id: fixture.fixture_id.toString(),
-      competition: fixture.league_name || 'League',
+      competition: fixture.league_name || (fixture.league_id ? getLeagueName(fixture.league_id) : 'League'),
       homeTeam: {
         id: fixture.home_team_id?.toString() || 'home',
         name: fixture.home_team_name || 'Home',
@@ -400,6 +409,7 @@ export function MatchesPage() {
                           <UpcomingMatchCard
                             key={fixture.fixture.fixture_id}
                             fixture={fixture}
+                            leagueName={fixture.fixture.league_name || (fixture.fixture.league_id ? getLeagueName(fixture.fixture.league_id) : undefined)}
                           />
                         ))}
                       </div>
@@ -444,6 +454,7 @@ export function MatchesPage() {
                             <UpcomingMatchCard
                               key={fixture.fixture.fixture_id}
                               fixture={fixture}
+                              leagueName={league.leagueName}
                             />
                           ))}
                         </div>
@@ -628,6 +639,7 @@ export function MatchesPage() {
                         <UpcomingMatchCard
                           key={fixture.fixture.fixture_id}
                           fixture={fixture}
+                          leagueName={league.leagueName}
                         />
                       ))}
                     </div>
