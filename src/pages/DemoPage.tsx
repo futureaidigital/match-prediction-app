@@ -216,7 +216,7 @@ export function DemoPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 max-w-[100vw] overflow-x-hidden md:overflow-x-visible md:max-w-none">
       {/* Header */}
       <Header />
 

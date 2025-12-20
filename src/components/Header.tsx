@@ -39,7 +39,7 @@ export function Header({ onNavigate, currentPage = '' }: HeaderProps) {
   return (
     <>
       <header className="w-full bg-[#0d1a67]">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 py-3 flex items-center justify-between">
+        <div className="w-full max-w-[100vw] md:max-w-7xl mx-auto px-4 md:px-6 py-3 flex items-center justify-between box-border">
           {/* Mobile: Hamburger Menu */}
           <button
             onClick={() => setIsMenuOpen(true)}
