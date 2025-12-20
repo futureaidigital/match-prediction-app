@@ -349,6 +349,23 @@ export interface SmartComboCurrentResponse {
   fixtures: SmartComboFixturePredictions[];
 }
 
+// League Types
+export interface League {
+  league_id: number;
+  league_name: string;
+  short_code?: string;
+  image_path?: string;
+  country?: string;
+  country_id?: number;
+  league_type?: string;
+  league_sub_type?: string;
+  is_active?: boolean;
+}
+
+export interface LeaguesResponse {
+  leagues: League[];
+}
+
 // Fixtures response types (actual API structure)
 export interface FixtureWithPredictions {
   fixture: {
@@ -657,6 +674,11 @@ class ApiClient {
     query.append('player_id', params.player_id.toString());
 
     return this.request<PlayerStatisticsResponse>(`/players/statistics?${query.toString()}`);
+  }
+
+  // League endpoints
+  async getLeagues(): Promise<ApiResponse<LeaguesResponse>> {
+    return this.request<LeaguesResponse>('/leagues');
   }
 }
 

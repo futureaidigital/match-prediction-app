@@ -27,6 +27,9 @@ export const CACHE_DURATIONS = {
   // Player data
   PLAYERS: 10 * 60 * 1000, // 10 minutes
 
+  // League data - rarely changes
+  LEAGUES: 24 * 60 * 60 * 1000, // 24 hours
+
   // Default stale time
   DEFAULT_STALE: 5 * 60 * 1000, // 5 minutes
 
