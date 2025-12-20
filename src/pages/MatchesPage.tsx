@@ -93,7 +93,12 @@ function UpcomingMatchCard({ fixture, leagueName }: { fixture: any; leagueName?:
   return (
     <div
       onClick={handleClick}
-      className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow min-w-[260px] md:min-w-0 cursor-pointer"
+      className="bg-white rounded-xl p-4 transition-shadow min-w-[260px] md:min-w-0 cursor-pointer"
+      style={{
+        boxShadow: '0 0 12px rgba(0, 0, 0, 0.08)'
+      }}
+      onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 0 20px rgba(0, 0, 0, 0.12)'}
+      onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 0 12px rgba(0, 0, 0, 0.08)'}
     >
       {/* League Name */}
       <div className="text-center text-gray-400 text-xs font-medium mb-1">
@@ -129,9 +134,9 @@ function UpcomingMatchCard({ fixture, leagueName }: { fixture: any; leagueName?:
 
         {/* VS */}
         <div className="flex items-center gap-2">
-          <div className="w-8 h-px bg-gray-300" />
+          <div className="w-8 h-px bg-gradient-to-r from-white to-gray-400" />
           <span className="text-gray-400 text-xs">vs</span>
-          <div className="w-8 h-px bg-gray-300" />
+          <div className="w-8 h-px bg-gradient-to-r from-gray-400 to-white" />
         </div>
 
         {/* Away Team */}
@@ -403,15 +408,17 @@ export function MatchesPage() {
               {activeTab === 'live' && (
                 <>
                   {liveFixtures.length > 0 ? (
-                    <div className="overflow-x-auto scrollbar-hide">
-                      <div className="flex gap-3 px-4">
-                        {liveFixtures.map((fixture) => (
-                          <UpcomingMatchCard
-                            key={fixture.fixture.fixture_id}
-                            fixture={fixture}
-                            leagueName={fixture.fixture.league_name || (fixture.fixture.league_id ? getLeagueName(fixture.fixture.league_id) : undefined)}
-                          />
-                        ))}
+                    <div className="mx-4 bg-gray-100 rounded-xl p-3">
+                      <div className="overflow-x-auto scrollbar-hide">
+                        <div className="flex gap-3">
+                          {liveFixtures.map((fixture) => (
+                            <UpcomingMatchCard
+                              key={fixture.fixture.fixture_id}
+                              fixture={fixture}
+                              leagueName={fixture.fixture.league_name || (fixture.fixture.league_id ? getLeagueName(fixture.fixture.league_id) : undefined)}
+                            />
+                          ))}
+                        </div>
                       </div>
                     </div>
                   ) : (
@@ -448,15 +455,17 @@ export function MatchesPage() {
                       </div>
 
                       {/* Horizontal Scrollable Cards */}
-                      <div className="overflow-x-auto scrollbar-hide">
-                        <div className="flex gap-3 px-4">
-                          {league.fixtures.map((fixture) => (
-                            <UpcomingMatchCard
-                              key={fixture.fixture.fixture_id}
-                              fixture={fixture}
-                              leagueName={league.leagueName}
-                            />
-                          ))}
+                      <div className="mx-4 bg-gray-100 rounded-xl p-3">
+                        <div className="overflow-x-auto scrollbar-hide">
+                          <div className="flex gap-3">
+                            {league.fixtures.map((fixture) => (
+                              <UpcomingMatchCard
+                                key={fixture.fixture.fixture_id}
+                                fixture={fixture}
+                                leagueName={league.leagueName}
+                              />
+                            ))}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -633,7 +642,7 @@ export function MatchesPage() {
                   </div>
 
                   {/* League Matches */}
-                  <div className="bg-white rounded-xl border border-gray-200 p-4">
+                  <div className="bg-gray-100 rounded-xl p-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                       {league.fixtures.slice(0, 4).map((fixture) => (
                         <UpcomingMatchCard
