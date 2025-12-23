@@ -53,12 +53,12 @@ export function Header({ onNavigate, currentPage = '' }: HeaderProps) {
             onClick={() => navigate('/')}
             className="hidden md:flex items-center gap-2"
           >
-            <img src="/logo.svg" alt="Fourth Official" className="h-6" />
+            <img src="/logo.svg" alt="Fourth Official" className="h-8" />
           </button>
 
           {/* Mobile: Center Logo */}
           <button onClick={() => navigate('/')} className="md:hidden">
-            <img src="/logo.svg" alt="Fourth Official" className="h-6" />
+            <img src="/logo.svg" alt="Fourth Official" className="h-8" />
           </button>
 
           {/* Desktop: Navigation */}
@@ -115,7 +115,7 @@ export function Header({ onNavigate, currentPage = '' }: HeaderProps) {
             </button>
 
             {/* Logo */}
-            <img src="/logo.svg" alt="Fourth Official" className="h-6" />
+            <img src="/logo.svg" alt="Fourth Official" className="h-8" />
 
             {/* Search */}
             <button className="p-2 bg-white/10 border border-white/30 rounded-lg">
