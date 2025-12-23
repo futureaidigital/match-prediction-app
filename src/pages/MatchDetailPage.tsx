@@ -8,7 +8,7 @@ import { useFixtures, useFixtureStatistics, useFixtureCommentary } from '@/hooks
 type TabType = 'predictions' | 'commentary' | 'stats' | 'lineups';
 
 // Prediction card component with expand/collapse
-function PredictionCard({ prediction, index, isLive }: { prediction: any; index: number; isLive: boolean }) {
+function PredictionCard({ prediction, index: _index, isLive }: { prediction: any; index: number; isLive: boolean }) {
   // Featured predictions are always expanded, non-featured are always collapsed
   const isFeatured = prediction.is_featured === true;
   const isExpanded = isFeatured;
