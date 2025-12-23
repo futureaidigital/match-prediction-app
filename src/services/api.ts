@@ -60,6 +60,22 @@ export interface SubscriptionStatus {
   status?: string;
 }
 
+export interface SubscriptionPricingPlan {
+  name: string;
+  price: number;
+  currency: string;
+  interval: 'week' | 'month';
+  stripe_price_id?: string;
+  paystack_plan_code?: string;
+}
+
+export interface SubscriptionPricingResponse {
+  country: string;
+  currency: string;
+  provider: 'stripe' | 'paystack';
+  plans: SubscriptionPricingPlan[];
+}
+
 // Sports Data Types
 export interface Fixture {
   _id: string;
@@ -521,6 +537,10 @@ class ApiClient {
   // Subscription endpoints
   async getSubscriptionStatus(): Promise<ApiResponse<SubscriptionStatus>> {
     return this.request<SubscriptionStatus>('/payments/subscription-status');
+  }
+
+  async getSubscriptionPricing(): Promise<ApiResponse<SubscriptionPricingResponse>> {
+    return this.request<SubscriptionPricingResponse>('/payments/subscription-pricing');
   }
 
   // Fixtures endpoints

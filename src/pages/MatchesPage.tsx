@@ -78,13 +78,33 @@ function SkeletonLeagueSection() {
 }
 
 // Upcoming match card component (simpler design)
-function UpcomingMatchCard({ fixture, leagueName }: { fixture: any; leagueName?: string }) {
+function UpcomingMatchCard({ fixture, leagueName, selectedDate }: { fixture: any; leagueName?: string; selectedDate?: Date }) {
   const navigate = useNavigate();
   const match = fixture.fixture;
 
-  const kickoffTime = match.starting_at
-    ? new Date(match.starting_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
-    : 'TBD';
+  // Format date and time display
+  const getDateTimeDisplay = () => {
+    if (!match.starting_at) return 'TBD';
+
+    const matchDate = new Date(match.starting_at);
+    const today = new Date();
+
+    const isToday =
+      matchDate.getDate() === today.getDate() &&
+      matchDate.getMonth() === today.getMonth() &&
+      matchDate.getFullYear() === today.getFullYear();
+
+    const time = matchDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+
+    if (isToday) {
+      return `Today, ${time}`;
+    }
+
+    // Format: "Mon 23, 16:15"
+    const dayName = matchDate.toLocaleDateString('en-GB', { weekday: 'short' });
+    const dayNum = matchDate.getDate();
+    return `${dayName} ${dayNum}, ${time}`;
+  };
 
   const handleClick = () => {
     navigate(`/match/${match.fixture_id}`);
@@ -107,7 +127,7 @@ function UpcomingMatchCard({ fixture, leagueName }: { fixture: any; leagueName?:
 
       {/* Date/Time */}
       <div className="text-center text-orange-500 text-sm font-medium mb-4">
-        Today, {kickoffTime}
+        {getDateTimeDisplay()}
       </div>
 
       {/* Teams Row */}
@@ -133,10 +153,10 @@ function UpcomingMatchCard({ fixture, leagueName }: { fixture: any; leagueName?:
         </div>
 
         {/* VS */}
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-px bg-gradient-to-r from-white to-gray-400" />
-          <span className="text-gray-400 text-xs">vs</span>
-          <div className="w-8 h-px bg-gradient-to-r from-gray-400 to-white" />
+        <div className="flex items-center gap-2 self-center mt-3">
+          <div className="w-8 h-px bg-gradient-to-r from-transparent to-gray-900" />
+          <span className="text-gray-900 text-xs font-medium leading-none">vs</span>
+          <div className="w-8 h-px bg-gradient-to-l from-transparent to-gray-900" />
         </div>
 
         {/* Away Team */}
@@ -354,10 +374,9 @@ export function MatchesPage() {
             </div>
           </div>
 
-          {/* Mobile: Matches Title + Filter (hidden on live tab) */}
+          {/* Mobile: Filter button (hidden on live tab) */}
           {activeTab !== 'live' && (
-            <div className="flex items-center justify-between px-4 pt-6 pb-2">
-              <h1 className="text-xl font-bold text-gray-900">Matches</h1>
+            <div className="flex items-center justify-end px-4 pt-4 pb-2">
               <button className="flex items-center gap-1 text-sm font-medium text-gray-600">
                 Filter
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

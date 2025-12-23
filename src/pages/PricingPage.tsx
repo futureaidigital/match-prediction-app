@@ -1,5 +1,7 @@
+import { useState, useEffect } from 'react';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
+import { api, SubscriptionPricingResponse } from '@/services/api';
 
 // Feature item component
 function FeatureItem({ children, light = false }: { children: React.ReactNode; light?: boolean }) {
@@ -35,7 +37,47 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
   );
 }
 
+// Format currency with symbol
+function formatPrice(price: number, currency: string): string {
+  const formatter = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency,
+    minimumFractionDigits: 2,
+  });
+  return formatter.format(price);
+}
+
 export function PricingPage() {
+  const [pricing, setPricing] = useState<SubscriptionPricingResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchPricing = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await api.getSubscriptionPricing();
+        setPricing(response.data);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Unable to load pricing for your region';
+        setError(errorMessage);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPricing();
+  }, []);
+
+  // Get plan prices from API response
+  const plans = pricing?.plans || [];
+  const weeklyPlan = plans.find(p => p.interval === 'week');
+  const monthlyPlan = plans.find(p => p.interval === 'month');
+
+  const weeklyPrice = weeklyPlan ? formatPrice(weeklyPlan.price, weeklyPlan.currency) : '$3.99';
+  const monthlyPrice = monthlyPlan ? formatPrice(monthlyPlan.price, monthlyPlan.currency) : '$9.99';
+
   const faqs = [
     {
       question: "Can I cancel anytime?",
@@ -78,11 +120,29 @@ export function PricingPage() {
           </p>
         </div>
 
+        {/* Error State for Unsupported Country */}
+        {error && (
+          <div className="max-w-[600px] mx-auto px-4 md:px-6 mb-8">
+            <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
+              <svg className="w-12 h-12 text-red-400 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <h3 className="text-lg font-semibold text-red-800 mb-2">Service Not Available</h3>
+              <p className="text-red-600 text-sm">
+                {error}
+              </p>
+              <p className="text-gray-500 text-sm mt-3">
+                We're working to expand our service to more regions. Please check back later.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Pricing Cards */}
         <div className="max-w-[1000px] mx-auto px-4 md:px-6">
-          <div className="grid md:grid-cols-2 gap-6 mb-12">
+          <div className="grid md:grid-cols-2 gap-6 mb-12 items-stretch">
             {/* Weekly Pass Card */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-8">
+            <div className={`bg-white rounded-2xl border border-gray-200 p-8 flex flex-col ${loading ? 'animate-pulse' : ''}`}>
               <div className="flex items-start justify-between mb-4">
                 <h2 className="text-2xl font-bold text-[#0d1a67]">Weekly Pass</h2>
                 <div className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center">
@@ -97,24 +157,33 @@ export function PricingPage() {
               </p>
 
               <div className="mb-6 pb-6 border-b border-gray-100">
-                <span className="text-4xl font-bold text-gray-900">$3.99</span>
-                <span className="text-gray-500">/ week</span>
+                {loading ? (
+                  <div className="h-10 bg-gray-200 rounded w-32" />
+                ) : (
+                  <>
+                    <span className="text-4xl font-bold text-gray-900">{weeklyPrice}</span>
+                    <span className="text-gray-500">/ week</span>
+                  </>
+                )}
               </div>
 
-              <div className="space-y-4 mb-8">
+              <div className="space-y-4 flex-1">
                 <FeatureItem>7 days full access to all predictions</FeatureItem>
                 <FeatureItem>Coverage across all leagues</FeatureItem>
                 <FeatureItem>All game predictions and analysis</FeatureItem>
                 <FeatureItem>Expert insights and stats</FeatureItem>
               </div>
 
-              <button className="w-full py-3 px-6 rounded-lg border-2 border-[#0d1a67] text-[#0d1a67] font-semibold hover:bg-[#0d1a67] hover:text-white transition-colors">
+              <button
+                className="w-full py-3 px-6 rounded-lg border-2 border-[#0d1a67] text-[#0d1a67] font-semibold hover:bg-[#0d1a67] hover:text-white transition-colors mt-8 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={loading || !!error}
+              >
                 Get Weekly Pass
               </button>
             </div>
 
             {/* Monthly Pro Card */}
-            <div className="bg-[#0d1a67] rounded-2xl p-8 text-white">
+            <div className={`bg-[#0d1a67] rounded-2xl p-8 text-white flex flex-col ${loading ? 'animate-pulse' : ''}`}>
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <h2 className="text-2xl font-bold">Monthly Pro</h2>
@@ -134,11 +203,17 @@ export function PricingPage() {
               </p>
 
               <div className="mb-6 pb-6 border-b border-white/20">
-                <span className="text-4xl font-bold">$9.99</span>
-                <span className="text-white/70">/ month</span>
+                {loading ? (
+                  <div className="h-10 bg-white/20 rounded w-32" />
+                ) : (
+                  <>
+                    <span className="text-4xl font-bold">{monthlyPrice}</span>
+                    <span className="text-white/70">/ month</span>
+                  </>
+                )}
               </div>
 
-              <div className="space-y-4 mb-8">
+              <div className="space-y-4 flex-1">
                 <FeatureItem light>30 days full access to all predictions</FeatureItem>
                 <FeatureItem light>Coverage across all leagues</FeatureItem>
                 <FeatureItem light>All game predictions and analysis</FeatureItem>
@@ -146,7 +221,10 @@ export function PricingPage() {
                 <FeatureItem light>Early access to game analysis</FeatureItem>
               </div>
 
-              <button className="w-full py-3 px-6 rounded-lg bg-white text-[#0d1a67] font-semibold hover:bg-gray-100 transition-colors">
+              <button
+                className="w-full py-3 px-6 rounded-lg bg-white text-[#0d1a67] font-semibold hover:bg-gray-100 transition-colors mt-8 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={loading || !!error}
+              >
                 Get Monthly Pro
               </button>
             </div>

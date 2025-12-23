@@ -254,6 +254,13 @@ export function PlayersToWatch() {
   const [canScrollRight, setCanScrollRight] = useState(true);
   const [mobileIndex, setMobileIndex] = useState(0);
 
+  // Touch swipe state
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+  // Minimum swipe distance (in px)
+  const minSwipeDistance = 50;
+
   // Step 1: Fetch watchlist to get player IDs
   const {
     data: watchlistResponse,
@@ -356,6 +363,30 @@ export function PlayersToWatch() {
       setMobileIndex(mobileIndex - 1);
     } else if (direction === 'right' && mobileIndex < players.length - 1) {
       setMobileIndex(mobileIndex + 1);
+    }
+  };
+
+  // Touch event handlers for swipe
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe && mobileIndex < players.length - 1) {
+      setMobileIndex(mobileIndex + 1);
+    } else if (isRightSwipe && mobileIndex > 0) {
+      setMobileIndex(mobileIndex - 1);
     }
   };
 
@@ -622,7 +653,12 @@ export function PlayersToWatch() {
       </div>
 
       {/* Mobile: Carousel with peek - 15px gap after header, 16px padding left/bottom, peek of next card on right */}
-      <div className="md:hidden pt-[15px] pb-[16px] overflow-hidden">
+      <div
+        className="md:hidden pt-[15px] pb-[16px] overflow-hidden"
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
         <div
           className="flex gap-[12px] transition-transform duration-300 ease-out pl-[16px]"
           style={{ transform: `translateX(-${mobileIndex * (335 + 12)}px)` }}

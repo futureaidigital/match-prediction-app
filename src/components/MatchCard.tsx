@@ -251,7 +251,7 @@ export function MatchCard({
       </div>
 
       {/* Divider */}
-      <div className="h-px bg-gray-200 w-full md:-mx-2 md:w-auto mb-[5px] md:mb-4" />
+      <div className="h-px bg-gray-200 w-full md:-mx-2 md:w-auto mb-[5px] md:mb-2" />
 
       {/* Predictions Section */}
       {/* Mobile: Show only 1 prediction (unblurred for premium, unblurred for free on page 1) */}
@@ -300,7 +300,7 @@ export function MatchCard({
       </div>
 
       {/* Footer */}
-      <div className="pt-[5px] md:pt-2 shrink-0">
+      <div className="pt-[5px] md:pt-4 shrink-0">
         {/* Predictions Count Divider */}
         {totalPredictions && totalPredictions > 0 && (
           <div className="flex items-center justify-center mb-3">
