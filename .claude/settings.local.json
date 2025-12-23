@@ -16,7 +16,9 @@
       "Bash(copy \"C:\\Users\\USER\\Downloads\\Frame 2147224179.svg\" \"C:\\Users\\USER\\Documents\\Development\\match-prediction-app\\public\\cta-overlay.svg\")",
       "Bash(cmd /c copy \"C:\\Users\\USER\\Downloads\\Unock.svg\" \"C:\\Users\\USER\\Documents\\Development\\match-prediction-app\\public\\icon-unlock.svg\")",
       "Bash(cmd /c copy \"C:\\Users\\USER\\Downloads\\Frame 2147224179.svg\" \"C:\\Users\\USER\\Documents\\Development\\match-prediction-app\\public\\cta-overlay.svg\")",
-      "Bash(powershell -Command:*)"
+      "Bash(powershell -Command:*)",
+      "Bash(cmd /c copy:*)",
+      "Bash(copy \"public\\\\Fourth official \\(lanrenathaniela\\)\\\\Logo files\\\\PNGs - SVGs\\\\SVG\\\\Asset 4.svg\" \"public\\\\logo.svg\")"
     ],
     "deny": [],
     "ask": []

@@ -57,7 +57,7 @@ export function MatchBanner({ fixture, predictions = [], showPredictions = false
           }}
         >
           {/* Main Content Area */}
-          <div className="flex-1 flex flex-col justify-center pt-[12px]">
+          <div className="flex-1 flex flex-col justify-center pt-[4px]">
             {/* League Name & Live Badge - 182x41px container */}
             <div className="flex flex-col items-center w-[182px] h-[41px] mx-auto mb-[8px]">
               <span
@@ -79,8 +79,8 @@ export function MatchBanner({ fixture, predictions = [], showPredictions = false
               </div>
             </div>
 
-            {/* Teams and Score - 350x50px container, no gaps between elements */}
-            <div className="flex items-center justify-center w-[350px] h-[50px] mx-auto">
+            {/* Teams and Score - 350x50px container, 5px gap between team boxes and score */}
+            <div className="flex items-center justify-center w-[350px] h-[50px] mx-auto gap-[5px]">
               {/* Home Team - 104x50px, logo on left, name on right (adjacent to score) */}
               <div className="w-[104px] h-[50px] flex items-center justify-end gap-[4px]">
                 {fixture.home_team_image_path ? (
@@ -224,7 +224,7 @@ export function MatchBanner({ fixture, predictions = [], showPredictions = false
           }}
         >
           {/* Main Content Area */}
-          <div className="flex-1 flex flex-col justify-center pt-[12px]">
+          <div className="flex-1 flex flex-col justify-center pt-[4px]">
             {/* League Name & Live Badge - 285x61px box */}
             <div className="flex flex-col items-center mb-[20px] w-[285px] h-[61px] mx-auto">
               {/* League name - 27px height, 22px text */}
