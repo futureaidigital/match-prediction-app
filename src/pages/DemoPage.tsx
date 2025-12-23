@@ -16,7 +16,7 @@ import { TEST_CREDENTIALS, DEFAULTS } from '@/config/defaults';
 import { COLORS } from '@/config/theme';
 
 export function DemoPage() {
-  const { user, isAuthenticated, login, logout, error: authError } = useAuth();
+  const { user, isAuthenticated, login, logout, error: authError, hasAccess } = useAuth();
   const [loginLoading, setLoginLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [showAuthPanel, setShowAuthPanel] = useState(false);
@@ -90,8 +90,8 @@ export function DemoPage() {
     }
   };
 
-  // Check if user is premium
-  const isPremium = user?.email?.includes('premium') || false;
+  // Check if user is premium - use hasAccess() which checks both subscriptionStatus and demo_premium flag
+  const isPremium = hasAccess();
 
   // Calculate total pages from fixture_ids (minimum 10 for demo)
   const totalPages = useMemo(() => {

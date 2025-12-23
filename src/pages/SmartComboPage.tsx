@@ -11,12 +11,12 @@ import { TEST_CREDENTIALS } from '@/config/defaults';
 
 export function SmartComboPage() {
   const navigate = useNavigate();
-  const { isAuthenticated, user, login, logout, error: authError, subscriptionStatus } = useAuth();
+  const { isAuthenticated, user, login, logout, error: authError, subscriptionStatus, hasAccess } = useAuth();
   const [showAuthPanel, setShowAuthPanel] = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
 
-  // Check premium status - use subscriptionStatus directly for reactive updates
-  const isPremium = subscriptionStatus?.has_access ?? false;
+  // Check premium status - use hasAccess() which checks both subscriptionStatus and demo_premium flag
+  const isPremium = hasAccess();
 
   // Login handlers
   const handleFreeLogin = async () => {
@@ -171,37 +171,60 @@ export function SmartComboPage() {
       )}
 
       <main className="flex-1">
-        <div className="max-w-[1400px] mx-auto px-6 py-8">
+        <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-4 md:py-8">
           {/* Main Card Container - Same style as SmartCombo component */}
           <div
             className="rounded-2xl overflow-hidden shadow-lg"
             style={{ background: 'linear-gradient(to top right, #091143 65%, #11207f 100%)' }}
           >
             {/* Header Section */}
-            <div className="p-6 text-white">
+            <div className="p-4 md:p-6 text-white">
               {/* Title Row */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <h1 className="text-2xl font-bold">This Week's Smart Combo</h1>
-                  <span className="flex items-center gap-1.5 bg-yellow-500/20 text-yellow-400 px-3 py-1 rounded-full text-sm font-medium">
-                    <img src="/icon-trusted-pick.svg" alt="" className="w-4 h-4" /> Trusted Pick
-                  </span>
-                  <span className="flex items-center gap-1.5 bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full text-sm font-medium">
-                    <img src="/icon-safe-pick.svg" alt="" className="w-4 h-4" /> Safe Pick
-                  </span>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0">
+                <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-3">
+                  <h1 className="text-lg md:text-2xl font-bold">This Week's Smart Combo</h1>
+                  <div className="flex items-center gap-2">
+                    <span className="flex items-center gap-1 md:gap-1.5 bg-yellow-500/20 text-yellow-400 px-2 md:px-3 py-1 rounded-full text-xs md:text-sm font-medium">
+                      <img src="/icon-trusted-pick.svg" alt="" className="w-3 h-3 md:w-4 md:h-4" /> Trusted Pick
+                    </span>
+                    <span className="flex items-center gap-1 md:gap-1.5 bg-blue-500/20 text-blue-400 px-2 md:px-3 py-1 rounded-full text-xs md:text-sm font-medium">
+                      <img src="/icon-safe-pick.svg" alt="" className="w-3 h-3 md:w-4 md:h-4" /> Safe Pick
+                    </span>
+                  </div>
                 </div>
               </div>
 
               {/* Stats Row */}
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between mt-4 gap-4">
                 {/* Accuracy Circle */}
-                <div className="flex items-center gap-4">
-                  <div className="relative w-16 h-16">
-                    <svg className="w-16 h-16 transform -rotate-90">
+                <div className="flex items-center gap-3 md:gap-4">
+                  <div className="relative w-14 h-14 md:w-16 md:h-16 shrink-0">
+                    <svg className="w-14 h-14 md:w-16 md:h-16 transform -rotate-90">
+                      <circle
+                        cx="50%"
+                        cy="50%"
+                        r="24"
+                        className="md:hidden"
+                        stroke="rgba(255,255,255,0.2)"
+                        strokeWidth="4"
+                        fill="none"
+                      />
+                      <circle
+                        cx="50%"
+                        cy="50%"
+                        r="24"
+                        className="md:hidden"
+                        stroke="#22c55e"
+                        strokeWidth="4"
+                        fill="none"
+                        strokeDasharray={`${(accuracy / 100) * 151} 151`}
+                        strokeLinecap="round"
+                      />
                       <circle
                         cx="32"
                         cy="32"
                         r="28"
+                        className="hidden md:block"
                         stroke="rgba(255,255,255,0.2)"
                         strokeWidth="4"
                         fill="none"
@@ -210,6 +233,7 @@ export function SmartComboPage() {
                         cx="32"
                         cy="32"
                         r="28"
+                        className="hidden md:block"
                         stroke="#22c55e"
                         strokeWidth="4"
                         fill="none"
@@ -218,17 +242,17 @@ export function SmartComboPage() {
                       />
                     </svg>
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-white font-bold text-lg">{accuracy}%</span>
+                      <span className="text-white font-bold text-base md:text-lg">{accuracy}%</span>
                     </div>
                   </div>
                   <div>
-                    <p className="text-white font-semibold">Last Week Accuracy</p>
-                    <p className="text-white/60 text-sm">Consistently delivering winning predictions</p>
+                    <p className="text-white font-semibold text-sm md:text-base">Last Week Accuracy</p>
+                    <p className="text-white/60 text-xs md:text-sm">Consistently delivering winning predictions</p>
                   </div>
                 </div>
 
-                {/* Stats Badges */}
-                <div className="flex items-center gap-4">
+                {/* Stats Badges - Hidden on mobile, shown on desktop */}
+                <div className="hidden md:flex items-center gap-4">
                   <div className="bg-[#1a2555] rounded-2xl px-6 py-2.5 text-center min-w-[100px]">
                     <div className="flex items-center justify-center mb-1">
                       <img src="/icon-success.svg" alt="Success Rate" className="w-10 h-10" />
@@ -258,14 +282,46 @@ export function SmartComboPage() {
                     <p className="text-white/60 text-xs">Coverage</p>
                   </div>
                 </div>
+
+                {/* Mobile Stats Badges - 2x2 grid */}
+                <div className="grid grid-cols-4 gap-2 md:hidden">
+                  <div className="bg-[#1a2555] rounded-xl px-2 py-2 text-center">
+                    <div className="flex items-center justify-center mb-0.5">
+                      <img src="/icon-success.svg" alt="Success Rate" className="w-6 h-6" />
+                    </div>
+                    <p className="text-white font-bold text-sm">{combo?.confidence ? Math.round(combo.confidence) : 87}%</p>
+                    <p className="text-white/60 text-[10px]">Success</p>
+                  </div>
+                  <div className="bg-[#1a2555] rounded-xl px-2 py-2 text-center">
+                    <div className="flex items-center justify-center mb-0.5">
+                      <img src="/icon-proven.svg" alt="Proven" className="w-6 h-6" />
+                    </div>
+                    <p className="text-white font-bold text-sm">Proven</p>
+                    <p className="text-white/60 text-[10px]">Record</p>
+                  </div>
+                  <div className="bg-[#1a2555] rounded-xl px-2 py-2 text-center">
+                    <div className="flex items-center justify-center mb-0.5">
+                      <img src="/icon-expert.svg" alt="Expert" className="w-6 h-6" />
+                    </div>
+                    <p className="text-white font-bold text-sm">Expert</p>
+                    <p className="text-white/60 text-[10px]">Analysis</p>
+                  </div>
+                  <div className="bg-[#1a2555] rounded-xl px-2 py-2 text-center">
+                    <div className="flex items-center justify-center mb-0.5">
+                      <img src="/icon-global.svg" alt="Global" className="w-6 h-6" />
+                    </div>
+                    <p className="text-white font-bold text-sm">Global</p>
+                    <p className="text-white/60 text-[10px]">Coverage</p>
+                  </div>
+                </div>
               </div>
             </div>
 
             {/* White Content Area */}
             <div className="bg-white rounded-t-2xl">
               {/* Combo Overview Header */}
-              <div className="flex items-center justify-between px-6 pt-4">
-                <h2 className="text-3xl font-semibold text-gray-900">Combo Overview</h2>
+              <div className="flex items-center justify-between px-4 md:px-6 pt-4">
+                <h2 className="text-xl md:text-3xl font-semibold text-gray-900">Combo Overview</h2>
                 <button className="text-gray-400 hover:text-gray-600">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <circle cx="12" cy="12" r="10" />
@@ -277,23 +333,23 @@ export function SmartComboPage() {
 
               {/* Loading State */}
               {isLoading && (
-                <div className="p-6 space-y-4">
+                <div className="p-4 md:p-6 space-y-4">
                   {[1, 2, 3].map((i) => (
-                    <div key={i} className="border-2 border-dashed border-gray-200 rounded-xl p-6 animate-pulse">
+                    <div key={i} className="border-2 border-dashed border-gray-200 rounded-xl p-4 md:p-6 animate-pulse">
                       <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 bg-gray-200 rounded-full" />
-                          <div className="h-4 bg-gray-200 rounded w-16" />
+                        <div className="flex items-center gap-2 md:gap-3">
+                          <div className="w-10 h-10 md:w-12 md:h-12 bg-gray-200 rounded-full" />
+                          <div className="h-4 bg-gray-200 rounded w-12 md:w-16" />
                         </div>
-                        <div className="h-6 bg-gray-200 rounded w-20" />
-                        <div className="flex items-center gap-3">
-                          <div className="h-4 bg-gray-200 rounded w-16" />
-                          <div className="w-12 h-12 bg-gray-200 rounded-full" />
+                        <div className="h-6 bg-gray-200 rounded w-16 md:w-20" />
+                        <div className="flex items-center gap-2 md:gap-3">
+                          <div className="h-4 bg-gray-200 rounded w-12 md:w-16" />
+                          <div className="w-10 h-10 md:w-12 md:h-12 bg-gray-200 rounded-full" />
                         </div>
                       </div>
                       <div className="space-y-3">
-                        <div className="h-16 bg-gray-100 rounded-lg" />
-                        <div className="h-16 bg-gray-100 rounded-lg" />
+                        <div className="h-12 md:h-16 bg-gray-100 rounded-lg" />
+                        <div className="h-12 md:h-16 bg-gray-100 rounded-lg hidden md:block" />
                       </div>
                     </div>
                   ))}
@@ -325,7 +381,7 @@ export function SmartComboPage() {
 
               {/* Fixtures List */}
               {!isLoading && !comboError && fixtures.length > 0 && (
-                <div className="p-6 space-y-4">
+                <div className="p-4 md:p-6 space-y-4">
                   {fixtures.map((fixtureData, fixtureIndex) => {
                     const { fixture, predictions: fallbackPredictions } = fixtureData;
                     const predictions = predictionsByFixture.get(fixture.fixture_id) || fallbackPredictions;
@@ -348,52 +404,52 @@ export function SmartComboPage() {
                     return (
                       <div
                         key={fixture.fixture_id}
-                        className={`border-2 border-dashed border-gray-300 rounded-xl p-5 hover:border-[#091143]/30 transition-colors ${isFixtureBlurred ? 'relative' : ''}`}
+                        className={`border-2 border-dashed border-gray-300 rounded-xl p-3 md:p-5 hover:border-[#091143]/30 transition-colors ${isFixtureBlurred ? 'relative' : ''}`}
                       >
                         {/* Blur overlay for non-first fixtures (free users) */}
                         {isFixtureBlurred && (
                           <div className="absolute inset-0 backdrop-blur-[6px] bg-white/50 z-10 rounded-xl" />
                         )}
                         {/* Match Header */}
-                        <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center justify-between mb-3 md:mb-4">
                           {/* Home Team */}
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-2 md:gap-3">
                             <TeamAvatar
                               logo={homeTeamLogo}
                               name={fixture.home_team_name || 'Home'}
                               shortName={fixture.home_team_name?.slice(0, 3).toUpperCase() || 'HOM'}
-                              size="lg"
+                              size="md"
                             />
-                            <span className="font-bold text-gray-900 text-lg">
+                            <span className="font-bold text-gray-900 text-sm md:text-lg">
                               {fixture.home_team_name?.slice(0, 3).toUpperCase() || 'HOM'}
                             </span>
                           </div>
 
                           {/* Center - Competition, Time */}
-                          <div className="flex flex-col items-center">
-                            <span className="text-gray-400 text-xs font-medium mb-1">
-                              {fixture.league_name || 'International • WC Qualification, UEFA'}
+                          <div className="flex flex-col items-center px-2">
+                            <span className="text-gray-400 text-[10px] md:text-xs font-medium mb-0.5 md:mb-1 text-center line-clamp-1">
+                              {fixture.league_name || 'International'}
                             </span>
-                            <span className="font-bold text-gray-900 text-xl">{kickoffTime}</span>
-                            <span className="text-gray-400 text-xs font-medium">TODAY</span>
+                            <span className="font-bold text-gray-900 text-base md:text-xl">{kickoffTime}</span>
+                            <span className="text-gray-400 text-[10px] md:text-xs font-medium">TODAY</span>
                           </div>
 
                           {/* Away Team */}
-                          <div className="flex items-center gap-3">
-                            <span className="font-bold text-gray-900 text-lg">
+                          <div className="flex items-center gap-2 md:gap-3">
+                            <span className="font-bold text-gray-900 text-sm md:text-lg">
                               {fixture.away_team_name?.slice(0, 3).toUpperCase() || 'AWY'}
                             </span>
                             <TeamAvatar
                               logo={awayTeamLogo}
                               name={fixture.away_team_name || 'Away'}
                               shortName={fixture.away_team_name?.slice(0, 3).toUpperCase() || 'AWY'}
-                              size="lg"
+                              size="md"
                             />
                           </div>
                         </div>
 
                         {/* Predictions */}
-                        <div className="space-y-3">
+                        <div className="space-y-2 md:space-y-3">
                           {predictions.slice(0, 3).map((pred, idx) => {
                             // For free users: blur predictions after the first one (only in first fixture)
                             const isPredictionBlurred = !isPremium && fixtureIndex === 0 && idx > 0;
@@ -402,22 +458,22 @@ export function SmartComboPage() {
                             return (
                               <div
                                 key={pred.prediction_id}
-                                className={`border border-gray-200 rounded-lg p-4 ${isPredictionBlurred ? 'relative overflow-hidden' : ''}`}
+                                className={`border border-gray-200 rounded-lg p-3 md:p-4 ${isPredictionBlurred ? 'relative overflow-hidden' : ''}`}
                               >
                                 {isPredictionBlurred && (
                                   <div className="absolute inset-0 backdrop-blur-[6px] bg-white/50 z-10 flex items-center justify-center rounded-lg" />
                                 )}
 
                                 {/* Prediction Label & Trend */}
-                                <div className="flex items-center justify-between mb-2">
-                                  <span className="font-medium text-gray-900">{pred.prediction_display_name}</span>
+                                <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-2 gap-1">
+                                  <span className="font-medium text-gray-900 text-sm md:text-base">{pred.prediction_display_name}</span>
                                   <div className="flex items-center gap-1">
                                     {pred.pct_change_value !== null && pred.pct_change_value !== undefined && (
-                                      <span className={`text-sm font-medium ${pred.pct_change_value >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                        {pred.pct_change_value >= 0 ? '↑' : '↓'} {Math.abs(pred.pct_change_value)}% in the last {pred.pct_change_interval || 13} min
+                                      <span className={`text-xs md:text-sm font-medium ${pred.pct_change_value >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                        {pred.pct_change_value >= 0 ? '↑' : '↓'} {Math.abs(pred.pct_change_value)}% in {pred.pct_change_interval || 13} min
                                       </span>
                                     )}
-                                    <button className="ml-2 text-gray-400 hover:text-gray-600">
+                                    <button className="ml-1 md:ml-2 text-gray-400 hover:text-gray-600">
                                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                         <polyline points="6 9 12 15 18 9" />
                                       </svg>
@@ -426,10 +482,10 @@ export function SmartComboPage() {
                                 </div>
 
                                 {/* Progress Bar & Stats */}
-                                <div className="flex items-center gap-6">
+                                <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-6">
                                   {/* Progress Bar */}
-                                  <div className="flex items-center gap-3 flex-1">
-                                    <span className="text-green-500 font-bold text-lg min-w-[48px]">{percentage}%</span>
+                                  <div className="flex items-center gap-2 md:gap-3 flex-1">
+                                    <span className="text-green-500 font-bold text-base md:text-lg min-w-[40px] md:min-w-[48px]">{percentage}%</span>
                                     <div className="flex-1 bg-gray-200 rounded-full h-2">
                                       <div
                                         className="bg-green-500 h-2 rounded-full transition-all duration-300"
@@ -438,8 +494,8 @@ export function SmartComboPage() {
                                     </div>
                                   </div>
 
-                                  {/* Stats */}
-                                  <div className="flex items-center gap-6 text-sm">
+                                  {/* Stats - Hidden on mobile */}
+                                  <div className="hidden md:flex items-center gap-6 text-sm">
                                     <div className="text-gray-500">
                                       Pre-game Prediction: <span className="text-green-500 font-medium">{Math.round(pred.pre_game_prediction)}%</span>
                                     </div>
@@ -467,32 +523,32 @@ export function SmartComboPage() {
           {/* Footer CTA - Separate box below main card */}
           {!isPremium && (
             <div
-              className="mt-6 p-4 rounded-2xl flex items-center justify-between relative overflow-hidden"
+              className="mt-4 md:mt-6 p-3 md:p-4 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-3 md:gap-0 relative overflow-hidden"
               style={{ background: 'linear-gradient(to right, #091143, #11207f)' }}
             >
               {/* Abstract overlay on left side */}
               <img
                 src="/cta-overlay.svg"
                 alt=""
-                className="absolute left-0 top-0 h-full opacity-50 pointer-events-none scale-x-[-1]"
+                className="absolute left-0 top-0 h-full opacity-50 pointer-events-none scale-x-[-1] hidden md:block"
               />
               {/* Abstract overlay on right side */}
               <img
                 src="/cta-overlay.svg"
                 alt=""
-                className="absolute right-0 top-0 h-full opacity-50 pointer-events-none"
+                className="absolute right-0 top-0 h-full opacity-50 pointer-events-none hidden md:block"
               />
-              <div className="text-white relative z-10">
-                <p className="text-lg font-semibold">Full Combo Access</p>
-                <div className="flex items-center gap-2">
-                  <span className="text-3xl font-bold">$9.99</span>
-                  <span className="text-white/60 line-through">$19.99</span>
-                  <span className="bg-green-500 text-white text-sm font-bold px-2 py-1 rounded">50% OFF</span>
+              <div className="text-white relative z-10 text-center md:text-left">
+                <p className="text-base md:text-lg font-semibold">Full Combo Access</p>
+                <div className="flex items-center justify-center md:justify-start gap-2">
+                  <span className="text-2xl md:text-3xl font-bold">$9.99</span>
+                  <span className="text-white/60 line-through text-sm md:text-base">$19.99</span>
+                  <span className="bg-green-500 text-white text-xs md:text-sm font-bold px-2 py-0.5 md:py-1 rounded">50% OFF</span>
                 </div>
               </div>
               <button
                 onClick={() => navigate('/pricing')}
-                className="flex items-center gap-2 bg-white text-[#091143] font-semibold px-6 py-3 rounded-lg hover:bg-gray-100 transition-colors relative z-10"
+                className="flex items-center gap-2 bg-white text-[#091143] font-semibold px-4 md:px-6 py-2.5 md:py-3 rounded-lg hover:bg-gray-100 transition-colors relative z-10 w-full md:w-auto justify-center text-sm md:text-base"
               >
                 <img src="/icon-unlock.svg" alt="" className="w-4 h-4" />
                 Unlock Combo
