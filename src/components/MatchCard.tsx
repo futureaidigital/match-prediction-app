@@ -254,31 +254,49 @@ export function MatchCard({
       <div className="h-px bg-gray-200 w-full md:-mx-2 md:w-auto mb-[5px] md:mb-4" />
 
       {/* Predictions Section */}
+      {/* Mobile: Show only 1 prediction (unblurred for premium, unblurred for free on page 1) */}
+      {/* Desktop: Show all predictions (premium sees all unblurred, free sees 1 unblurred + rest blurred) */}
       <div className="flex-1 space-y-2 overflow-visible min-h-0 md:-mx-2 flex flex-col justify-center md:justify-start">
-        {/* Visible Predictions */}
-        {visiblePredictions.map((prediction, index) => (
-          <PredictionBar
-            key={`${prediction.id}-${index}`}
-            label={prediction.label}
-            percentage={prediction.percentage}
-            trend={prediction.trend}
-            size="md"
-            showBackground
-          />
-        ))}
+        {/* Mobile: Show only first prediction */}
+        <div className="md:hidden">
+          {predictions.slice(0, 1).map((prediction, index) => (
+            <PredictionBar
+              key={`mobile-${prediction.id}-${index}`}
+              label={prediction.label}
+              percentage={prediction.percentage}
+              trend={prediction.trend}
+              size="md"
+              showBackground
+            />
+          ))}
+        </div>
 
-        {/* Blurred Predictions (for non-premium) */}
-        {!isPremium && blurredPredictions.map((prediction) => (
-          <PredictionBar
-            key={prediction.id}
-            label={prediction.label}
-            percentage={prediction.percentage}
-            trend={prediction.trend}
-            size="md"
-            showBackground
-            isBlurred
-          />
-        ))}
+        {/* Desktop: Show visible predictions (all for premium, 1 for free) */}
+        <div className="hidden md:block space-y-2">
+          {visiblePredictions.map((prediction, index) => (
+            <PredictionBar
+              key={`desktop-${prediction.id}-${index}`}
+              label={prediction.label}
+              percentage={prediction.percentage}
+              trend={prediction.trend}
+              size="md"
+              showBackground
+            />
+          ))}
+
+          {/* Desktop: Blurred Predictions (for non-premium only) */}
+          {!isPremium && blurredPredictions.map((prediction) => (
+            <PredictionBar
+              key={`blurred-${prediction.id}`}
+              label={prediction.label}
+              percentage={prediction.percentage}
+              trend={prediction.trend}
+              size="md"
+              showBackground
+              isBlurred
+            />
+          ))}
+        </div>
       </div>
 
       {/* Footer */}

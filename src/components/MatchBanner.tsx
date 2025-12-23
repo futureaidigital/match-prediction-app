@@ -1,3 +1,5 @@
+import { useMemo } from 'react';
+
 interface MatchBannerProps {
   fixture: {
     league_name?: string;
@@ -28,11 +30,19 @@ export function MatchBanner({ fixture, predictions = [], showPredictions = false
   const homeScore = fixture.home_team_score ?? 0;
   const awayScore = fixture.away_team_score ?? 0;
 
-  // Dedupe predictions by display name to avoid duplicates
-  const uniquePredictions = predictions.filter(
-    (pred, index, self) =>
-      index === self.findIndex((p) => p.prediction_display_name === pred.prediction_display_name)
-  );
+  // Dedupe predictions by prediction_id first, then by display name as fallback
+  const uniquePredictions = useMemo(() => {
+    const seen = new Set<string>();
+    return predictions.filter((pred) => {
+      // Create unique key from prediction_id or display_name
+      const key = pred.prediction_id != null
+        ? `id-${pred.prediction_id}`
+        : `name-${pred.prediction_display_name}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [predictions]);
 
   return (
     <>
@@ -172,7 +182,7 @@ export function MatchBanner({ fixture, predictions = [], showPredictions = false
 
                   return (
                     <div
-                      key={pred.prediction_id || idx}
+                      key={`mobile-${pred.prediction_id ?? idx}-${pred.prediction_display_name}`}
                       className="h-[21px] flex items-center gap-[6px] bg-[#ffffff26] border border-[#7c8a9c] rounded-[4px] px-[12px] py-[2px] shrink-0"
                       style={{ boxShadow: '0 0 20px rgba(0, 0, 0, 0.04)' }}
                     >
@@ -363,7 +373,7 @@ export function MatchBanner({ fixture, predictions = [], showPredictions = false
 
                   return (
                     <div
-                      key={pred.prediction_id || idx}
+                      key={`desktop-${pred.prediction_id ?? idx}-${pred.prediction_display_name}`}
                       className="h-[22px] flex items-center gap-[6px] bg-[#ffffff26] border border-[#7c8a9c] rounded-[4px] px-[12px] py-[2px] shrink-0"
                       style={{ boxShadow: '0 0 20px rgba(0, 0, 0, 0.04)' }}
                     >

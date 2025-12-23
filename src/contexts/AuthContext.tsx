@@ -189,6 +189,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // Set the user
         setUser(response.data.user);
 
+        // Set demo_premium flag based on user email for test accounts
+        if (response.data.user?.email?.includes('premium')) {
+          localStorage.setItem('demo_premium', 'true');
+        } else {
+          localStorage.removeItem('demo_premium');
+        }
+
         // Don't fetch subscription status during login - do it separately if needed
       }
     } catch (err) {
@@ -237,6 +244,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Clear all auth state
       setUser(null);
       setSubscriptionStatus(null);
+      localStorage.removeItem('demo_premium');
       setIsLoading(false);
     }
   };
