@@ -8,7 +8,25 @@ interface HeaderProps {
 
 export function Header({ onNavigate, currentPage = '' }: HeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isMenuAnimating, setIsMenuAnimating] = useState(false);
   const navigate = useNavigate();
+
+  // Handle menu open/close with animation
+  const openMenu = () => {
+    setIsMenuOpen(true);
+    // Small delay to trigger animation after mount
+    requestAnimationFrame(() => {
+      setIsMenuAnimating(true);
+    });
+  };
+
+  const closeMenu = () => {
+    setIsMenuAnimating(false);
+    // Wait for animation to complete before unmounting
+    setTimeout(() => {
+      setIsMenuOpen(false);
+    }, 300);
+  };
 
   const navItems = [
     { id: 'matches', label: 'Matches', path: '/matches' },
@@ -42,7 +60,7 @@ export function Header({ onNavigate, currentPage = '' }: HeaderProps) {
         <div className="w-full max-w-[100vw] md:max-w-7xl mx-auto px-4 md:px-6 py-3 flex items-center justify-between box-border">
           {/* Mobile: Hamburger Menu */}
           <button
-            onClick={() => setIsMenuOpen(true)}
+            onClick={openMenu}
             className="md:hidden p-1"
           >
             <img src="/Hamburger Menu.png" alt="Menu" className="w-6 h-6" />
@@ -100,14 +118,28 @@ export function Header({ onNavigate, currentPage = '' }: HeaderProps) {
 
       {/* Mobile Full Screen Menu Overlay */}
       {isMenuOpen && (
-        <div className="md:hidden fixed inset-0 z-50 flex flex-col">
-          {/* Menu Header */}
-          <div className="bg-[#0d1a67] px-4 py-3 flex items-center justify-between">
-            {/* Close Button */}
-            <button
-              onClick={() => setIsMenuOpen(false)}
-              className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center"
-            >
+        <div className="md:hidden fixed inset-0 z-50">
+          {/* Backdrop */}
+          <div
+            className={`absolute inset-0 bg-black transition-opacity duration-300 ${
+              isMenuAnimating ? 'opacity-50' : 'opacity-0'
+            }`}
+            onClick={closeMenu}
+          />
+
+          {/* Menu Panel */}
+          <div
+            className={`absolute inset-y-0 left-0 w-full flex flex-col transform transition-transform duration-300 ease-out ${
+              isMenuAnimating ? 'translate-x-0' : '-translate-x-full'
+            }`}
+          >
+            {/* Menu Header */}
+            <div className="bg-[#0d1a67] px-4 py-3 flex items-center justify-between">
+              {/* Close Button */}
+              <button
+                onClick={closeMenu}
+                className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center"
+              >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
@@ -124,29 +156,30 @@ export function Header({ onNavigate, currentPage = '' }: HeaderProps) {
           </div>
 
           {/* Menu Content */}
-          <div className="flex-1 bg-white px-6 py-4 overflow-y-auto">
-            <nav className="flex flex-col">
-              {mobileNavItems.map((item, index) => (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    handleNavigation(item);
-                    setIsMenuOpen(false);
-                  }}
-                  className={`py-5 text-left text-xl font-semibold text-gray-800 ${
-                    index < mobileNavItems.length - 1 ? 'border-b border-gray-200' : ''
-                  }`}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </nav>
-          </div>
+            <div className="flex-1 bg-white px-6 py-4 overflow-y-auto">
+              <nav className="flex flex-col">
+                {mobileNavItems.map((item, index) => (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      handleNavigation(item);
+                      closeMenu();
+                    }}
+                    className={`py-5 text-left text-xl font-semibold text-gray-800 ${
+                      index < mobileNavItems.length - 1 ? 'border-b border-gray-200' : ''
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </nav>
+            </div>
 
-          {/* Menu Footer */}
-          <div className="bg-[#0d1a67] px-6 py-4">
-            <div className="text-center text-white/70 text-sm">
-              © 2025 Sports Predictions Platform. All rights reserved.
+            {/* Menu Footer */}
+            <div className="bg-[#0d1a67] px-6 py-4">
+              <div className="text-center text-white/70 text-sm">
+                © 2025 Sports Predictions Platform. All rights reserved.
+              </div>
             </div>
           </div>
         </div>
