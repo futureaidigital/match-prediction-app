@@ -119,10 +119,10 @@ function WeatherCard({
   };
 
   return (
-    <div className="flex flex-col items-center">
-      <span className="text-gray-900 font-semibold text-lg">{temp}°C</span>
-      <span className="text-4xl my-2">{getWeatherIcon(icon)}</span>
-      <span className="text-gray-500 text-sm">{isNow ? 'Now' : time}</span>
+    <div className="flex flex-col items-center w-20 md:w-auto">
+      <span className="text-gray-900 font-semibold text-sm md:text-lg">{temp}°C</span>
+      <span className="text-2xl md:text-4xl my-1 md:my-2">{getWeatherIcon(icon)}</span>
+      <span className="text-gray-500 text-xs md:text-sm">{isNow ? 'Now' : time}</span>
     </div>
   );
 }
@@ -131,38 +131,42 @@ function WeatherCard({
 function WeatherDivider({ type }: { type: 'normal' | 'match-start' | 'match-end' }) {
   if (type === 'match-start') {
     return (
-      <div className="self-stretch flex flex-col items-center">
-        <div className="w-px flex-1 bg-[#0d1a67]" />
-        <div
-          className="flex items-center gap-1 text-[10px] text-[#0d1a67] font-medium py-1"
-          style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
-        >
-          <img src="/Vector.svg" alt="" className="w-3 h-3" style={{ transform: 'rotate(90deg)' }} />
-          <span>Match Start</span>
+      <div className="self-stretch flex flex-col items-center justify-center min-h-[60px] md:min-h-0">
+        <div className="flex flex-col items-center h-full">
+          <div className="w-px h-4 md:flex-1 bg-[#0d1a67]" />
+          <div
+            className="flex items-center gap-0.5 md:gap-1 text-[8px] md:text-[10px] text-[#0d1a67] font-medium py-0.5 md:py-1"
+            style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
+          >
+            <img src="/Vector.svg" alt="" className="w-2 h-2 md:w-3 md:h-3" style={{ transform: 'rotate(90deg)' }} />
+            <span>Match Start</span>
+          </div>
+          <div className="w-px h-4 md:flex-1 bg-[#0d1a67]" />
         </div>
-        <div className="w-px flex-1 bg-[#0d1a67]" />
       </div>
     );
   }
 
   if (type === 'match-end') {
     return (
-      <div className="self-stretch flex flex-col items-center">
-        <div className="w-px flex-1 bg-orange-500" />
-        <span
-          className="text-[10px] text-orange-500 font-medium py-1"
-          style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
-        >
-          Match End
-        </span>
-        <div className="w-px flex-1 bg-orange-500" />
+      <div className="self-stretch flex flex-col items-center justify-center min-h-[60px] md:min-h-0">
+        <div className="flex flex-col items-center h-full">
+          <div className="w-px h-6 md:flex-1 bg-orange-500" />
+          <span
+            className="text-[8px] md:text-[10px] text-orange-500 font-medium py-0.5 md:py-1"
+            style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
+          >
+            Match End
+          </span>
+          <div className="w-px h-6 md:flex-1 bg-orange-500" />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="self-stretch flex items-center justify-center">
-      <div className="w-px h-full bg-gray-200" />
+    <div className="self-stretch flex items-center justify-center min-h-[60px] md:min-h-0">
+      <div className="w-px h-24 md:h-full bg-gray-200" />
     </div>
   );
 }
@@ -871,14 +875,16 @@ export function MatchDetailPage() {
           )}
 
           {/* Weather Section */}
-          <div className="mt-8">
+          <div className="mt-6 md:mt-8">
             {/* Header */}
-            <div className="flex items-start justify-between mb-4">
+            <div className="flex items-start justify-between mb-3 md:mb-4">
               <div>
-                <h2 className="text-xl font-bold text-gray-900">
-                  Weather • {(fixture as any)?.venue_name || 'Michigan Stadium'}
+                <h2 className="text-base md:text-xl font-bold text-gray-900">
+                  <span className="hidden md:inline">Weather • </span>
+                  <span className="md:hidden">Weather</span>
+                  <span className="hidden md:inline">{(fixture as any)?.venue_name || 'Michigan Stadium'}</span>
                 </h2>
-                <p className="text-gray-500 text-sm">
+                <p className="text-gray-500 text-xs md:text-sm">
                   {fixture?.starting_at
                     ? new Date(fixture.starting_at).toLocaleDateString('en-US', {
                         weekday: 'long',
@@ -889,23 +895,25 @@ export function MatchDetailPage() {
                     : 'Today, January 15, 2025'}
                 </p>
               </div>
-              <button className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50">
+              <button className="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1 md:py-1.5 text-xs md:text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50">
                 Today
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="md:w-4 md:h-4">
                   <polyline points="6 9 12 15 18 9" />
                 </svg>
               </button>
             </div>
 
             {/* Weather Timeline Card */}
-            <div className="relative mb-16">
-              <div className="bg-white rounded-2xl border-[7px] border-gray-200 py-6 pb-8">
+            <div className="relative mb-12 md:mb-16">
+              <div className="bg-white rounded-xl md:rounded-2xl border-4 md:border-[7px] border-gray-200 py-4 md:py-6 pb-6 md:pb-8 relative overflow-hidden">
+                {/* Fade overlay - left side (mobile only) - narrow, inside border, behind border layer */}
+                <div className="absolute left-0 top-1 bottom-1 w-6 bg-gradient-to-r from-white to-transparent z-[5] pointer-events-none md:hidden" />
                 {/* Weather Icons Row */}
-                <div className="overflow-x-auto scrollbar-hide">
-                  <div className="flex items-stretch justify-evenly w-full">
+                <div className="overflow-x-auto scrollbar-hide -mx-1 px-1">
+                  <div className="flex items-stretch gap-4 md:gap-0 md:justify-evenly min-w-max md:min-w-0 md:w-full px-3 md:px-0 pr-12 md:pr-0">
                     {weatherData.map((item, index) => (
-                      <div key={index} className="contents">
-                        <div className="flex flex-col items-center justify-center">
+                      <div key={index} className="flex items-stretch gap-4 md:gap-0 md:contents">
+                        <div className="flex flex-col items-center justify-center shrink-0">
                           <WeatherCard
                             time={item.time}
                             temp={item.temp}
@@ -914,7 +922,9 @@ export function MatchDetailPage() {
                           />
                         </div>
                         {item.dividerAfter && (
-                          <WeatherDivider type={item.dividerAfter} />
+                          <div className="shrink-0 md:contents">
+                            <WeatherDivider type={item.dividerAfter} />
+                          </div>
                         )}
                       </div>
                     ))}
@@ -923,12 +933,12 @@ export function MatchDetailPage() {
 
                 {/* Match Window Box - Merging with bottom border */}
                 <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full">
-                  <div className="bg-gray-200 rounded-b-xl px-4 py-2 flex items-center gap-3">
+                  <div className="bg-gray-200 rounded-b-lg md:rounded-b-xl px-3 md:px-4 py-1.5 md:py-2 flex items-center gap-2 md:gap-3">
                     <div className="text-center">
-                      <p className="text-gray-900 font-semibold text-sm">Match Window (4:30 - 6:00 pm)</p>
-                      <p className="text-gray-400 text-xs">Weather conditions during match</p>
+                      <p className="text-gray-900 font-semibold text-xs md:text-sm whitespace-nowrap">Match Window (4:30 - 6:00 pm)</p>
+                      <p className="text-gray-400 text-[10px] md:text-xs hidden md:block">Weather conditions during match</p>
                     </div>
-                    <button className="px-3 py-1.5 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
+                    <button className="px-2 md:px-3 py-1 md:py-1.5 bg-white border border-gray-300 text-gray-700 text-xs md:text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors whitespace-nowrap">
                       View Detail
                     </button>
                   </div>
