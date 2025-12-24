@@ -78,7 +78,7 @@ function SkeletonLeagueSection() {
 }
 
 // Upcoming match card component (simpler design)
-function UpcomingMatchCard({ fixture, leagueName, selectedDate }: { fixture: any; leagueName?: string; selectedDate?: Date }) {
+function UpcomingMatchCard({ fixture, leagueName }: { fixture: any; leagueName?: string }) {
   const navigate = useNavigate();
   const match = fixture.fixture;
 
