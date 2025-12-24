@@ -33,15 +33,14 @@ export function Header({ onNavigate, currentPage = '' }: HeaderProps) {
     { id: 'players', label: 'Players', path: '/players' },
     { id: 'league', label: 'League', path: '/league' },
     { id: 'smart-combo', label: 'Smart Combo', path: '/smart-combo' },
-    { id: 'fantasy-insights', label: 'Fantasy Insights', path: '/fantasy-insights' },
     { id: 'pricing', label: 'Pricing', path: '/pricing' },
   ];
 
   const mobileNavItems = [
     { id: 'matches', label: 'Matches', path: '/matches' },
     { id: 'players', label: 'Players', path: '/players' },
+    { id: 'league', label: 'League', path: '/league' },
     { id: 'smart-combo', label: 'Smart Combo', path: '/smart-combo' },
-    { id: 'fantasy-insights', label: 'Fantasy Insights', path: '/fantasy-insights' },
     { id: 'pricing', label: 'Pricing', path: '/pricing' },
     { id: 'login', label: 'Login', path: '/login' },
   ];
