@@ -10,6 +10,8 @@ export interface UseFixturesParams {
   sort_by?: 'kickoff_asc' | 'kickoff_desc' | 'prediction_accuracy_asc' | 'prediction_accuracy_desc';
   date_from?: string;      // Start date (ISO format: YYYY-MM-DD)
   date_to?: string;        // End date (ISO format: YYYY-MM-DD)
+  season_id?: number;      // Season ID filter
+  has_predictions?: boolean; // Filter fixtures with predictions
 }
 
 export function useFixtures(

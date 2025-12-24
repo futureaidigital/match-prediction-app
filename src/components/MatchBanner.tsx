@@ -57,7 +57,7 @@ export function MatchBanner({ fixture, predictions = [], showPredictions = false
           }}
         >
           {/* Main Content Area */}
-          <div className="flex-1 flex flex-col justify-center pt-[4px]">
+          <div className="flex-1 flex flex-col justify-center">
             {/* League Name & Live Badge - 182x41px container */}
             <div className="flex flex-col items-center w-[182px] h-[41px] mx-auto mb-[8px]">
               <span
@@ -224,7 +224,7 @@ export function MatchBanner({ fixture, predictions = [], showPredictions = false
           }}
         >
           {/* Main Content Area */}
-          <div className="flex-1 flex flex-col justify-center pt-[4px]">
+          <div className="flex-1 flex flex-col justify-center">
             {/* League Name & Live Badge - 285x61px box */}
             <div className="flex flex-col items-center mb-[20px] w-[285px] h-[61px] mx-auto">
               {/* League name - 27px height, 22px text */}

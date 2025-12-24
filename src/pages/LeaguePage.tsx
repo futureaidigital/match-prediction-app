@@ -1,0 +1,767 @@
+import { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Header } from '@/components/Header';
+import { Footer } from '@/components/Footer';
+import { SmartCombo } from '@/components/SmartCombo';
+import { useLeagues } from '@/hooks/useLeagues';
+import { useLeagueCurrent, useLeagueStandings, useLeagueFixtures } from '@/hooks/useLeagueStandings';
+import { LeagueStandingTeam, LeagueSeason } from '@/services/api';
+
+// Match card component for league fixtures
+function LeagueMatchCard({ fixture, leagueName }: { fixture: any; leagueName?: string }) {
+  const navigate = useNavigate();
+  const match = fixture.fixture;
+
+  const getDateTimeDisplay = () => {
+    if (!match.starting_at) return 'TBD';
+    const matchDate = new Date(match.starting_at);
+    const today = new Date();
+    const isToday =
+      matchDate.getDate() === today.getDate() &&
+      matchDate.getMonth() === today.getMonth() &&
+      matchDate.getFullYear() === today.getFullYear();
+    const time = matchDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    if (isToday) return `Today, ${time}`;
+    const dayName = matchDate.toLocaleDateString('en-GB', { weekday: 'short' });
+    const dayNum = matchDate.getDate();
+    return `${dayName} ${dayNum}, ${time}`;
+  };
+
+  return (
+    <div
+      onClick={() => navigate(`/match/${match.fixture_id}`)}
+      className="bg-white rounded-xl p-4 transition-shadow cursor-pointer"
+      style={{ boxShadow: '0 0 12px rgba(0, 0, 0, 0.08)' }}
+      onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 0 20px rgba(0, 0, 0, 0.12)'}
+      onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 0 12px rgba(0, 0, 0, 0.08)'}
+    >
+      {/* League Name */}
+      <div className="text-center text-gray-400 text-xs font-medium mb-1">
+        {leagueName || match.league_name || 'League'}
+      </div>
+
+      {/* Date/Time */}
+      <div className="text-center text-orange-500 text-sm font-medium mb-4">
+        {getDateTimeDisplay()}
+      </div>
+
+      {/* Teams Row */}
+      <div className="flex items-center justify-center gap-4 mb-4">
+        {/* Home Team */}
+        <div className="flex flex-col items-center">
+          {match.home_team_image_path ? (
+            <img
+              src={match.home_team_image_path}
+              alt={match.home_team_name}
+              className="w-12 h-12 object-contain mb-1"
+            />
+          ) : (
+            <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-1">
+              <span className="text-xs font-bold text-gray-500">
+                {match.home_team_short_code?.slice(0, 3) || 'HOM'}
+              </span>
+            </div>
+          )}
+          <span className="text-xs font-semibold text-gray-700">
+            {match.home_team_short_code || match.home_team_name?.slice(0, 3).toUpperCase() || 'HOM'}
+          </span>
+        </div>
+
+        {/* VS */}
+        <div className="flex items-center gap-2 self-center mt-3">
+          <div className="w-8 h-px bg-gradient-to-r from-transparent to-gray-900" />
+          <span className="text-gray-900 text-xs font-medium leading-none">vs</span>
+          <div className="w-8 h-px bg-gradient-to-l from-transparent to-gray-900" />
+        </div>
+
+        {/* Away Team */}
+        <div className="flex flex-col items-center">
+          {match.away_team_image_path ? (
+            <img
+              src={match.away_team_image_path}
+              alt={match.away_team_name}
+              className="w-12 h-12 object-contain mb-1"
+            />
+          ) : (
+            <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-1">
+              <span className="text-xs font-bold text-gray-500">
+                {match.away_team_short_code?.slice(0, 3) || 'AWY'}
+              </span>
+            </div>
+          )}
+          <span className="text-xs font-semibold text-gray-700">
+            {match.away_team_short_code || match.away_team_name?.slice(0, 3).toUpperCase() || 'AWY'}
+          </span>
+        </div>
+      </div>
+
+      {/* Learn More */}
+      <button className="w-full text-center text-[#0d1a67] text-sm font-semibold hover:underline">
+        Learn More
+      </button>
+    </div>
+  );
+}
+
+// Skeleton card for loading state
+function SkeletonMatchCard() {
+  return (
+    <div className="bg-white rounded-xl p-4 animate-pulse">
+      <div className="flex justify-center mb-1">
+        <div className="h-3 bg-gray-200 rounded w-24" />
+      </div>
+      <div className="flex justify-center mb-4">
+        <div className="h-4 bg-gray-200 rounded w-20" />
+      </div>
+      <div className="flex items-center justify-center gap-4 mb-4">
+        <div className="flex flex-col items-center">
+          <div className="w-12 h-12 bg-gray-200 rounded-full mb-1" />
+          <div className="h-3 bg-gray-200 rounded w-8" />
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-px bg-gray-200" />
+          <div className="h-3 bg-gray-200 rounded w-4" />
+          <div className="w-8 h-px bg-gray-200" />
+        </div>
+        <div className="flex flex-col items-center">
+          <div className="w-12 h-12 bg-gray-200 rounded-full mb-1" />
+          <div className="h-3 bg-gray-200 rounded w-8" />
+        </div>
+      </div>
+      <div className="flex justify-center">
+        <div className="h-4 bg-gray-200 rounded w-20" />
+      </div>
+    </div>
+  );
+}
+
+export function LeaguePage() {
+  // League scroll refs and state
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  // Matches scroll refs and state
+  const matchesScrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollMatchesLeft, setCanScrollMatchesLeft] = useState(false);
+  const [canScrollMatchesRight, setCanScrollMatchesRight] = useState(true);
+
+  const [selectedLeagueId, setSelectedLeagueId] = useState<number | null>(null);
+  const [selectedSeasonId, setSelectedSeasonId] = useState<number | null>(null);
+  const [isSeasonDropdownOpen, setIsSeasonDropdownOpen] = useState(false);
+
+  // Fetch leagues from API
+  const { data: leaguesResponse, isLoading: isLoadingLeagues } = useLeagues();
+  const leagues = leaguesResponse?.data?.leagues || [];
+
+  // Fetch current league data (initial load - includes standings and available seasons)
+  const { data: leagueCurrentResponse, isLoading: isLoadingCurrent } = useLeagueCurrent(selectedLeagueId);
+  const leagueData = leagueCurrentResponse?.data;
+  const availableSeasons = leagueData?.available_seasons || [];
+  const currentSeason = leagueData?.current_season;
+
+  // Fetch standings for a specific season (when user changes season)
+  const isNonCurrentSeason = selectedSeasonId && currentSeason && selectedSeasonId !== currentSeason.season_id;
+  const { data: standingsResponse, isLoading: isLoadingStandings } = useLeagueStandings(
+    isNonCurrentSeason && selectedLeagueId ? {
+      league_id: selectedLeagueId,
+      season_id: selectedSeasonId,
+    } : null
+  );
+
+  // Fetch league fixtures
+  const { data: fixturesResponse, isLoading: isLoadingFixtures } = useLeagueFixtures(
+    selectedLeagueId && selectedSeasonId ? {
+      league_id: selectedLeagueId,
+      season_id: selectedSeasonId,
+    } : null
+  );
+  const fixtures = fixturesResponse?.data?.fixtures || [];
+
+  // Use standings from either current response or season-specific response
+  const standings = isNonCurrentSeason
+    ? (standingsResponse?.data?.standings || [])
+    : (leagueData?.standings || []);
+  const isLoadingStandingsData = isNonCurrentSeason ? isLoadingStandings : isLoadingCurrent;
+
+  // Standings filter tab
+  const [standingsFilter, setStandingsFilter] = useState<'all' | 'home' | 'away' | 'form'>('all');
+
+  // Set first league as selected when leagues load
+  useEffect(() => {
+    if (leagues.length > 0 && selectedLeagueId === null) {
+      setSelectedLeagueId(leagues[0].league_id);
+    }
+  }, [leagues, selectedLeagueId]);
+
+  // Set current season when league data loads
+  useEffect(() => {
+    if (currentSeason && selectedSeasonId === null) {
+      setSelectedSeasonId(currentSeason.season_id);
+    }
+  }, [currentSeason, selectedSeasonId]);
+
+  // Reset season when league changes
+  useEffect(() => {
+    if (selectedLeagueId) {
+      setSelectedSeasonId(null);
+    }
+  }, [selectedLeagueId]);
+
+  // Check scroll position to enable/disable arrows
+  const checkScrollPosition = () => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const { scrollLeft, scrollWidth, clientWidth } = container;
+    setCanScrollLeft(scrollLeft > 0);
+    setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
+  };
+
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', checkScrollPosition);
+      checkScrollPosition();
+      return () => container.removeEventListener('scroll', checkScrollPosition);
+    }
+  }, [leagues]);
+
+  // Scroll handler for leagues
+  const scroll = (direction: 'left' | 'right') => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const scrollAmount = 300;
+    container.scrollBy({
+      left: direction === 'left' ? -scrollAmount : scrollAmount,
+      behavior: 'smooth',
+    });
+  };
+
+  // Check matches scroll position
+  const checkMatchesScrollPosition = () => {
+    const container = matchesScrollRef.current;
+    if (!container) return;
+
+    const { scrollLeft, scrollWidth, clientWidth } = container;
+    setCanScrollMatchesLeft(scrollLeft > 0);
+    setCanScrollMatchesRight(scrollLeft < scrollWidth - clientWidth - 10);
+  };
+
+  useEffect(() => {
+    const container = matchesScrollRef.current;
+    if (container) {
+      container.addEventListener('scroll', checkMatchesScrollPosition);
+      checkMatchesScrollPosition();
+      return () => container.removeEventListener('scroll', checkMatchesScrollPosition);
+    }
+  }, [fixtures]);
+
+  // Scroll handler for matches
+  const scrollMatches = (direction: 'left' | 'right') => {
+    const container = matchesScrollRef.current;
+    if (!container) return;
+
+    const scrollAmount = 320; // Roughly one card width
+    container.scrollBy({
+      left: direction === 'left' ? -scrollAmount : scrollAmount,
+      behavior: 'smooth',
+    });
+  };
+
+  const selectedLeague = leagues.find(l => l.league_id === selectedLeagueId);
+  const selectedSeasonData = availableSeasons.find(s => s.season_id === selectedSeasonId) || currentSeason;
+
+  return (
+    <div className="min-h-screen bg-white">
+      <Header currentPage="league" />
+
+      <main className="pb-16">
+        {/* League Filter Bar */}
+        <div className="bg-white">
+          <div className="max-w-[1400px] mx-auto px-4 md:px-6">
+            <div className="flex items-center gap-4 py-4">
+              {/* Left Arrow */}
+              <button
+                onClick={() => scroll('left')}
+                disabled={!canScrollLeft}
+                className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 transition-all border ${
+                  canScrollLeft
+                    ? 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
+                    : 'bg-gray-100 border-gray-100 text-gray-300 cursor-not-allowed'
+                }`}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
+              </button>
+
+              {/* Scrollable League Pills */}
+              <div
+                ref={scrollContainerRef}
+                className="flex-1 overflow-x-auto scrollbar-hide"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              >
+                {isLoadingLeagues ? (
+                  <div className="flex gap-3">
+                    {[1, 2, 3, 4, 5, 6].map((i) => (
+                      <div
+                        key={i}
+                        className="h-10 w-36 bg-gray-100 rounded-full animate-pulse shrink-0"
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex gap-3">
+                    {leagues.map((league) => {
+                      const isSelected = league.league_id === selectedLeagueId;
+                      return (
+                        <button
+                          key={league.league_id}
+                          onClick={() => setSelectedLeagueId(league.league_id)}
+                          className={`flex items-center gap-2 px-4 py-2 shrink-0 transition-all font-medium text-sm rounded-lg ${
+                            isSelected
+                              ? 'bg-[#0d1a67] text-white'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          }`}
+                        >
+                          {league.image_path && (
+                            <img
+                              src={league.image_path}
+                              alt={league.league_name}
+                              className="w-5 h-5 object-contain"
+                            />
+                          )}
+                          <span className="whitespace-nowrap">{league.league_name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Right Arrow */}
+              <button
+                onClick={() => scroll('right')}
+                disabled={!canScrollRight}
+                className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 transition-all ${
+                  canScrollRight
+                    ? 'bg-[#0d1a67] text-white hover:bg-[#0a1452]'
+                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                }`}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* League Content Area */}
+        <div className="bg-white min-h-[calc(100vh-200px)]">
+          <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-6">
+            {selectedLeague ? (
+              <>
+                {/* League Header */}
+                <div className="flex items-center justify-between py-2">
+                  {/* Left side - Logo and League Info */}
+                  <div className="flex items-center gap-4">
+                    {selectedLeague.image_path ? (
+                      <img
+                        src={selectedLeague.image_path}
+                        alt={selectedLeague.league_name}
+                        className="w-14 h-14 md:w-16 md:h-16 object-contain"
+                      />
+                    ) : (
+                      <div className="w-14 h-14 md:w-16 md:h-16 bg-gray-200 rounded-full flex items-center justify-center">
+                        <span className="text-gray-400 text-xl font-bold">
+                          {selectedLeague.league_name.charAt(0)}
+                        </span>
+                      </div>
+                    )}
+                    <div>
+                      <h1 className="text-lg md:text-xl font-bold text-gray-900">
+                        {selectedLeague.league_name}
+                      </h1>
+                      <p className="text-sm text-orange-500">
+                        {leagueData?.league?.country_name || 'England'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Right side - Season Dropdown */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setIsSeasonDropdownOpen(!isSeasonDropdownOpen)}
+                      className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+                    >
+                      <span>{selectedSeasonData?.season_name || 'Select Season'}</span>
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        className={`transition-transform ${isSeasonDropdownOpen ? 'rotate-180' : ''}`}
+                      >
+                        <polyline points="6 9 12 15 18 9" />
+                      </svg>
+                    </button>
+
+                    {/* Dropdown Menu */}
+                    {isSeasonDropdownOpen && availableSeasons.length > 0 && (
+                      <div className="absolute right-0 top-full mt-2 bg-white rounded-lg shadow-lg border border-gray-200 py-1 min-w-[140px] z-10">
+                        {/* Current season first */}
+                        {currentSeason && (
+                          <button
+                            onClick={() => {
+                              setSelectedSeasonId(currentSeason.season_id);
+                              setIsSeasonDropdownOpen(false);
+                            }}
+                            className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${
+                              selectedSeasonId === currentSeason.season_id
+                                ? 'text-[#0d1a67] font-medium'
+                                : 'text-gray-700'
+                            }`}
+                          >
+                            {currentSeason.season_name} (Current)
+                          </button>
+                        )}
+                        {/* Past seasons */}
+                        {availableSeasons.map((season: LeagueSeason) => (
+                          <button
+                            key={season.season_id}
+                            onClick={() => {
+                              setSelectedSeasonId(season.season_id);
+                              setIsSeasonDropdownOpen(false);
+                            }}
+                            className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${
+                              season.season_id === selectedSeasonId
+                                ? 'text-[#0d1a67] font-medium'
+                                : 'text-gray-700'
+                            }`}
+                          >
+                            {season.season_name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Matches Section */}
+                <div className="mt-6">
+                  <h2 className="text-lg font-bold text-gray-900 mb-4">Matches</h2>
+
+                  {isLoadingFixtures ? (
+                    <div className="bg-gray-100 rounded-xl p-4">
+                      <div className="flex gap-4">
+                        <SkeletonMatchCard />
+                        <SkeletonMatchCard />
+                        <SkeletonMatchCard />
+                        <SkeletonMatchCard />
+                      </div>
+                    </div>
+                  ) : fixtures.length > 0 ? (
+                    <div className="bg-gray-100 rounded-xl p-4">
+                      <div className="flex items-center gap-4">
+                        {/* Left Arrow */}
+                        <button
+                          onClick={() => scrollMatches('left')}
+                          disabled={!canScrollMatchesLeft}
+                          className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 transition-all border ${
+                            canScrollMatchesLeft
+                              ? 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
+                              : 'bg-gray-200 border-gray-200 text-gray-300 cursor-not-allowed'
+                          }`}
+                        >
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polyline points="15 18 9 12 15 6" />
+                          </svg>
+                        </button>
+
+                        {/* Scrollable Matches */}
+                        <div
+                          ref={matchesScrollRef}
+                          className="flex-1 overflow-x-auto scrollbar-hide"
+                          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                        >
+                          <div className="flex gap-4">
+                            {fixtures.map((fixture: any) => (
+                              <div key={fixture.fixture.fixture_id} className="w-[280px] shrink-0">
+                                <LeagueMatchCard
+                                  fixture={fixture}
+                                  leagueName={selectedLeague?.league_name}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Right Arrow */}
+                        <button
+                          onClick={() => scrollMatches('right')}
+                          disabled={!canScrollMatchesRight}
+                          className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 transition-all ${
+                            canScrollMatchesRight
+                              ? 'bg-[#0d1a67] text-white hover:bg-[#0a1452]'
+                              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                          }`}
+                        >
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polyline points="9 18 15 12 9 6" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-gray-100 rounded-xl p-8 text-center">
+                      <p className="text-gray-500">No matches found for this league</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Standings Section */}
+                <div className="mt-8">
+                  {/* Standings Filter Tabs */}
+                  <div className="flex gap-2 mb-4">
+                    {(['all', 'home', 'away', 'form'] as const).map((filter) => (
+                      <button
+                        key={filter}
+                        onClick={() => setStandingsFilter(filter)}
+                        className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                          standingsFilter === filter
+                            ? 'bg-[#0d1a67] text-white'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        {filter.charAt(0).toUpperCase() + filter.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Standings Table and Smart Combo Row */}
+                  <div className="flex flex-col lg:flex-row gap-6 lg:items-start">
+                    {/* Left Column - Standings Table */}
+                    <div className="flex-1">
+                      <div className="bg-white rounded-xl overflow-hidden shadow-sm">
+                      {isLoadingStandingsData ? (
+                        <div className="p-4 animate-pulse">
+                          {[...Array(10)].map((_, i) => (
+                            <div key={i} className="flex items-center gap-4 py-3 border-b border-gray-100">
+                              <div className="w-6 h-4 bg-gray-200 rounded" />
+                              <div className="w-6 h-6 bg-gray-200 rounded-full" />
+                              <div className="flex-1 h-4 bg-gray-200 rounded" />
+                              <div className="w-8 h-4 bg-gray-200 rounded" />
+                              <div className="w-8 h-4 bg-gray-200 rounded" />
+                              <div className="w-8 h-4 bg-gray-200 rounded" />
+                            </div>
+                          ))}
+                        </div>
+                      ) : standings.length > 0 ? (
+                        <div className="overflow-x-auto">
+                          <table className="w-full">
+                            <thead className="bg-[#0d1a67] text-white text-sm">
+                              <tr>
+                                <th className="py-3 px-4 text-left font-medium">#</th>
+                                <th className="py-3 px-4 text-left font-medium">Team</th>
+                                <th className="py-3 px-2 text-center font-medium">MP</th>
+                                <th className="py-3 px-2 text-center font-medium">W</th>
+                                <th className="py-3 px-2 text-center font-medium">D</th>
+                                <th className="py-3 px-2 text-center font-medium">L</th>
+                                <th className="py-3 px-2 text-center font-medium">GD</th>
+                                <th className="py-3 px-2 text-center font-medium">PTS</th>
+                                <th className="py-3 px-4 text-center font-medium">Form</th>
+                                <th className="py-3 px-4 text-center font-medium">Next</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {standings.map((team: LeagueStandingTeam) => (
+                                <tr key={team.team.team_id} className="border-b border-gray-100 hover:bg-gray-50">
+                                  <td className="py-3 px-4 text-sm font-medium text-gray-900">{team.position}</td>
+                                  <td className="py-3 px-4">
+                                    <div className="flex items-center gap-2">
+                                      {team.team.team_logo ? (
+                                        <img src={team.team.team_logo} alt={team.team.team_name} className="w-6 h-6 object-contain" />
+                                      ) : (
+                                        <div className="w-6 h-6 bg-gray-200 rounded-full" />
+                                      )}
+                                      <span className="text-sm font-medium text-gray-900">{team.team.team_name}</span>
+                                    </div>
+                                  </td>
+                                  <td className="py-3 px-2 text-center text-sm text-gray-600">{team.matches_played}</td>
+                                  <td className="py-3 px-2 text-center text-sm text-gray-600">{team.wins}</td>
+                                  <td className="py-3 px-2 text-center text-sm text-gray-600">{team.draws}</td>
+                                  <td className="py-3 px-2 text-center text-sm text-gray-600">{team.losses}</td>
+                                  <td className="py-3 px-2 text-center text-sm text-gray-600">
+                                    {team.goal_difference > 0 ? `+${team.goal_difference}` : team.goal_difference}
+                                  </td>
+                                  <td className="py-3 px-2 text-center text-sm font-bold text-gray-900">{team.points}</td>
+                                  <td className="py-3 px-4">
+                                    <div className="flex items-center justify-center gap-1">
+                                      {team.form && team.form.length > 0 ? (
+                                        team.form.slice(0, 5).map((result, i) => (
+                                          <span
+                                            key={i}
+                                            className={`w-5 h-5 rounded text-xs font-bold flex items-center justify-center ${
+                                              result === 'W' ? 'bg-green-500 text-white' :
+                                              result === 'D' ? 'bg-yellow-500 text-white' :
+                                              'bg-red-500 text-white'
+                                            }`}
+                                          >
+                                            {result}
+                                          </span>
+                                        ))
+                                      ) : (
+                                        <span className="text-sm text-gray-400">-</span>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="py-3 px-4 text-center">
+                                    {team.next_fixture?.opponent_logo ? (
+                                      <img
+                                        src={team.next_fixture.opponent_logo}
+                                        alt="Next opponent"
+                                        className="w-6 h-6 object-contain mx-auto"
+                                      />
+                                    ) : (
+                                      <span className="text-sm text-gray-400">-</span>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <div className="p-8 text-center text-gray-500">
+                          No standings data available
+                        </div>
+                      )}
+                      </div>
+                    </div>
+
+                    {/* Right Column - Smart Combo */}
+                    <div className="lg:w-[460px] shrink-0">
+                      <SmartCombo isPremium={false} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Top Players Statistics Section - Coming Soon */}
+                <div className="mt-8">
+                  <div className="flex items-center gap-2 mb-4">
+                    <h2 className="text-lg font-bold text-gray-900">Top Players</h2>
+                    <span className="text-xs text-orange-500 bg-orange-50 px-2 py-1 rounded font-medium">
+                      Coming Soon
+                    </span>
+                  </div>
+
+                  <div className="bg-white rounded-xl border border-gray-200 p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                      {/* Top Scorers */}
+                      <div>
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className="text-base font-bold text-gray-900">Top Scorers</h3>
+                        </div>
+                        <div className="space-y-3">
+                          {[1, 2, 3, 4, 5].map((i) => (
+                            <div key={i} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
+                              <div className="w-4 h-4 bg-gray-100 rounded" />
+                              <div className="w-8 h-8 bg-gray-100 rounded-full" />
+                              <div className="flex-1">
+                                <div className="h-3 bg-gray-100 rounded w-20 mb-1" />
+                                <div className="h-2 bg-gray-100 rounded w-14" />
+                              </div>
+                              <div className="h-4 bg-gray-100 rounded w-6" />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Best Defensive */}
+                      <div>
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className="text-base font-bold text-gray-900">Best Defensive</h3>
+                        </div>
+                        <div className="space-y-3">
+                          {[1, 2, 3, 4, 5].map((i) => (
+                            <div key={i} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
+                              <div className="w-4 h-4 bg-gray-100 rounded" />
+                              <div className="w-8 h-8 bg-gray-100 rounded-full" />
+                              <div className="flex-1">
+                                <div className="h-3 bg-gray-100 rounded w-20 mb-1" />
+                                <div className="h-2 bg-gray-100 rounded w-14" />
+                              </div>
+                              <div className="h-4 bg-gray-100 rounded w-6" />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Most Aggressive */}
+                      <div>
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className="text-base font-bold text-gray-900">Most Aggressive</h3>
+                        </div>
+                        <div className="space-y-3">
+                          {[1, 2, 3, 4, 5].map((i) => (
+                            <div key={i} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
+                              <div className="w-4 h-4 bg-gray-100 rounded" />
+                              <div className="w-8 h-8 bg-gray-100 rounded-full" />
+                              <div className="flex-1">
+                                <div className="h-3 bg-gray-100 rounded w-20 mb-1" />
+                                <div className="h-2 bg-gray-100 rounded w-14" />
+                              </div>
+                              <div className="h-4 bg-gray-100 rounded w-6" />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Top Playmaker */}
+                      <div>
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className="text-base font-bold text-gray-900">Top Playmaker</h3>
+                        </div>
+                        <div className="space-y-3">
+                          {[1, 2, 3, 4, 5].map((i) => (
+                            <div key={i} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
+                              <div className="w-4 h-4 bg-gray-100 rounded" />
+                              <div className="w-8 h-8 bg-gray-100 rounded-full" />
+                              <div className="flex-1">
+                                <div className="h-3 bg-gray-100 rounded w-20 mb-1" />
+                                <div className="h-2 bg-gray-100 rounded w-14" />
+                              </div>
+                              <div className="h-4 bg-gray-100 rounded w-6" />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Endpoint not available notice */}
+                    <div className="mt-6 pt-4 border-t border-gray-100 text-center">
+                      <p className="text-sm text-gray-400">
+                        API endpoint not available yet - /leagues/league_summary_statistics
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-12 text-gray-500">
+                Select a league to view details
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
+
+      <Footer />
+    </div>
+  );
+}

@@ -650,14 +650,14 @@ export function MatchDetailPage() {
                 </div>
               ) : (
                 <div className="px-6">
-                  {!commentaryData && (
+                  {(!commentaryData || !Array.isArray(commentaryData)) && (
                     <div className="mx-0 mt-4 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg">
                       <p className="text-amber-700 text-sm text-center">
                         Using placeholder data - live commentary will appear during the match
                       </p>
                     </div>
                   )}
-                  {(commentaryData || mockCommentary).map((item: any, index: number) => (
+                  {(Array.isArray(commentaryData) ? commentaryData : mockCommentary).map((item: any, index: number) => (
                     <CommentaryItem
                       key={index}
                       minute={item.minute}

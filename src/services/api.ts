@@ -382,6 +382,59 @@ export interface LeaguesResponse {
   leagues: League[];
 }
 
+// League Standings Types (matches actual API response)
+export interface LeagueStandingTeam {
+  position: number;
+  points: number;
+  goal_difference: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  matches_played: number;
+  form: string[];  // Array of 'W', 'D', 'L' for recent results
+  team: {
+    team_id: number;
+    team_name: string;
+    team_logo: string;
+  };
+  next_fixture?: {
+    fixture_id: number;
+    opponent_logo: string;
+  } | null;
+}
+
+export interface LeagueSeason {
+  season_id: number;
+  season_name: string;
+  is_current: boolean;
+}
+
+export interface LeagueCurrentResponse {
+  league: {
+    league_id: number;
+    league_name: string;
+    league_short_code: string;
+    country_name: string;
+  };
+  current_season: LeagueSeason;
+  available_seasons: LeagueSeason[];
+  standings: LeagueStandingTeam[];
+  updated_at?: string;
+}
+
+export interface LeagueStandingsResponse {
+  league_id: number;
+  season_id: number;
+  standings: LeagueStandingTeam[];
+  updated_at?: string;
+}
+
+export interface LeagueFixturesResponse {
+  fixtures: FixtureWithPredictions[];
+  fixture_ids?: number[] | null;
+  fixture_ids_by_league?: Record<string, number[]> | null;
+}
+
 // Fixtures response types (actual API structure)
 export interface FixtureWithPredictions {
   fixture: {
@@ -551,6 +604,8 @@ class ApiClient {
     sort_by?: 'kickoff_asc' | 'kickoff_desc' | 'prediction_accuracy_asc' | 'prediction_accuracy_desc';
     date_from?: string;      // Start date (ISO format: YYYY-MM-DD)
     date_to?: string;        // End date (ISO format: YYYY-MM-DD)
+    season_id?: number;      // Season ID filter
+    has_predictions?: boolean; // Filter fixtures with predictions
   } = {}): Promise<ApiResponse<FixturesResponse>> {
     // Build query string with correct parameter names for backend
     const query = new URLSearchParams();
@@ -559,7 +614,7 @@ class ApiClient {
       query.append('fixture_ids', params.fixture_ids.join(','));
     }
     if (params.leagues?.length) {
-      query.append('leagues', params.leagues.join(','));
+      query.append('league_id', params.leagues.join(','));
     }
     if (params.match_type) {
       query.append('match_type', params.match_type);
@@ -572,6 +627,12 @@ class ApiClient {
     }
     if (params.date_to) {
       query.append('date_to', params.date_to);
+    }
+    if (params.season_id) {
+      query.append('season_id', params.season_id.toString());
+    }
+    if (params.has_predictions !== undefined) {
+      query.append('has_predictions', params.has_predictions.toString());
     }
 
     const queryString = query.toString() ? `?${query.toString()}` : '';
@@ -699,6 +760,27 @@ class ApiClient {
   // League endpoints
   async getLeagues(): Promise<ApiResponse<LeaguesResponse>> {
     return this.request<LeaguesResponse>('/leagues');
+  }
+
+  // League Current endpoint - returns league info, current season, available seasons, and standings
+  async getLeagueCurrent(league_id: number): Promise<ApiResponse<LeagueCurrentResponse>> {
+    return this.request<LeagueCurrentResponse>(`/leagues/current?league_id=${league_id}`);
+  }
+
+  // League Standings by Season endpoint - returns standings for a specific season
+  async getLeagueStandings(params: {
+    league_id: number;
+    season_id: number;
+  }): Promise<ApiResponse<LeagueStandingsResponse>> {
+    return this.request<LeagueStandingsResponse>(`/leagues/standings/${params.season_id}?league_id=${params.league_id}`);
+  }
+
+  // League Fixtures endpoint - returns fixtures for a league and season
+  async getLeagueFixtures(params: {
+    league_id: number;
+    season_id: number;
+  }): Promise<ApiResponse<LeagueFixturesResponse>> {
+    return this.request<LeagueFixturesResponse>(`/leagues/${params.league_id}/fixtures?season_id=${params.season_id}`);
   }
 }
 

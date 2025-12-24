@@ -4,6 +4,7 @@ import { MatchesPage } from './pages/MatchesPage';
 import { MatchDetailPage } from './pages/MatchDetailPage';
 import { PricingPage } from './pages/PricingPage';
 import { SmartComboPage } from './pages/SmartComboPage';
+import { LeaguePage } from './pages/LeaguePage';
 
 function App() {
   return (
@@ -22,6 +23,9 @@ function App() {
 
         {/* Smart Combo page */}
         <Route path="/smart-combo" element={<SmartComboPage />} />
+
+        {/* League page */}
+        <Route path="/league" element={<LeaguePage />} />
 
         {/* Catch-all route */}
         <Route path="*" element={
