@@ -178,8 +178,8 @@ export function SmartComboPage() {
             style={{ background: 'linear-gradient(to top right, #091143 65%, #11207f 100%)' }}
           >
             {/* Header Section */}
-            <div className="p-4 md:p-6 text-white">
-              {/* Title Row */}
+            <div className="p-4 md:px-6 md:py-4 text-white">
+              {/* Title Row with Stats on right (desktop) */}
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0">
                 <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-3">
                   <h1 className="text-lg md:text-2xl font-bold">This Week's Smart Combo</h1>
@@ -192,19 +192,50 @@ export function SmartComboPage() {
                     </span>
                   </div>
                 </div>
+
+                {/* Stats Badges - Desktop only, smaller and inline with title */}
+                <div className="hidden md:flex items-center gap-2">
+                  <div className="bg-[#1a2555] rounded-xl px-3 py-1.5 text-center min-w-[70px]">
+                    <div className="flex items-center justify-center mb-0.5">
+                      <img src="/icon-success.svg" alt="Success Rate" className="w-7 h-7" />
+                    </div>
+                    <p className="text-white font-bold text-sm">{combo?.confidence ? Math.round(combo.confidence) : 87}%</p>
+                    <p className="text-white/60 text-[10px]">Success</p>
+                  </div>
+                  <div className="bg-[#1a2555] rounded-xl px-3 py-1.5 text-center min-w-[70px]">
+                    <div className="flex items-center justify-center mb-0.5">
+                      <img src="/icon-proven.svg" alt="Proven" className="w-7 h-7" />
+                    </div>
+                    <p className="text-white font-bold text-sm">Proven</p>
+                    <p className="text-white/60 text-[10px]">Record</p>
+                  </div>
+                  <div className="bg-[#1a2555] rounded-xl px-3 py-1.5 text-center min-w-[70px]">
+                    <div className="flex items-center justify-center mb-0.5">
+                      <img src="/icon-expert.svg" alt="Expert" className="w-7 h-7" />
+                    </div>
+                    <p className="text-white font-bold text-sm">Expert</p>
+                    <p className="text-white/60 text-[10px]">Analysis</p>
+                  </div>
+                  <div className="bg-[#1a2555] rounded-xl px-3 py-1.5 text-center min-w-[70px]">
+                    <div className="flex items-center justify-center mb-0.5">
+                      <img src="/icon-global.svg" alt="Global" className="w-7 h-7" />
+                    </div>
+                    <p className="text-white font-bold text-sm">Global</p>
+                    <p className="text-white/60 text-[10px]">Coverage</p>
+                  </div>
+                </div>
               </div>
 
-              {/* Stats Row */}
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between mt-4 gap-4">
+              {/* Stats Row - Accuracy on left (desktop), full row on mobile */}
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between mt-3 gap-4">
                 {/* Accuracy Circle */}
                 <div className="flex items-center gap-3 md:gap-4">
-                  <div className="relative w-14 h-14 md:w-16 md:h-16 shrink-0">
-                    <svg className="w-14 h-14 md:w-16 md:h-16 transform -rotate-90">
+                  <div className="relative w-14 h-14 md:w-14 md:h-14 shrink-0">
+                    <svg className="w-14 h-14 transform -rotate-90">
                       <circle
                         cx="50%"
                         cy="50%"
                         r="24"
-                        className="md:hidden"
                         stroke="rgba(255,255,255,0.2)"
                         strokeWidth="4"
                         fill="none"
@@ -213,36 +244,15 @@ export function SmartComboPage() {
                         cx="50%"
                         cy="50%"
                         r="24"
-                        className="md:hidden"
                         stroke="#22c55e"
                         strokeWidth="4"
                         fill="none"
                         strokeDasharray={`${(accuracy / 100) * 151} 151`}
                         strokeLinecap="round"
                       />
-                      <circle
-                        cx="32"
-                        cy="32"
-                        r="28"
-                        className="hidden md:block"
-                        stroke="rgba(255,255,255,0.2)"
-                        strokeWidth="4"
-                        fill="none"
-                      />
-                      <circle
-                        cx="32"
-                        cy="32"
-                        r="28"
-                        className="hidden md:block"
-                        stroke="#22c55e"
-                        strokeWidth="4"
-                        fill="none"
-                        strokeDasharray={`${(accuracy / 100) * 176} 176`}
-                        strokeLinecap="round"
-                      />
                     </svg>
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-white font-bold text-base md:text-lg">{accuracy}%</span>
+                      <span className="text-white font-bold text-base">{accuracy}%</span>
                     </div>
                   </div>
                   <div>
@@ -251,39 +261,7 @@ export function SmartComboPage() {
                   </div>
                 </div>
 
-                {/* Stats Badges - Hidden on mobile, shown on desktop */}
-                <div className="hidden md:flex items-center gap-4">
-                  <div className="bg-[#1a2555] rounded-2xl px-6 py-2.5 text-center min-w-[100px]">
-                    <div className="flex items-center justify-center mb-1">
-                      <img src="/icon-success.svg" alt="Success Rate" className="w-10 h-10" />
-                    </div>
-                    <p className="text-white font-bold text-lg">{combo?.confidence ? Math.round(combo.confidence) : 87}%</p>
-                    <p className="text-white/60 text-xs">Success Rate</p>
-                  </div>
-                  <div className="bg-[#1a2555] rounded-2xl px-6 py-2.5 text-center min-w-[100px]">
-                    <div className="flex items-center justify-center mb-1">
-                      <img src="/icon-proven.svg" alt="Proven" className="w-10 h-10" />
-                    </div>
-                    <p className="text-white font-bold text-lg">Proven</p>
-                    <p className="text-white/60 text-xs">Track Record</p>
-                  </div>
-                  <div className="bg-[#1a2555] rounded-2xl px-6 py-2.5 text-center min-w-[100px]">
-                    <div className="flex items-center justify-center mb-1">
-                      <img src="/icon-expert.svg" alt="Expert" className="w-10 h-10" />
-                    </div>
-                    <p className="text-white font-bold text-lg">Expert</p>
-                    <p className="text-white/60 text-xs">Analysis</p>
-                  </div>
-                  <div className="bg-[#1a2555] rounded-2xl px-6 py-2.5 text-center min-w-[100px]">
-                    <div className="flex items-center justify-center mb-1">
-                      <img src="/icon-global.svg" alt="Global" className="w-10 h-10" />
-                    </div>
-                    <p className="text-white font-bold text-lg">Global</p>
-                    <p className="text-white/60 text-xs">Coverage</p>
-                  </div>
-                </div>
-
-                {/* Mobile Stats Badges - 2x2 grid */}
+                {/* Mobile Stats Badges - 4 column grid */}
                 <div className="grid grid-cols-4 gap-2 md:hidden">
                   <div className="bg-[#1a2555] rounded-xl px-2 py-2 text-center">
                     <div className="flex items-center justify-center mb-0.5">
