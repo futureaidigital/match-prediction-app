@@ -253,8 +253,13 @@ export function LeaguePage() {
     const container = matchesScrollRef.current;
     if (container) {
       container.addEventListener('scroll', checkMatchesScrollPosition);
+      // Initial check and delayed check to ensure layout is complete
       checkMatchesScrollPosition();
-      return () => container.removeEventListener('scroll', checkMatchesScrollPosition);
+      const timeoutId = setTimeout(checkMatchesScrollPosition, 100);
+      return () => {
+        container.removeEventListener('scroll', checkMatchesScrollPosition);
+        clearTimeout(timeoutId);
+      };
     }
   }, [fixtures]);
 
@@ -268,6 +273,11 @@ export function LeaguePage() {
       left: direction === 'left' ? -scrollAmount : scrollAmount,
       behavior: 'smooth',
     });
+
+    // Check scroll position after animation completes
+    setTimeout(() => {
+      checkMatchesScrollPosition();
+    }, 350);
   };
 
   const selectedLeague = leagues.find(l => l.league_id === selectedLeagueId);
