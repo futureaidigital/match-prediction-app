@@ -454,7 +454,42 @@ export function LeaguePage() {
 
                 {/* Matches Section */}
                 <div className="mt-6">
-                  <h2 className="text-lg font-bold text-gray-900 mb-4">Matches</h2>
+                  {/* Header with title and arrows */}
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-bold text-gray-900">Matches</h2>
+                    {fixtures.length > 0 && (
+                      <div className="flex items-center gap-2">
+                        {/* Left Arrow */}
+                        <button
+                          onClick={() => scrollMatches('left')}
+                          disabled={!canScrollMatchesLeft}
+                          className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all border ${
+                            canScrollMatchesLeft
+                              ? 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
+                              : 'bg-gray-100 border-gray-100 text-gray-300 cursor-not-allowed'
+                          }`}
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polyline points="15 18 9 12 15 6" />
+                          </svg>
+                        </button>
+                        {/* Right Arrow */}
+                        <button
+                          onClick={() => scrollMatches('right')}
+                          disabled={!canScrollMatchesRight}
+                          className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all ${
+                            canScrollMatchesRight
+                              ? 'bg-[#0d1a67] text-white hover:bg-[#0a1452]'
+                              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                          }`}
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polyline points="9 18 15 12 9 6" />
+                          </svg>
+                        </button>
+                      </div>
+                    )}
+                  </div>
 
                   {isLoadingFixtures ? (
                     <div className="bg-gray-100 rounded-xl p-4">
@@ -467,54 +502,22 @@ export function LeaguePage() {
                     </div>
                   ) : fixtures.length > 0 ? (
                     <div className="bg-gray-100 rounded-xl p-4">
-                      <div className="flex items-center gap-4">
-                        {/* Left Arrow */}
-                        <button
-                          onClick={() => scrollMatches('left')}
-                          disabled={!canScrollMatchesLeft}
-                          className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 transition-all border ${
-                            canScrollMatchesLeft
-                              ? 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
-                              : 'bg-gray-200 border-gray-200 text-gray-300 cursor-not-allowed'
-                          }`}
-                        >
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <polyline points="15 18 9 12 15 6" />
-                          </svg>
-                        </button>
-
-                        {/* Scrollable Matches */}
-                        <div
-                          ref={matchesScrollRef}
-                          className="flex-1 overflow-x-auto scrollbar-hide"
-                          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                        >
-                          <div className="flex gap-4">
-                            {fixtures.map((fixture: any) => (
-                              <div key={fixture.fixture.fixture_id} className="w-[280px] shrink-0">
-                                <LeagueMatchCard
-                                  fixture={fixture}
-                                  leagueName={selectedLeague?.league_name}
-                                />
-                              </div>
-                            ))}
-                          </div>
+                      {/* Scrollable Matches */}
+                      <div
+                        ref={matchesScrollRef}
+                        className="overflow-x-auto scrollbar-hide"
+                        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                      >
+                        <div className="flex gap-4">
+                          {fixtures.map((fixture: any) => (
+                            <div key={fixture.fixture.fixture_id} className="w-[280px] shrink-0">
+                              <LeagueMatchCard
+                                fixture={fixture}
+                                leagueName={selectedLeague?.league_name}
+                              />
+                            </div>
+                          ))}
                         </div>
-
-                        {/* Right Arrow */}
-                        <button
-                          onClick={() => scrollMatches('right')}
-                          disabled={!canScrollMatchesRight}
-                          className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 transition-all ${
-                            canScrollMatchesRight
-                              ? 'bg-[#0d1a67] text-white hover:bg-[#0a1452]'
-                              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                          }`}
-                        >
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <polyline points="9 18 15 12 9 6" />
-                          </svg>
-                        </button>
                       </div>
                     </div>
                   ) : (
