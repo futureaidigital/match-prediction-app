@@ -79,10 +79,10 @@ export function MatchBanner({ fixture, predictions = [], showPredictions = false
               </div>
             </div>
 
-            {/* Teams and Score - 350x50px container, 5px gap between team boxes and score */}
-            <div className="flex items-center justify-center w-[350px] h-[50px] mx-auto gap-[5px]">
-              {/* Home Team - 104x50px, logo on left, name on right (adjacent to score) */}
-              <div className="w-[104px] h-[50px] flex items-center justify-end gap-[4px]">
+            {/* Teams and Score - centered layout with names below logos */}
+            <div className="flex items-start justify-center w-full px-4 gap-[8px]">
+              {/* Home Team - logo with name below */}
+              <div className="flex flex-col items-center w-[90px]">
                 {fixture.home_team_image_path ? (
                   <img
                     src={fixture.home_team_image_path}
@@ -97,43 +97,37 @@ export function MatchBanner({ fixture, predictions = [], showPredictions = false
                   </div>
                 )}
                 <span
-                  className="text-white font-medium text-[16px] leading-[150%]"
+                  className="text-white font-medium text-[11px] leading-tight text-center mt-[4px] line-clamp-2"
                   style={{ fontFamily: 'Montserrat, sans-serif' }}
                 >
-                  {fixture.home_team_short_code || fixture.home_team_name?.slice(0, 3).toUpperCase() || 'HOM'}
+                  {fixture.home_team_name || 'Home Team'}
                 </span>
               </div>
 
-              {/* Score - 90x32px centered, 46px Montserrat SemiBold */}
-              <div className="flex items-center justify-center w-[90px] h-[32px]">
+              {/* Score - centered */}
+              <div className="flex items-center justify-center min-w-[90px] h-[50px]">
                 <span
-                  className="text-white text-[46px] font-semibold leading-none"
+                  className="text-white text-[42px] font-semibold leading-none"
                   style={{ fontFamily: 'Montserrat, sans-serif' }}
                 >
                   {homeScore}
                 </span>
                 <span
-                  className="text-white text-[46px] font-semibold leading-none mx-[4px]"
+                  className="text-white text-[42px] font-semibold leading-none mx-[4px]"
                   style={{ fontFamily: 'Montserrat, sans-serif' }}
                 >
                   -
                 </span>
                 <span
-                  className="text-white text-[46px] font-semibold leading-none"
+                  className="text-white text-[42px] font-semibold leading-none"
                   style={{ fontFamily: 'Montserrat, sans-serif' }}
                 >
                   {awayScore}
                 </span>
               </div>
 
-              {/* Away Team - 104x50px, name on left (adjacent to score), logo on right */}
-              <div className="w-[104px] h-[50px] flex items-center justify-start gap-[4px]">
-                <span
-                  className="text-white font-medium text-[16px] leading-[150%]"
-                  style={{ fontFamily: 'Montserrat, sans-serif' }}
-                >
-                  {fixture.away_team_short_code || fixture.away_team_name?.slice(0, 3).toUpperCase() || 'AWY'}
-                </span>
+              {/* Away Team - logo with name below */}
+              <div className="flex flex-col items-center w-[90px]">
                 {fixture.away_team_image_path ? (
                   <img
                     src={fixture.away_team_image_path}
@@ -147,6 +141,12 @@ export function MatchBanner({ fixture, predictions = [], showPredictions = false
                     </span>
                   </div>
                 )}
+                <span
+                  className="text-white font-medium text-[11px] leading-tight text-center mt-[4px] line-clamp-2"
+                  style={{ fontFamily: 'Montserrat, sans-serif' }}
+                >
+                  {fixture.away_team_name || 'Away Team'}
+                </span>
               </div>
             </div>
 
@@ -247,12 +247,12 @@ export function MatchBanner({ fixture, predictions = [], showPredictions = false
               </div>
             </div>
 
-            {/* Teams and Score Row - Figma: 1228x92px, centered */}
-            <div className="flex flex-col items-center w-[1228px] mx-auto">
+            {/* Teams and Score Row - centered layout with names below logos */}
+            <div className="flex flex-col items-center w-[1000px] mx-auto">
               {/* Main row with teams and score */}
-              <div className="flex items-center justify-between w-full">
-                {/* Home Team - Figma: ~350px, gap 20px */}
-                <div className="flex items-center gap-[20px] w-[350px]">
+              <div className="flex items-start justify-center w-full gap-[40px]">
+                {/* Home Team - logo with name below */}
+                <div className="flex flex-col items-center w-[200px]">
                   {fixture.home_team_image_path ? (
                     <img
                       src={fixture.home_team_image_path}
@@ -266,46 +266,38 @@ export function MatchBanner({ fixture, predictions = [], showPredictions = false
                       </span>
                     </div>
                   )}
-                  {/* Team name - Figma: 22px Medium, white */}
                   <span
-                    className="text-white font-medium text-[22px] leading-normal"
+                    className="text-white font-medium text-[18px] leading-tight text-center mt-[8px]"
                     style={{ fontFamily: 'Montserrat, sans-serif' }}
                   >
                     {fixture.home_team_name || 'Home Team'}
                   </span>
                 </div>
 
-                {/* Score - Figma: 150px wide center, 66px SemiBold */}
-                <div className="flex items-center justify-center w-[150px]">
+                {/* Score - centered */}
+                <div className="flex items-center justify-center min-w-[180px] h-[90px]">
                   <span
-                    className="text-white text-[66px] font-semibold leading-none w-[50px] text-center"
+                    className="text-white text-[66px] font-semibold leading-none"
                     style={{ fontFamily: 'Montserrat, sans-serif' }}
                   >
                     {homeScore}
                   </span>
                   <span
-                    className="text-white text-[66px] font-semibold leading-none w-[50px] text-center"
+                    className="text-white text-[66px] font-semibold leading-none mx-[8px]"
                     style={{ fontFamily: 'Montserrat, sans-serif' }}
                   >
                     -
                   </span>
                   <span
-                    className="text-white text-[66px] font-semibold leading-none w-[50px] text-center"
+                    className="text-white text-[66px] font-semibold leading-none"
                     style={{ fontFamily: 'Montserrat, sans-serif' }}
                   >
                     {awayScore}
                   </span>
                 </div>
 
-                {/* Away Team - Figma: ~350px, gap 20px, right aligned */}
-                <div className="flex items-center justify-end gap-[20px] w-[350px]">
-                  {/* Team name - Figma: 22px Medium, white, right aligned */}
-                  <span
-                    className="text-white font-medium text-[22px] leading-normal text-right"
-                    style={{ fontFamily: 'Montserrat, sans-serif' }}
-                  >
-                    {fixture.away_team_name || 'Away Team'}
-                  </span>
+                {/* Away Team - logo with name below */}
+                <div className="flex flex-col items-center w-[200px]">
                   {fixture.away_team_image_path ? (
                     <img
                       src={fixture.away_team_image_path}
@@ -319,6 +311,12 @@ export function MatchBanner({ fixture, predictions = [], showPredictions = false
                       </span>
                     </div>
                   )}
+                  <span
+                    className="text-white font-medium text-[18px] leading-tight text-center mt-[8px]"
+                    style={{ fontFamily: 'Montserrat, sans-serif' }}
+                  >
+                    {fixture.away_team_name || 'Away Team'}
+                  </span>
                 </div>
               </div>
 
