@@ -142,7 +142,7 @@ export function DemoPage() {
               </div>
 
               {/* Match Cards Grid Skeleton - Same as finished layout */}
-              <div className="bg-gray-100 rounded-2xl p-5 w-[358px] min-h-[622px] md:w-[950px] md:min-h-[1016px] mb-8 mx-auto">
+              <div className="bg-gray-100 rounded-2xl p-5 w-[358px] min-h-[622px] md:w-[960px] md:min-h-[1016px] mb-8 mx-auto md:mx-0">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-5 place-items-center md:place-items-start">
                   {[1, 2, 3, 4, 5, 6].map((i) => (
                     <div key={i} className={i > 2 ? 'hidden md:block' : ''}>
@@ -297,11 +297,11 @@ export function DemoPage() {
         )}
 
         {/* Main Content Layout */}
-        <div className="w-full md:flex md:gap-[30px] md:w-[1440px] md:min-h-[1124px]">
+        <div className="w-full md:flex md:gap-[30px] md:w-[1440px] md:min-h-[1124px] md:items-start">
           {/* Left Side: Featured Matches */}
           <div className="flex-1 md:w-[960px] md:flex-none">
-            {/* Header - Mobile: match banner width (358px), Desktop: full width */}
-            <div className="flex items-center justify-between mb-6 w-[358px] mx-auto md:w-full">
+            {/* Header - Mobile: match banner width (358px), Desktop: match grey container (960px), aligned with SmartCombo header */}
+            <div className="flex items-center justify-between mb-6 w-[358px] mx-auto md:w-[960px] md:mx-0 md:pt-[15px]">
               <div className="flex items-center gap-3">
                 <h1 className="text-[18px] md:text-2xl font-bold text-gray-900">Featured Matches</h1>
                 <div className="text-gray-600">
@@ -327,7 +327,7 @@ export function DemoPage() {
             </div>
 
             {/* Match Cards Grid - Desktop: 3 columns, Mobile: single column, both in off-white container */}
-            <div className="bg-gray-100 rounded-2xl p-5 w-[358px] min-h-[622px] md:w-[950px] md:min-h-[1016px] mb-8 mx-auto">
+            <div className="bg-gray-100 rounded-2xl p-5 w-[358px] min-h-[622px] md:w-[960px] md:min-h-[1016px] mb-8 mx-auto md:mx-0">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5 place-items-center md:place-items-start">
                 {isLoadingPage && currentPage > 1 ? (
                   // Show skeletons while loading new page

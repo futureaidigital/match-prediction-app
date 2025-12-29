@@ -101,7 +101,7 @@ export function MatchCard({
         onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 0 12px rgba(0, 0, 0, 0.08)'}
       >
         {/* Competition Header */}
-        <div className="text-gray-400 text-[14px] md:text-xs font-medium mb-2 md:mb-3 text-center">
+        <div className="text-gray-400 text-[14px] md:text-xs font-medium mb-2 md:mb-3 text-center" style={{ fontFamily: 'Montserrat, sans-serif' }}>
           {competition}
         </div>
 
@@ -130,7 +130,7 @@ export function MatchCard({
           </div>
 
           {/* Time - auto spacing with justify-between */}
-          <div className="flex flex-col items-center">
+          <div className="flex flex-col items-center" style={{ fontFamily: 'Montserrat, sans-serif' }}>
             <span className="font-bold text-gray-900 text-lg">{kickoffTime || DEFAULTS.KICKOFF_TIME}</span>
             {isToday && (
               <span className="text-gray-400 text-xs font-medium">{DEFAULTS.TODAY_LABEL}</span>
@@ -200,7 +200,7 @@ export function MatchCard({
       onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 0 12px rgba(0, 0, 0, 0.08)'}
     >
       {/* Competition Header */}
-      <div className="text-center text-gray-500 text-[12px] md:text-[14px] font-medium mb-3 truncate px-2 shrink-0 h-[17px] md:h-auto">
+      <div className="text-center text-gray-400 text-[12px] md:text-[14px] font-medium mb-3 truncate px-2 shrink-0 h-[17px] md:h-auto" style={{ fontFamily: 'Montserrat, sans-serif' }}>
         {competition && competition.trim() ? competition : 'SPORTS Pred League'}
       </div>
 
@@ -216,16 +216,16 @@ export function MatchCard({
               size="md"
             />
           </div>
-          <span className="font-semibold md:font-bold text-black text-[12px] md:text-[14px] md:tracking-wide">{homeTeam.shortName}</span>
+          <span className="font-semibold text-black text-[12px] md:text-[14px]" style={{ fontFamily: 'Montserrat, sans-serif' }}>{homeTeam.shortName}</span>
         </div>
 
         {/* Score */}
-        <div className="flex flex-col items-center justify-center w-[101px] h-[57px] shrink-0 md:w-auto md:h-auto">
-          <div className="text-[22px] md:text-3xl font-bold text-gray-900 md:tracking-tight">
+        <div className="flex flex-col items-center justify-center w-[101px] h-[57px] shrink-0 md:w-auto md:h-auto" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+          <div className="text-[22px] md:text-3xl font-bold text-gray-900">
             {score ? `${score.home} - ${score.away}` : 'vs'}
           </div>
           {status === 'live' && currentMinute && (
-            <span className="text-blue-500 text-[13px] md:text-[14px] font-semibold md:font-bold mt-1">
+            <span className="text-blue-500 text-[13px] md:text-[14px] font-semibold mt-1">
               {currentMinute}'
             </span>
           )}
@@ -246,7 +246,7 @@ export function MatchCard({
               size="md"
             />
           </div>
-          <span className="font-semibold md:font-bold text-black text-[12px] md:text-[14px] md:tracking-wide">{awayTeam.shortName}</span>
+          <span className="font-semibold text-black text-[12px] md:text-[14px]" style={{ fontFamily: 'Montserrat, sans-serif' }}>{awayTeam.shortName}</span>
         </div>
       </div>
 
@@ -300,7 +300,7 @@ export function MatchCard({
       </div>
 
       {/* Footer */}
-      <div className="pt-[12px] md:pt-4 shrink-0">
+      <div className="pt-[12px] md:pt-4 shrink-0" style={{ fontFamily: 'Montserrat, sans-serif' }}>
         {/* Predictions Count Divider */}
         {totalPredictions && totalPredictions > 0 && (
           <div className="flex items-center justify-center mb-3">
@@ -326,7 +326,7 @@ export function MatchCard({
 
         {/* Last Updated */}
         {lastUpdated && (
-          <div className="text-center text-[11px] md:text-xs text-gray-400 mt-3">
+          <div className="text-center text-[11px] md:text-[10px] text-gray-400 mt-3">
             Updated {lastUpdated}
           </div>
         )}
