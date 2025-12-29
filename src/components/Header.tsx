@@ -55,14 +55,30 @@ export function Header({ onNavigate, currentPage = '' }: HeaderProps) {
 
   return (
     <>
-      <header className="w-full bg-[#0d1a67]">
+      <header className="w-full bg-[#0d1a67] relative z-50">
         <div className="w-full max-w-[100vw] md:max-w-7xl mx-auto px-4 md:px-6 py-3 flex items-center justify-between box-border">
-          {/* Mobile: Hamburger Menu */}
+          {/* Mobile: Hamburger/Close Menu Button */}
           <button
-            onClick={openMenu}
-            className="md:hidden p-2 bg-white/10 rounded-lg"
+            onClick={isMenuOpen ? closeMenu : openMenu}
+            className="md:hidden p-2 bg-white/10 rounded-lg relative w-10 h-10 flex items-center justify-center"
           >
-            <img src="/Hamburger Menu.png" alt="Menu" className="w-6 h-6" />
+            {/* Hamburger Icon */}
+            <div className={`absolute transition-all duration-300 ${isMenuAnimating ? 'opacity-0 rotate-90 scale-0' : 'opacity-100 rotate-0 scale-100'}`}>
+              <img src="/Hamburger Menu.png" alt="Menu" className="w-6 h-6" />
+            </div>
+            {/* X Icon */}
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="white"
+              strokeWidth="2"
+              className={`absolute transition-all duration-300 ${isMenuAnimating ? 'opacity-100 rotate-0 scale-100' : 'opacity-0 -rotate-90 scale-0'}`}
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
           </button>
 
           {/* Desktop: Logo */}
@@ -115,9 +131,9 @@ export function Header({ onNavigate, currentPage = '' }: HeaderProps) {
         </div>
       </header>
 
-      {/* Mobile Full Screen Menu Overlay */}
+      {/* Mobile Menu - Slides out below header */}
       {isMenuOpen && (
-        <div className="md:hidden fixed inset-0 z-50">
+        <div className="md:hidden fixed inset-0 z-40 pt-[64px]">
           {/* Backdrop */}
           <div
             className={`absolute inset-0 bg-black transition-opacity duration-300 ${
@@ -126,35 +142,13 @@ export function Header({ onNavigate, currentPage = '' }: HeaderProps) {
             onClick={closeMenu}
           />
 
-          {/* Menu Panel */}
+          {/* Menu Panel - Slides from left, starts below header */}
           <div
-            className={`absolute inset-y-0 left-0 w-full flex flex-col transform transition-transform duration-300 ease-out ${
+            className={`absolute top-[64px] bottom-0 left-0 w-full flex flex-col transform transition-transform duration-300 ease-out ${
               isMenuAnimating ? 'translate-x-0' : '-translate-x-full'
             }`}
           >
-            {/* Menu Header */}
-            <div className="bg-[#0d1a67] px-4 py-3 flex items-center justify-between">
-              {/* Close Button */}
-              <button
-                onClick={closeMenu}
-                className="p-2 bg-white/10 rounded-lg flex items-center justify-center"
-              >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
-
-            {/* Logo */}
-            <img src="/logo.svg" alt="Fourth Official" className="h-8" />
-
-            {/* Search */}
-            <button className="p-2 bg-white/10 border border-white/30 rounded-lg">
-              <img src="/Search.png" alt="Search" className="w-5 h-5" />
-            </button>
-          </div>
-
-          {/* Menu Content */}
+            {/* Menu Content */}
             <div className="flex-1 bg-white px-6 py-4 overflow-y-auto">
               <nav className="flex flex-col">
                 {mobileNavItems.map((item, index) => (
