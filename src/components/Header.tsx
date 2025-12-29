@@ -60,7 +60,7 @@ export function Header({ onNavigate, currentPage = '' }: HeaderProps) {
           {/* Mobile: Hamburger Menu */}
           <button
             onClick={openMenu}
-            className="md:hidden p-1"
+            className="md:hidden p-2 bg-white/10 rounded-lg"
           >
             <img src="/Hamburger Menu.png" alt="Menu" className="w-6 h-6" />
           </button>
@@ -137,7 +137,7 @@ export function Header({ onNavigate, currentPage = '' }: HeaderProps) {
               {/* Close Button */}
               <button
                 onClick={closeMenu}
-                className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center"
+                className="p-2 bg-white/10 rounded-lg flex items-center justify-center"
               >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
                 <line x1="18" y1="6" x2="6" y2="18" />
