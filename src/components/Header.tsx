@@ -57,42 +57,37 @@ export function Header({ onNavigate, currentPage = '' }: HeaderProps) {
     <>
       <header className="w-full bg-[#0d1a67] relative z-50">
         <div className="w-full max-w-[100vw] md:max-w-7xl mx-auto px-4 md:px-6 py-3 flex items-center justify-between box-border">
-          {/* Mobile: Hamburger/Close Menu Button */}
-          <button
-            onClick={isMenuOpen ? closeMenu : openMenu}
-            className="md:hidden p-2 bg-white/10 rounded-lg relative w-10 h-10 flex items-center justify-center"
-          >
-            {/* Hamburger Icon */}
-            <div className={`absolute transition-all duration-300 ${isMenuAnimating ? 'opacity-0 rotate-90 scale-0' : 'opacity-100 rotate-0 scale-100'}`}>
-              <img src="/Hamburger Menu.png" alt="Menu" className="w-6 h-6" />
-            </div>
-            {/* X Icon */}
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="white"
-              strokeWidth="2"
-              className={`absolute transition-all duration-300 ${isMenuAnimating ? 'opacity-100 rotate-0 scale-100' : 'opacity-0 -rotate-90 scale-0'}`}
+          {/* Left side: Hamburger + Logo (mobile) / Logo only (desktop) */}
+          <div className="flex items-center gap-3">
+            {/* Mobile: Hamburger/Close Menu Button */}
+            <button
+              onClick={isMenuOpen ? closeMenu : openMenu}
+              className="md:hidden p-2 bg-white/10 rounded-lg relative w-10 h-10 flex items-center justify-center"
             >
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
+              {/* Hamburger Icon */}
+              <div className={`absolute transition-all duration-300 ${isMenuAnimating ? 'opacity-0 rotate-90 scale-0' : 'opacity-100 rotate-0 scale-100'}`}>
+                <img src="/Hamburger Menu.png" alt="Menu" className="w-6 h-6" />
+              </div>
+              {/* X Icon */}
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="white"
+                strokeWidth="2"
+                className={`absolute transition-all duration-300 ${isMenuAnimating ? 'opacity-100 rotate-0 scale-100' : 'opacity-0 -rotate-90 scale-0'}`}
+              >
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
 
-          {/* Desktop: Logo */}
-          <button
-            onClick={() => navigate('/')}
-            className="hidden md:flex items-center gap-2"
-          >
-            <img src="/logo.svg" alt="Fourth Official" className="h-8" />
-          </button>
-
-          {/* Mobile: Center Logo */}
-          <button onClick={() => navigate('/')} className="md:hidden">
-            <img src="/logo.svg" alt="Fourth Official" className="h-8" />
-          </button>
+            {/* Logo - left aligned on both mobile and desktop */}
+            <button onClick={() => navigate('/')} className="flex items-center">
+              <img src="/logo.svg" alt="Fourth Official" className="h-8" />
+            </button>
+          </div>
 
           {/* Desktop: Navigation */}
           <nav className="hidden md:flex items-center gap-8">
