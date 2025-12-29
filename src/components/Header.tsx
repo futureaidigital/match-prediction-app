@@ -62,11 +62,11 @@ export function Header({ onNavigate, currentPage = '' }: HeaderProps) {
             {/* Mobile: Hamburger/Close Menu Button */}
             <button
               onClick={isMenuOpen ? closeMenu : openMenu}
-              className="md:hidden p-2 bg-white/10 rounded-lg relative w-10 h-10 flex items-center justify-center"
+              className="md:hidden relative w-10 h-10 flex items-center justify-center"
             >
               {/* Hamburger Icon */}
               <div className={`absolute transition-all duration-300 ${isMenuAnimating ? 'opacity-0 rotate-90 scale-0' : 'opacity-100 rotate-0 scale-100'}`}>
-                <img src="/Hamburger Menu.png" alt="Menu" className="w-6 h-6" />
+                <img src="/hamburger.svg" alt="Menu" className="w-10 h-10" />
               </div>
               {/* X Icon */}
               <svg
@@ -109,8 +109,8 @@ export function Header({ onNavigate, currentPage = '' }: HeaderProps) {
           {/* Right Side Actions */}
           <div className="flex items-center gap-4">
             {/* Search */}
-            <button className="p-2 bg-white/10 border border-white/30 rounded-lg hover:bg-white/20 transition-colors">
-              <img src="/Search.png" alt="Search" className="w-5 h-5" />
+            <button className="w-10 h-10 flex items-center justify-center hover:opacity-80 transition-opacity">
+              <img src="/search.svg" alt="Search" className="w-10 h-10" />
             </button>
 
             {/* Desktop: Register Button */}

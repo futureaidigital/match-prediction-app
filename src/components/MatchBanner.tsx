@@ -46,8 +46,8 @@ export function MatchBanner({ fixture, predictions = [], showPredictions = false
 
   return (
     <>
-      {/* Mobile Version - Figma specs */}
-      <div className="md:hidden w-[358px] h-[195px] mx-auto rounded-[14px] overflow-hidden shadow-2xl">
+      {/* Mobile Version - Fixed height to accommodate 2-line team names */}
+      <div className="md:hidden w-[358px] h-[215px] mx-auto rounded-[14px] overflow-hidden shadow-2xl">
         <div
           className="relative flex flex-col h-full"
           style={{
@@ -57,9 +57,9 @@ export function MatchBanner({ fixture, predictions = [], showPredictions = false
           }}
         >
           {/* Main Content Area */}
-          <div className="flex-1 flex flex-col justify-center">
+          <div className="flex-1 flex flex-col justify-center pt-[8px]">
             {/* League Name & Live Badge - 182x41px container */}
-            <div className="flex flex-col items-center w-[182px] h-[41px] mx-auto mb-[8px]">
+            <div className="flex flex-col items-center w-[182px] h-[41px] mx-auto mb-[4px]">
               <span
                 className="text-[#7c8a9c] text-[14px] font-medium leading-[150%] text-center"
                 style={{ fontFamily: 'Montserrat, sans-serif' }}
@@ -80,7 +80,7 @@ export function MatchBanner({ fixture, predictions = [], showPredictions = false
             </div>
 
             {/* Teams and Score - centered layout with names below logos */}
-            <div className="flex items-start justify-center w-full px-4 gap-[8px]">
+            <div className="flex items-start justify-center w-full px-4 gap-[20px]">
               {/* Home Team - logo with name below */}
               <div className="flex flex-col items-center w-[90px]">
                 {fixture.home_team_image_path ? (
@@ -97,7 +97,7 @@ export function MatchBanner({ fixture, predictions = [], showPredictions = false
                   </div>
                 )}
                 <span
-                  className="text-white font-medium text-[11px] leading-tight text-center mt-[4px] line-clamp-2"
+                  className="text-white font-medium text-[11px] leading-tight text-center mt-[4px] line-clamp-2 min-h-[26px]"
                   style={{ fontFamily: 'Montserrat, sans-serif' }}
                 >
                   {fixture.home_team_name || 'Home Team'}
@@ -142,7 +142,7 @@ export function MatchBanner({ fixture, predictions = [], showPredictions = false
                   </div>
                 )}
                 <span
-                  className="text-white font-medium text-[11px] leading-tight text-center mt-[4px] line-clamp-2"
+                  className="text-white font-medium text-[11px] leading-tight text-center mt-[4px] line-clamp-2 min-h-[26px]"
                   style={{ fontFamily: 'Montserrat, sans-serif' }}
                 >
                   {fixture.away_team_name || 'Away Team'}
@@ -151,7 +151,7 @@ export function MatchBanner({ fixture, predictions = [], showPredictions = false
             </div>
 
             {/* Minutes - below score */}
-            <div className="text-center mt-[4px]">
+            <div className="text-center mt-[2px]">
               <span
                 className="text-white text-[14px] font-medium leading-[150%]"
                 style={{ fontFamily: 'Montserrat, sans-serif' }}
@@ -224,9 +224,9 @@ export function MatchBanner({ fixture, predictions = [], showPredictions = false
           }}
         >
           {/* Main Content Area */}
-          <div className="flex-1 flex flex-col justify-center">
+          <div className="flex-1 flex flex-col justify-center pt-[20px]">
             {/* League Name & Live Badge - 285x61px box */}
-            <div className="flex flex-col items-center mb-[20px] w-[285px] h-[61px] mx-auto">
+            <div className="flex flex-col items-center mb-[12px] w-[285px] h-[61px] mx-auto">
               {/* League name - 27px height, 22px text */}
               <span
                 className="text-[#7c8a9c] text-[22px] font-medium leading-[27px] text-center h-[27px]"
@@ -248,9 +248,9 @@ export function MatchBanner({ fixture, predictions = [], showPredictions = false
             </div>
 
             {/* Teams and Score Row - centered layout with names below logos */}
-            <div className="flex flex-col items-center w-[1000px] mx-auto">
+            <div className="flex flex-col items-center w-[1100px] mx-auto">
               {/* Main row with teams and score */}
-              <div className="flex items-start justify-center w-full gap-[40px]">
+              <div className="flex items-start justify-center w-full gap-[80px]">
                 {/* Home Team - logo with name below */}
                 <div className="flex flex-col items-center w-[200px]">
                   {fixture.home_team_image_path ? (
@@ -322,7 +322,7 @@ export function MatchBanner({ fixture, predictions = [], showPredictions = false
 
               {/* Minutes below score */}
               <span
-                className="text-white text-[18px] font-medium leading-[150%] mt-[8px]"
+                className="text-white text-[18px] font-medium leading-[150%] mt-[2px]"
                 style={{ fontFamily: 'Montserrat, sans-serif' }}
               >
                 {fixture.minutes_elapsed ?? 0}'

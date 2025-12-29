@@ -236,12 +236,15 @@ export function SmartCombo({ isPremium = false }: SmartComboProps) {
         style={{ backgroundImage: 'linear-gradient(180deg, rgba(9, 17, 67, 0) 0%, rgba(9, 17, 67, 1) 100%), linear-gradient(0deg, rgba(13, 26, 103, 0.55) 0%, rgba(13, 26, 103, 0.55) 100%)', backgroundColor: '#0d1a67' }}
       >
         {/* Header - On gradient */}
-        <div className="text-white px-4 py-3">
+        <div className="text-white px-4 py-3 flex items-center justify-between">
           <h2 className="text-[18px] md:text-[22px] font-semibold" style={{ fontFamily: 'Montserrat, sans-serif' }}>Smart Combo</h2>
+          <button className="w-6 h-6 flex items-center justify-center hover:opacity-80 transition-opacity">
+            <img src="/Infrmation-Circle.svg" alt="Info" className="w-6 h-6" />
+          </button>
         </div>
 
         {/* White Content Area - Mobile: 342px, Desktop: 444px width, dynamic height */}
-        <div className="bg-white rounded-xl w-[342px] md:w-[444px] mx-auto mb-[3px] pt-[16px]">
+        <div className="bg-white rounded-xl w-[342px] md:w-[444px] mx-auto mb-[8px] md:mb-[3px] pt-[8px] md:pt-[16px]">
           {/* Accuracy Section - Mobile: white with shadow, Desktop: grey background */}
           {/* Mobile version - white container with shadow */}
           <div className="md:hidden bg-white rounded-xl w-[318px] h-[42px] mx-auto px-4 flex items-center shadow-md">
@@ -296,7 +299,7 @@ export function SmartCombo({ isPremium = false }: SmartComboProps) {
           </div>
 
           {/* See More Button - Inside white area */}
-          <div className="px-4 pb-4">
+          <div className="px-4 pb-2 md:pb-4">
             <button
               onClick={() => navigate('/smart-combo')}
               className="w-full py-2 px-4 border border-[#091143] text-[#091143] font-semibold rounded-lg hover:bg-[#091143] hover:text-white transition-all duration-200 text-sm"

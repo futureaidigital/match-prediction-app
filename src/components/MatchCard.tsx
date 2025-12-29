@@ -106,7 +106,7 @@ export function MatchCard({
         </div>
 
         {/* Teams and Time Row - Mobile: 288x63px with 20px gap, Desktop: 382x66px with original spacing */}
-        <div className="flex items-center justify-center w-[288px] md:w-[382px] h-[63px] md:h-[66px] mx-auto mb-[20px] md:mb-4 pb-[20px] md:pb-4 border-b border-gray-100 md:justify-between">
+        <div className="flex items-center justify-between w-[288px] md:w-[382px] h-[63px] md:h-[66px] mx-auto mb-[20px] md:mb-4 pb-[20px] md:pb-4 border-b border-gray-100">
           {/* Home Team - Vertical, Mobile: 40x40 logo, Desktop: 34x34 logo */}
           <div className="md:hidden">
             <TeamAvatar
@@ -129,8 +129,8 @@ export function MatchCard({
             />
           </div>
 
-          {/* Time - 40px gap from team names on mobile, auto spacing on desktop */}
-          <div className="flex flex-col items-center mx-[40px] md:mx-0">
+          {/* Time - auto spacing with justify-between */}
+          <div className="flex flex-col items-center">
             <span className="font-bold text-gray-900 text-lg">{kickoffTime || DEFAULTS.KICKOFF_TIME}</span>
             {isToday && (
               <span className="text-gray-400 text-xs font-medium">{DEFAULTS.TODAY_LABEL}</span>
@@ -192,7 +192,7 @@ export function MatchCard({
   // Default variant (for Featured Matches)
   return (
     <div
-      className="bg-white rounded-2xl p-[15px] md:p-5 w-[334px] h-[293px] md:w-[290px] md:h-[478px] flex flex-col transition-shadow overflow-hidden"
+      className="bg-white rounded-2xl p-[15px] md:p-5 w-[334px] h-[380px] md:w-[290px] md:h-[500px] flex flex-col transition-shadow overflow-hidden"
       style={{
         boxShadow: '0 0 12px rgba(0, 0, 0, 0.08)'
       }}
@@ -205,7 +205,7 @@ export function MatchCard({
       </div>
 
       {/* Teams and Score Section - Horizontal Layout */}
-      <div className="flex items-center justify-between mb-[5px] md:mb-4 px-2 shrink-0">
+      <div className="flex items-center justify-between mb-[12px] md:mb-4 px-0 md:px-2 shrink-0">
         {/* Home Team */}
         <div className="flex flex-col items-center justify-center gap-1 w-[101px] h-[57px] shrink-0 md:w-20 md:h-auto">
           <div className="md:mb-2">
@@ -251,15 +251,15 @@ export function MatchCard({
       </div>
 
       {/* Divider */}
-      <div className="h-px bg-gray-200 w-full md:-mx-2 md:w-auto mb-[5px] md:mb-2" />
+      <div className="h-px bg-gray-200 w-full md:-mx-2 md:w-auto mb-[12px] md:mb-3" />
 
       {/* Predictions Section */}
       {/* Mobile: Show only 1 prediction (unblurred for premium, unblurred for free on page 1) */}
       {/* Desktop: Show all predictions (premium sees all unblurred, free sees 1 unblurred + rest blurred) */}
-      <div className="flex-1 space-y-2 overflow-visible min-h-0 md:-mx-2 flex flex-col justify-center md:justify-start">
-        {/* Mobile: Show only first prediction */}
-        <div className="md:hidden">
-          {predictions.slice(0, 1).map((prediction, index) => (
+      <div className="flex-1 space-y-2 overflow-hidden min-h-0 md:-mx-2 flex flex-col justify-center md:justify-start">
+        {/* Mobile: Show first 2 predictions */}
+        <div className="md:hidden space-y-2">
+          {predictions.slice(0, 2).map((prediction, index) => (
             <PredictionBar
               key={`mobile-${prediction.id}-${index}`}
               label={prediction.label}
@@ -300,13 +300,13 @@ export function MatchCard({
       </div>
 
       {/* Footer */}
-      <div className="pt-[5px] md:pt-4 shrink-0">
+      <div className="pt-[12px] md:pt-4 shrink-0">
         {/* Predictions Count Divider */}
         {totalPredictions && totalPredictions > 0 && (
           <div className="flex items-center justify-center mb-3">
             <div className="flex-1 h-px bg-gradient-to-r from-white to-gray-200" />
-            <span className="px-3 text-xs text-gray-500 font-medium whitespace-nowrap">
-              <span className="md:hidden">{visiblePredictions.length} out of {totalPredictions} Predictions</span>
+            <span className="px-3 text-[11px] md:text-xs text-gray-500 font-medium whitespace-nowrap">
+              <span className="md:hidden">{Math.min(2, predictions.length)} out of {totalPredictions} Predictions</span>
               <span className="hidden md:inline">{predictions.length} out of {totalPredictions} Predictions</span>
             </span>
             <div className="flex-1 h-px bg-gradient-to-r from-gray-200 to-white" />
@@ -326,7 +326,7 @@ export function MatchCard({
 
         {/* Last Updated */}
         {lastUpdated && (
-          <div className="text-center text-xs text-gray-400 mt-3">
+          <div className="text-center text-[11px] md:text-xs text-gray-400 mt-3">
             Updated {lastUpdated}
           </div>
         )}
