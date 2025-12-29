@@ -91,7 +91,7 @@ export function TeamAvatar({
   }
 
   const nameElement = (
-    <span className={cn(nameSizeClasses[size], 'font-bold text-gray-900')}>
+    <span className={cn(nameSizeClasses[size], 'font-semibold text-gray-900')} style={{ fontFamily: 'Montserrat, sans-serif' }}>
       {shortName || name}
     </span>
   );

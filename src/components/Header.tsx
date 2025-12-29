@@ -56,7 +56,7 @@ export function Header({ onNavigate, currentPage = '' }: HeaderProps) {
   return (
     <>
       <header className="w-full bg-[#0d1a67] relative z-50">
-        <div className="w-full max-w-[100vw] md:max-w-7xl mx-auto px-4 md:px-6 py-3 flex items-center justify-between box-border">
+        <div className="w-full max-w-[100vw] md:max-w-[1440px] mx-auto px-4 md:px-6 py-3 flex items-center justify-between box-border">
           {/* Left side: Hamburger + Logo (mobile) / Logo only (desktop) */}
           <div className="flex items-center gap-4">
             {/* Mobile: Hamburger/Close Menu Button */}
@@ -85,7 +85,7 @@ export function Header({ onNavigate, currentPage = '' }: HeaderProps) {
 
             {/* Logo - left aligned on both mobile and desktop */}
             <button onClick={() => navigate('/')} className="flex items-center">
-              <img src="/logo.svg" alt="Fourth Official" className="h-8" />
+              <img src="/logo.svg" alt="Fourth Official" className="h-8 md:h-10" />
             </button>
           </div>
 
@@ -114,12 +114,12 @@ export function Header({ onNavigate, currentPage = '' }: HeaderProps) {
             </button>
 
             {/* Desktop: Register Button */}
-            <button className="hidden md:block px-5 py-2 border border-white text-white text-sm font-semibold rounded-full hover:bg-white/10 transition-colors">
+            <button className="hidden md:block px-5 py-2 border border-white text-white text-sm font-semibold rounded-lg hover:bg-white/10 transition-colors">
               Register
             </button>
 
             {/* Desktop: Login Button */}
-            <button className="hidden md:block px-5 py-2 bg-white text-[#091143] text-sm font-semibold rounded-full hover:bg-white/90 transition-colors">
+            <button className="hidden md:block px-5 py-2 bg-white text-[#091143] text-sm font-semibold rounded-lg hover:bg-white/90 transition-colors">
               Login
             </button>
           </div>
