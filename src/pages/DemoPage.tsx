@@ -300,8 +300,8 @@ export function DemoPage() {
         <div className="w-full md:flex md:gap-[30px] md:w-[1440px] md:min-h-[1124px]">
           {/* Left Side: Featured Matches */}
           <div className="flex-1 md:w-[960px] md:flex-none">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
+            {/* Header - Mobile: match banner width (358px), Desktop: full width */}
+            <div className="flex items-center justify-between mb-6 w-[358px] mx-auto md:w-full">
               <div className="flex items-center gap-3">
                 <h1 className="text-[18px] md:text-2xl font-bold text-gray-900">Featured Matches</h1>
                 <div className="text-gray-600">
@@ -367,8 +367,8 @@ export function DemoPage() {
             )}
 
             {/* Mobile: View All Button */}
-            <div className="md:hidden mt-6">
-              <button className="w-full py-3 border border-[#0d1a67] text-[#0d1a67] font-light rounded-xl hover:bg-[#0d1a67] hover:text-white transition-all">
+            <div className="md:hidden w-[358px] mx-auto">
+              <button className="w-full py-3 border-2 border-[#0d1a67] text-[#0d1a67] font-bold rounded-xl hover:bg-[#0d1a67] hover:text-white transition-all">
                 View All
               </button>
             </div>
