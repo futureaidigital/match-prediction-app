@@ -2,6 +2,8 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { DemoPage } from './pages/DemoPage';
 import { MatchesPage } from './pages/MatchesPage';
 import { MatchDetailPage } from './pages/MatchDetailPage';
+import { PlayerPage } from './pages/PlayerPage';
+import { PlayersPage } from './pages/PlayersPage';
 import { PricingPage } from './pages/PricingPage';
 import { SmartComboPage } from './pages/SmartComboPage';
 import { LeaguePage } from './pages/LeaguePage';
@@ -17,6 +19,10 @@ function App() {
         {/* Matches pages */}
         <Route path="/matches" element={<MatchesPage />} />
         <Route path="/match/:fixtureId" element={<MatchDetailPage />} />
+
+        {/* Player pages */}
+        <Route path="/players" element={<PlayersPage />} />
+        <Route path="/player/:playerId" element={<PlayerPage />} />
 
         {/* Pricing page */}
         <Route path="/pricing" element={<PricingPage />} />
