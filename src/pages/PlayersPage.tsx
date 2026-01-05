@@ -140,7 +140,7 @@ function LeagueSection({
       <div className="bg-gray-100 rounded-xl p-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {visiblePlayers.map((player) => (
-            <PlayerCard key={player.player_id} player={player} leagueName={league.leagueName} />
+            <PlayerCard key={player.player_id} player={player} />
           ))}
         </div>
       </div>
@@ -151,7 +151,6 @@ function LeagueSection({
 // Player Card component
 function PlayerCard({
   player,
-  leagueName,
 }: {
   player: {
     player_id: number;
@@ -163,7 +162,6 @@ function PlayerCard({
     team_name?: string;
     team_logo?: string;
   };
-  leagueName?: string;
 }) {
   const navigate = useNavigate();
 
@@ -295,8 +293,6 @@ function MobileBottomNav({ activeTab }: { activeTab: string }) {
 }
 
 export function PlayersPage() {
-  const navigate = useNavigate();
-
   // Fetch players from watchlist
   const { data: watchlistResponse, isLoading: isLoadingWatchlist } = usePlayersWatchlist();
 
@@ -328,7 +324,7 @@ export function PlayersPage() {
 
     // Iterate through player IDs and their corresponding details
     playerIds.forEach((playerId: number, index: number) => {
-      const playerDetail = playerDetailsQueries[index]?.data?.data?.player;
+      const playerDetail = playerDetailsQueries[index]?.data?.data?.player as any;
 
       // Skip if we don't have player details yet
       if (!playerDetail) return;
@@ -414,7 +410,7 @@ export function PlayersPage() {
                     <div className="overflow-x-auto scrollbar-hide">
                       <div className="flex gap-3">
                         {league.players.map((player) => (
-                          <PlayerCard key={player.player_id} player={player} leagueName={league.leagueName} />
+                          <PlayerCard key={player.player_id} player={player} />
                         ))}
                       </div>
                     </div>
