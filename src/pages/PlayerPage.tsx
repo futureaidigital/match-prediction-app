@@ -592,7 +592,7 @@ export function PlayerPage() {
   );
 
   const isLoading = playerDetailsQuery?.isLoading || isLoadingStats;
-  const playerData = playerDetailsQuery?.data?.data?.player;
+  const playerData = playerDetailsQuery?.data?.data?.player as any;
   const statsData = statsResponse?.data;
 
   // Extract player info
