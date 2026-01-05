@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { SmartCombo } from '@/components/SmartCombo';
-import { useLeagues } from '@/hooks/useLeagues';
+import { useLeagues, useLeaguePlayerRankings } from '@/hooks/useLeagues';
 import { useLeagueCurrent, useLeagueStandings, useLeagueFixtures } from '@/hooks/useLeagueStandings';
-import { LeagueStandingTeam, LeagueSeason } from '@/services/api';
+import { LeagueStandingTeam, LeagueSeason, LeaguePlayerRanking } from '@/services/api';
 
 // Match card component for league fixtures
 function LeagueMatchCard({ fixture, leagueName }: { fixture: any; leagueName?: string }) {
@@ -135,6 +135,89 @@ function SkeletonMatchCard() {
   );
 }
 
+// Player ranking card component
+function PlayerRankingCard({
+  title,
+  players,
+  isLoading,
+}: {
+  title: string;
+  players: LeaguePlayerRanking[];
+  isLoading: boolean;
+}) {
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-4">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-base font-bold text-gray-900">{title}</h3>
+        <div className="w-5 h-5 rounded-full border border-gray-300 flex items-center justify-center">
+          <span className="text-xs text-gray-400">i</span>
+        </div>
+      </div>
+      <div className="space-y-2">
+        {isLoading ? (
+          // Loading skeleton
+          [1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="flex items-center gap-2 py-1.5 border-b border-gray-50 last:border-0">
+              <div className="w-4 h-4 bg-gray-100 rounded text-xs flex items-center justify-center text-gray-400">{i}</div>
+              <div className="w-7 h-7 bg-gray-100 rounded-full animate-pulse" />
+              <div className="flex-1">
+                <div className="h-3 bg-gray-100 rounded w-20 mb-1 animate-pulse" />
+                <div className="h-2 bg-gray-100 rounded w-14 animate-pulse" />
+              </div>
+              <div className="h-4 bg-gray-100 rounded w-6 animate-pulse" />
+            </div>
+          ))
+        ) : players.length > 0 ? (
+          // Real data
+          players.map((player, index) => (
+            <div key={player.player_id} className="flex items-center gap-2 py-1.5 border-b border-gray-50 last:border-0">
+              <div className="w-4 h-4 bg-gray-100 rounded text-xs flex items-center justify-center text-gray-500 font-medium">
+                {index + 1}
+              </div>
+              {player.player_image_url ? (
+                <img
+                  src={player.player_image_url}
+                  alt={player.player_name}
+                  className="w-7 h-7 rounded-full object-cover bg-gray-100"
+                  onError={(e) => {
+                    // Hide broken image and show fallback
+                    e.currentTarget.style.display = 'none';
+                    e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                  }}
+                />
+              ) : null}
+              <div className={`w-7 h-7 bg-gray-200 rounded-full flex items-center justify-center ${player.player_image_url ? 'hidden' : ''}`}>
+                <span className="text-xs text-gray-400">{player.player_name?.charAt(0) || '?'}</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 truncate">{player.player_name}</p>
+                <div className="flex items-center gap-1">
+                  {player.club_image_url && (
+                    <img
+                      src={player.club_image_url}
+                      alt={player.club_name}
+                      className="w-3 h-3 object-contain"
+                    />
+                  )}
+                  <p className="text-xs text-gray-500 truncate">{player.club_name}</p>
+                </div>
+              </div>
+              <div className="text-sm font-bold text-[#0d1a67]">
+                {Number.isInteger(player.stat_value) ? player.stat_value : player.stat_value.toFixed(1)}
+              </div>
+            </div>
+          ))
+        ) : (
+          // No data
+          <div className="py-4 text-center text-sm text-gray-400">
+            No data available
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function LeaguePage() {
   // League scroll refs and state
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -177,6 +260,15 @@ export function LeaguePage() {
     } : null
   );
   const fixtures = fixturesResponse?.data?.fixtures || [];
+
+  // Fetch player rankings for this league/season
+  const { data: playerRankingsResponse, isLoading: isLoadingRankings } = useLeaguePlayerRankings(
+    selectedLeagueId && selectedSeasonId ? {
+      league_id: selectedLeagueId,
+      season_id: selectedSeasonId,
+    } : null
+  );
+  const playerRankings = playerRankingsResponse?.data;
 
   // Use standings from either current response or season-specific response
   const standings = isNonCurrentSeason
@@ -330,18 +422,20 @@ export function LeaguePage() {
                         <button
                           key={league.league_id}
                           onClick={() => setSelectedLeagueId(league.league_id)}
-                          className={`flex items-center gap-2 px-4 py-2 shrink-0 transition-all font-medium text-sm rounded-lg ${
+                          className={`flex items-center gap-2 px-3 py-2 shrink-0 transition-all font-medium text-sm rounded-lg ${
                             isSelected
                               ? 'bg-[#0d1a67] text-white'
                               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                           }`}
                         >
                           {league.image_path && (
-                            <img
-                              src={league.image_path}
-                              alt={league.league_name}
-                              className="w-5 h-5 object-contain"
-                            />
+                            <div className="w-6 h-6 bg-white rounded flex items-center justify-center shrink-0">
+                              <img
+                                src={league.image_path}
+                                alt={league.league_name}
+                                className="w-5 h-5 object-contain"
+                              />
+                            </div>
                           )}
                           <span className="whitespace-nowrap">{league.league_name}</span>
                         </button>
@@ -374,25 +468,105 @@ export function LeaguePage() {
           <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-6">
             {selectedLeague ? (
               <>
-                {/* League Header */}
-                <div className="flex items-center justify-between py-2">
+                {/* League Header - Mobile */}
+                <div className="md:hidden bg-gray-100 rounded-xl p-4 flex items-center justify-between">
+                  {/* Left side - Logo and League Info */}
+                  <div className="flex items-center gap-3">
+                    {selectedLeague.image_path ? (
+                      <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center p-2">
+                        <img
+                          src={selectedLeague.image_path}
+                          alt={selectedLeague.league_name}
+                          className="w-8 h-8 object-contain"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
+                        <span className="text-gray-400 text-lg font-bold">
+                          {selectedLeague.league_name.charAt(0)}
+                        </span>
+                      </div>
+                    )}
+                    <div>
+                      <h1 className="text-base font-bold text-gray-900">
+                        {selectedLeague.league_name}
+                      </h1>
+                      <p className="text-xs text-orange-500">
+                        {leagueData?.league?.country_name || 'England'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Right side - Season Dropdown as Pill */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setIsSeasonDropdownOpen(!isSeasonDropdownOpen)}
+                      className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      <span>{selectedSeasonData?.season_name || 'Season'}</span>
+                      <img src="/arrow-down.svg" alt="Arrow" className="w-[12px] h-auto" />
+                    </button>
+
+                    {/* Dropdown Menu */}
+                    {isSeasonDropdownOpen && availableSeasons.length > 0 && (
+                      <div className="absolute right-0 top-full mt-2 bg-white rounded-lg shadow-lg border border-gray-200 py-1 min-w-[140px] z-10">
+                        {/* Current season first */}
+                        {currentSeason && (
+                          <button
+                            onClick={() => {
+                              setSelectedSeasonId(currentSeason.season_id);
+                              setIsSeasonDropdownOpen(false);
+                            }}
+                            className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${
+                              selectedSeasonId === currentSeason.season_id
+                                ? 'text-[#0d1a67] font-medium'
+                                : 'text-gray-700'
+                            }`}
+                          >
+                            {currentSeason.season_name} (Current)
+                          </button>
+                        )}
+                        {/* Past seasons */}
+                        {availableSeasons.map((season: LeagueSeason) => (
+                          <button
+                            key={season.season_id}
+                            onClick={() => {
+                              setSelectedSeasonId(season.season_id);
+                              setIsSeasonDropdownOpen(false);
+                            }}
+                            className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${
+                              season.season_id === selectedSeasonId
+                                ? 'text-[#0d1a67] font-medium'
+                                : 'text-gray-700'
+                            }`}
+                          >
+                            {season.season_name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* League Header - Desktop */}
+                <div className="hidden md:flex items-center justify-between py-2">
                   {/* Left side - Logo and League Info */}
                   <div className="flex items-center gap-4">
                     {selectedLeague.image_path ? (
                       <img
                         src={selectedLeague.image_path}
                         alt={selectedLeague.league_name}
-                        className="w-14 h-14 md:w-16 md:h-16 object-contain"
+                        className="w-16 h-16 object-contain"
                       />
                     ) : (
-                      <div className="w-14 h-14 md:w-16 md:h-16 bg-gray-200 rounded-full flex items-center justify-center">
+                      <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center">
                         <span className="text-gray-400 text-xl font-bold">
                           {selectedLeague.league_name.charAt(0)}
                         </span>
                       </div>
                     )}
                     <div>
-                      <h1 className="text-lg md:text-xl font-bold text-gray-900">
+                      <h1 className="text-xl font-bold text-gray-900">
                         {selectedLeague.league_name}
                       </h1>
                       <p className="text-sm text-orange-500">
@@ -464,8 +638,8 @@ export function LeaguePage() {
 
                 {/* Matches Section */}
                 <div className="mt-6">
-                  {/* Header with title and arrows */}
-                  <div className="flex items-center justify-between mb-4">
+                  {/* Header with title and arrows (desktop only) */}
+                  <div className="hidden md:flex items-center justify-between mb-4">
                     <h2 className="text-lg font-bold text-gray-900">Matches</h2>
                     {fixtures.length > 0 && (
                       <div className="flex items-center gap-2">
@@ -502,8 +676,8 @@ export function LeaguePage() {
                   </div>
 
                   {isLoadingFixtures ? (
-                    <div className="bg-gray-100 rounded-xl p-4">
-                      <div className="flex gap-4">
+                    <div className="bg-gray-100 rounded-xl py-4">
+                      <div className="flex gap-4 px-4">
                         <SkeletonMatchCard />
                         <SkeletonMatchCard />
                         <SkeletonMatchCard />
@@ -511,14 +685,14 @@ export function LeaguePage() {
                       </div>
                     </div>
                   ) : fixtures.length > 0 ? (
-                    <div className="bg-gray-100 rounded-xl p-4">
+                    <div className="bg-gray-100 rounded-xl py-4">
                       {/* Scrollable Matches */}
                       <div
                         ref={matchesScrollRef}
                         className="overflow-x-auto scrollbar-hide"
                         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                       >
-                        <div className="flex gap-4">
+                        <div className="flex gap-4 py-2 px-4">
                           {fixtures.map((fixture: any) => (
                             <div key={fixture.fixture.fixture_id} className="w-[280px] shrink-0">
                               <LeagueMatchCard
@@ -527,6 +701,8 @@ export function LeaguePage() {
                               />
                             </div>
                           ))}
+                          {/* Spacer to ensure last card is fully visible */}
+                          <div className="w-1 shrink-0" />
                         </div>
                       </div>
                     </div>
@@ -574,81 +750,193 @@ export function LeaguePage() {
                             </div>
                           ))}
                         </div>
-                      ) : standings.length > 0 ? (
-                        <div className="overflow-x-auto">
-                          <table className="w-full">
-                            <thead className="bg-[#0d1a67] text-white text-sm">
-                              <tr>
-                                <th className="py-3 px-4 text-left font-medium">#</th>
-                                <th className="py-3 px-4 text-left font-medium">Team</th>
-                                <th className="py-3 px-2 text-center font-medium">MP</th>
-                                <th className="py-3 px-2 text-center font-medium">W</th>
-                                <th className="py-3 px-2 text-center font-medium">D</th>
-                                <th className="py-3 px-2 text-center font-medium">L</th>
-                                <th className="py-3 px-2 text-center font-medium">GD</th>
-                                <th className="py-3 px-2 text-center font-medium">PTS</th>
-                                <th className="py-3 px-4 text-center font-medium">Form</th>
-                                <th className="py-3 px-4 text-center font-medium">Next</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {standings.map((team: LeagueStandingTeam) => (
-                                <tr key={team.team.team_id} className="border-b border-gray-100 hover:bg-gray-50">
-                                  <td className="py-3 px-4 text-sm font-medium text-gray-900">{team.position}</td>
-                                  <td className="py-3 px-4">
-                                    <div className="flex items-center gap-2">
-                                      {team.team.team_logo ? (
-                                        <img src={team.team.team_logo} alt={team.team.team_name} className="w-6 h-6 object-contain" />
-                                      ) : (
-                                        <div className="w-6 h-6 bg-gray-200 rounded-full" />
-                                      )}
-                                      <span className="text-sm font-medium text-gray-900">{team.team.team_name}</span>
-                                    </div>
-                                  </td>
-                                  <td className="py-3 px-2 text-center text-sm text-gray-600">{team.matches_played}</td>
-                                  <td className="py-3 px-2 text-center text-sm text-gray-600">{team.wins}</td>
-                                  <td className="py-3 px-2 text-center text-sm text-gray-600">{team.draws}</td>
-                                  <td className="py-3 px-2 text-center text-sm text-gray-600">{team.losses}</td>
-                                  <td className="py-3 px-2 text-center text-sm text-gray-600">
-                                    {team.goal_difference > 0 ? `+${team.goal_difference}` : team.goal_difference}
-                                  </td>
-                                  <td className="py-3 px-2 text-center text-sm font-bold text-gray-900">{team.points}</td>
-                                  <td className="py-3 px-4">
-                                    <div className="flex items-center justify-center gap-1">
-                                      {team.form && team.form.length > 0 ? (
-                                        team.form.slice(0, 5).map((result, i) => (
-                                          <span
-                                            key={i}
-                                            className={`w-5 h-5 rounded text-xs font-bold flex items-center justify-center ${
-                                              result === 'W' ? 'bg-green-500 text-white' :
-                                              result === 'D' ? 'bg-yellow-500 text-white' :
-                                              'bg-red-500 text-white'
-                                            }`}
-                                          >
-                                            {result}
-                                          </span>
-                                        ))
-                                      ) : (
-                                        <span className="text-sm text-gray-400">-</span>
-                                      )}
-                                    </div>
-                                  </td>
-                                  <td className="py-3 px-4 text-center">
-                                    {team.next_fixture?.opponent_logo ? (
-                                      <img
-                                        src={team.next_fixture.opponent_logo}
-                                        alt="Next opponent"
-                                        className="w-6 h-6 object-contain mx-auto"
-                                      />
-                                    ) : (
-                                      <span className="text-sm text-gray-400">-</span>
-                                    )}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
+                      ) : (standingsFilter === 'home' || standingsFilter === 'away') ? (
+                        // Home/Away filter - data not available
+                        <div className="p-8 text-center">
+                          <p className="text-gray-500 mb-2">
+                            {standingsFilter === 'home' ? 'Home' : 'Away'} standings coming soon
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            Separate home/away statistics will be available in a future update
+                          </p>
                         </div>
+                      ) : standings.length > 0 ? (
+                        <>
+                          {/* Mobile Standings Table - Simplified */}
+                          <div className="md:hidden">
+                            <table className="w-full">
+                              <thead className="bg-[#0d1a67] text-white text-xs">
+                                <tr>
+                                  <th className="py-2 px-2 text-left font-medium">#</th>
+                                  <th className="py-2 px-2 text-left font-medium">Team</th>
+                                  {standingsFilter === 'form' ? (
+                                    <th className="py-2 px-2 text-center font-medium">Form</th>
+                                  ) : (
+                                    <>
+                                      <th className="py-2 px-2 text-center font-medium">MP</th>
+                                      <th className="py-2 px-2 text-center font-medium">GD</th>
+                                      <th className="py-2 px-2 text-center font-medium">PTS</th>
+                                    </>
+                                  )}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {standings.map((team: LeagueStandingTeam) => (
+                                  <tr key={team.team.team_id} className="border-b border-gray-100">
+                                    <td className="py-2 px-2 text-xs font-medium text-gray-900">{team.position}</td>
+                                    <td className="py-2 px-2">
+                                      <div className="flex items-center gap-1.5">
+                                        {team.team.team_logo ? (
+                                          <img src={team.team.team_logo} alt={team.team.team_name} className="w-4 h-4 object-contain" />
+                                        ) : (
+                                          <div className="w-4 h-4 bg-gray-200 rounded-full" />
+                                        )}
+                                        <span className="text-xs font-medium text-gray-900">{team.team.team_name}</span>
+                                      </div>
+                                    </td>
+                                    {standingsFilter === 'form' ? (
+                                      <td className="py-2 px-2">
+                                        <div className="flex items-center justify-center gap-0.5 flex-wrap">
+                                          {team.form && team.form.length > 0 ? (
+                                            team.form.map((result, i) => (
+                                              <span
+                                                key={i}
+                                                className={`w-4 h-4 rounded text-[10px] font-bold flex items-center justify-center ${
+                                                  result === 'W' ? 'bg-green-500 text-white' :
+                                                  result === 'D' ? 'bg-yellow-500 text-white' :
+                                                  'bg-red-500 text-white'
+                                                }`}
+                                              >
+                                                {result}
+                                              </span>
+                                            ))
+                                          ) : (
+                                            <span className="text-xs text-gray-400">-</span>
+                                          )}
+                                        </div>
+                                      </td>
+                                    ) : (
+                                      <>
+                                        <td className="py-2 px-2 text-center text-xs text-gray-600">{team.matches_played}</td>
+                                        <td className="py-2 px-2 text-center text-xs text-gray-600">
+                                          {team.goal_difference > 0 ? `+${team.goal_difference}` : team.goal_difference}
+                                        </td>
+                                        <td className="py-2 px-2 text-center text-xs font-bold text-gray-900">{team.points}</td>
+                                      </>
+                                    )}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+
+                          {/* Desktop Standings Table - Full */}
+                          <div className="hidden md:block overflow-x-auto">
+                            <table className="w-full">
+                              <thead className="bg-[#0d1a67] text-white text-sm">
+                                <tr>
+                                  <th className="py-3 px-4 text-left font-medium">#</th>
+                                  <th className="py-3 px-4 text-left font-medium">Team</th>
+                                  {standingsFilter === 'form' ? (
+                                    <th className="py-3 px-4 text-center font-medium">Form (All Matches)</th>
+                                  ) : (
+                                    <>
+                                      <th className="py-3 px-2 text-center font-medium">MP</th>
+                                      <th className="py-3 px-2 text-center font-medium">W</th>
+                                      <th className="py-3 px-2 text-center font-medium">D</th>
+                                      <th className="py-3 px-2 text-center font-medium">L</th>
+                                      <th className="py-3 px-2 text-center font-medium">GD</th>
+                                      <th className="py-3 px-2 text-center font-medium">PTS</th>
+                                      <th className="py-3 px-4 text-center font-medium">Form</th>
+                                      <th className="py-3 px-4 text-center font-medium">Next</th>
+                                    </>
+                                  )}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {standings.map((team: LeagueStandingTeam) => (
+                                  <tr key={team.team.team_id} className="border-b border-gray-100 hover:bg-gray-50">
+                                    <td className="py-3 px-4 text-sm font-medium text-gray-900">{team.position}</td>
+                                    <td className="py-3 px-4">
+                                      <div className="flex items-center gap-2">
+                                        {team.team.team_logo ? (
+                                          <img src={team.team.team_logo} alt={team.team.team_name} className="w-6 h-6 object-contain" />
+                                        ) : (
+                                          <div className="w-6 h-6 bg-gray-200 rounded-full" />
+                                        )}
+                                        <span className="text-sm font-medium text-gray-900">{team.team.team_name}</span>
+                                      </div>
+                                    </td>
+                                    {standingsFilter === 'form' ? (
+                                      <td className="py-3 px-4">
+                                        <div className="flex items-center justify-center gap-1 flex-wrap">
+                                          {team.form && team.form.length > 0 ? (
+                                            team.form.map((result, i) => (
+                                              <span
+                                                key={i}
+                                                className={`w-5 h-5 rounded text-xs font-bold flex items-center justify-center ${
+                                                  result === 'W' ? 'bg-green-500 text-white' :
+                                                  result === 'D' ? 'bg-yellow-500 text-white' :
+                                                  'bg-red-500 text-white'
+                                                }`}
+                                              >
+                                                {result}
+                                              </span>
+                                            ))
+                                          ) : (
+                                            <span className="text-sm text-gray-400">-</span>
+                                          )}
+                                        </div>
+                                      </td>
+                                    ) : (
+                                      <>
+                                        <td className="py-3 px-2 text-center text-sm text-gray-600">{team.matches_played}</td>
+                                        <td className="py-3 px-2 text-center text-sm text-gray-600">{team.wins}</td>
+                                        <td className="py-3 px-2 text-center text-sm text-gray-600">{team.draws}</td>
+                                        <td className="py-3 px-2 text-center text-sm text-gray-600">{team.losses}</td>
+                                        <td className="py-3 px-2 text-center text-sm text-gray-600">
+                                          {team.goal_difference > 0 ? `+${team.goal_difference}` : team.goal_difference}
+                                        </td>
+                                        <td className="py-3 px-2 text-center text-sm font-bold text-gray-900">{team.points}</td>
+                                        <td className="py-3 px-4">
+                                          <div className="flex items-center justify-center gap-1">
+                                            {team.form && team.form.length > 0 ? (
+                                              team.form.slice(0, 5).map((result, i) => (
+                                                <span
+                                                  key={i}
+                                                  className={`w-5 h-5 rounded text-xs font-bold flex items-center justify-center ${
+                                                    result === 'W' ? 'bg-green-500 text-white' :
+                                                    result === 'D' ? 'bg-yellow-500 text-white' :
+                                                    'bg-red-500 text-white'
+                                                  }`}
+                                                >
+                                                  {result}
+                                                </span>
+                                              ))
+                                            ) : (
+                                              <span className="text-sm text-gray-400">-</span>
+                                            )}
+                                          </div>
+                                        </td>
+                                        <td className="py-3 px-4 text-center">
+                                          {team.next_fixture?.opponent_logo ? (
+                                            <img
+                                              src={team.next_fixture.opponent_logo}
+                                              alt="Next opponent"
+                                              className="w-6 h-6 object-contain mx-auto"
+                                            />
+                                          ) : (
+                                            <span className="text-sm text-gray-400">-</span>
+                                          )}
+                                        </td>
+                                      </>
+                                    )}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </>
                       ) : (
                         <div className="p-8 text-center text-gray-500">
                           No standings data available
@@ -664,104 +952,40 @@ export function LeaguePage() {
                   </div>
                 </div>
 
-                {/* Top Players Statistics Section - Coming Soon */}
+                {/* Top Players Statistics Section */}
                 <div className="mt-8">
                   <div className="flex items-center gap-2 mb-4">
                     <h2 className="text-lg font-bold text-gray-900">Top Players</h2>
-                    <span className="text-xs text-orange-500 bg-orange-50 px-2 py-1 rounded font-medium">
-                      Coming Soon
-                    </span>
                   </div>
 
-                  <div className="bg-white rounded-xl border border-gray-200 p-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                      {/* Top Scorers */}
-                      <div>
-                        <div className="flex items-center justify-between mb-4">
-                          <h3 className="text-base font-bold text-gray-900">Top Scorers</h3>
-                        </div>
-                        <div className="space-y-3">
-                          {[1, 2, 3, 4, 5].map((i) => (
-                            <div key={i} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
-                              <div className="w-4 h-4 bg-gray-100 rounded" />
-                              <div className="w-8 h-8 bg-gray-100 rounded-full" />
-                              <div className="flex-1">
-                                <div className="h-3 bg-gray-100 rounded w-20 mb-1" />
-                                <div className="h-2 bg-gray-100 rounded w-14" />
-                              </div>
-                              <div className="h-4 bg-gray-100 rounded w-6" />
-                            </div>
-                          ))}
-                        </div>
-                      </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {/* Top Scorers */}
+                    <PlayerRankingCard
+                      title="Top Scorers"
+                      players={playerRankings?.top_scorers || []}
+                      isLoading={isLoadingRankings}
+                    />
 
-                      {/* Best Defensive */}
-                      <div>
-                        <div className="flex items-center justify-between mb-4">
-                          <h3 className="text-base font-bold text-gray-900">Best Defensive</h3>
-                        </div>
-                        <div className="space-y-3">
-                          {[1, 2, 3, 4, 5].map((i) => (
-                            <div key={i} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
-                              <div className="w-4 h-4 bg-gray-100 rounded" />
-                              <div className="w-8 h-8 bg-gray-100 rounded-full" />
-                              <div className="flex-1">
-                                <div className="h-3 bg-gray-100 rounded w-20 mb-1" />
-                                <div className="h-2 bg-gray-100 rounded w-14" />
-                              </div>
-                              <div className="h-4 bg-gray-100 rounded w-6" />
-                            </div>
-                          ))}
-                        </div>
-                      </div>
+                    {/* Best Defensive */}
+                    <PlayerRankingCard
+                      title="Best Defensive"
+                      players={playerRankings?.best_defensive || []}
+                      isLoading={isLoadingRankings}
+                    />
 
-                      {/* Most Aggressive */}
-                      <div>
-                        <div className="flex items-center justify-between mb-4">
-                          <h3 className="text-base font-bold text-gray-900">Most Aggressive</h3>
-                        </div>
-                        <div className="space-y-3">
-                          {[1, 2, 3, 4, 5].map((i) => (
-                            <div key={i} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
-                              <div className="w-4 h-4 bg-gray-100 rounded" />
-                              <div className="w-8 h-8 bg-gray-100 rounded-full" />
-                              <div className="flex-1">
-                                <div className="h-3 bg-gray-100 rounded w-20 mb-1" />
-                                <div className="h-2 bg-gray-100 rounded w-14" />
-                              </div>
-                              <div className="h-4 bg-gray-100 rounded w-6" />
-                            </div>
-                          ))}
-                        </div>
-                      </div>
+                    {/* Most Aggressive */}
+                    <PlayerRankingCard
+                      title="Most Aggressive"
+                      players={playerRankings?.most_aggressive || []}
+                      isLoading={isLoadingRankings}
+                    />
 
-                      {/* Top Playmaker */}
-                      <div>
-                        <div className="flex items-center justify-between mb-4">
-                          <h3 className="text-base font-bold text-gray-900">Top Playmaker</h3>
-                        </div>
-                        <div className="space-y-3">
-                          {[1, 2, 3, 4, 5].map((i) => (
-                            <div key={i} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
-                              <div className="w-4 h-4 bg-gray-100 rounded" />
-                              <div className="w-8 h-8 bg-gray-100 rounded-full" />
-                              <div className="flex-1">
-                                <div className="h-3 bg-gray-100 rounded w-20 mb-1" />
-                                <div className="h-2 bg-gray-100 rounded w-14" />
-                              </div>
-                              <div className="h-4 bg-gray-100 rounded w-6" />
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Endpoint not available notice */}
-                    <div className="mt-6 pt-4 border-t border-gray-100 text-center">
-                      <p className="text-sm text-gray-400">
-                        API endpoint not available yet - /leagues/league_summary_statistics
-                      </p>
-                    </div>
+                    {/* Top Playmaker */}
+                    <PlayerRankingCard
+                      title="Top Playmaker"
+                      players={playerRankings?.top_playmaker || []}
+                      isLoading={isLoadingRankings}
+                    />
                   </div>
                 </div>
               </>
