@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
@@ -191,6 +191,41 @@ function UpcomingMatchCard({ fixture, leagueName }: { fixture: any; leagueName?:
 // Mobile Bottom Navigation
 function MobileBottomNav({ activeTab }: { activeTab: string }) {
   const navigate = useNavigate();
+  const [isVisible, setIsVisible] = useState(false);
+
+  // Show footer when user scrolls to bottom OR when page has no scroll
+  useEffect(() => {
+    const checkVisibility = () => {
+      const scrollTop = window.scrollY;
+      const windowHeight = window.innerHeight;
+      const documentHeight = document.documentElement.scrollHeight;
+
+      // Show if no scroll needed (content fits in viewport) or at bottom
+      const hasNoScroll = documentHeight <= windowHeight + 10;
+      const isAtBottom = scrollTop + windowHeight >= documentHeight - 50;
+      setIsVisible(hasNoScroll || isAtBottom);
+    };
+
+    window.addEventListener('scroll', checkVisibility);
+    window.addEventListener('resize', checkVisibility);
+
+    // Check after initial render and after content loads
+    checkVisibility();
+    const timeoutId = setTimeout(checkVisibility, 100);
+    const timeoutId2 = setTimeout(checkVisibility, 500);
+
+    // Also observe DOM changes
+    const observer = new MutationObserver(checkVisibility);
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    return () => {
+      window.removeEventListener('scroll', checkVisibility);
+      window.removeEventListener('resize', checkVisibility);
+      clearTimeout(timeoutId);
+      clearTimeout(timeoutId2);
+      observer.disconnect();
+    };
+  }, []);
 
   const tabs = [
     { id: 'home', label: 'Home', path: '/' },
@@ -200,7 +235,7 @@ function MobileBottomNav({ activeTab }: { activeTab: string }) {
   ];
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#0d1a67]">
+    <div className={`md:hidden fixed bottom-0 left-0 right-0 bg-[#0d1a67] transition-transform duration-300 ${isVisible ? 'translate-y-0' : 'translate-y-full'}`}>
       <div className="flex items-center justify-center gap-8 py-4">
         {tabs.map((tab) => (
           <button
@@ -333,19 +368,11 @@ export function MatchesPage() {
     };
   };
 
-  const formatDate = (date: Date) => {
-    const today = new Date();
-    if (date.toDateString() === today.toDateString()) {
-      return 'Today';
-    }
-    return date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header currentPage="matches" />
 
-      <main className="flex-1 pb-28 md:pb-0">
+      <main className="flex-1 pb-32 md:pb-0">
         {/* Mobile Layout */}
         <div className="md:hidden">
           {/* Mobile Tabs - Full Width */}
@@ -374,40 +401,65 @@ export function MatchesPage() {
             </div>
           </div>
 
-          {/* Mobile: Filter button (hidden on live tab) */}
+          {/* Mobile: Matches header with Filter (hidden on live tab) */}
           {activeTab !== 'live' && (
-            <div className="flex items-center justify-end px-4 pt-4 pb-2">
-              <button className="flex items-center gap-1 text-sm font-medium text-gray-600">
+            <div className="flex items-center justify-between px-4 pt-6 pb-4">
+              <h1 className="text-xl font-bold text-gray-900">Matches</h1>
+              <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors text-sm font-medium text-gray-700">
                 Filter
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
+                <img src="/arrow-down.svg" alt="Arrow" className="w-[15px] h-auto" />
               </button>
             </div>
           )}
 
-          {/* Mobile: Date Navigation - Full Width (hidden on live tab) */}
+          {/* Mobile: Date Navigation Bar (hidden on live tab) */}
           {activeTab !== 'live' && (
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-              <button
-                onClick={() => setCurrentDate(new Date(currentDate.getTime() - 86400000))}
-                className="p-2"
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="15 18 9 12 15 6" />
-                </svg>
-              </button>
-              <span className="text-sm font-semibold text-gray-900">
-                {formatDate(currentDate)}
-              </span>
-              <button
-                onClick={() => setCurrentDate(new Date(currentDate.getTime() + 86400000))}
-                className="p-2"
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-              </button>
+            <div className="mx-4 mb-4 flex items-center gap-2">
+              {/* Arrows and Date in one grey bar */}
+              <div className="flex-1 bg-gray-100 rounded-xl flex items-center justify-between px-3 py-2">
+                {/* Left arrow */}
+                <button
+                  onClick={() => setCurrentDate(new Date(currentDate.getTime() - 86400000))}
+                  className="w-[36px] h-[36px] rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="15 18 9 12 15 6" />
+                  </svg>
+                </button>
+
+                {/* Date display */}
+                <span className="text-base font-semibold text-gray-900">
+                  {currentDate.toDateString() === new Date().toDateString()
+                    ? 'Today'
+                    : currentDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
+                </span>
+
+                {/* Right arrow */}
+                <button
+                  onClick={() => setCurrentDate(new Date(currentDate.getTime() + 86400000))}
+                  className="w-[36px] h-[36px] rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Calendar in separate box */}
+              <label className="w-[52px] h-[52px] rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors flex items-center justify-center cursor-pointer relative">
+                <img src="/Calendar.svg" alt="Calendar" className="w-[20px] h-[20px]" />
+                <input
+                  type="date"
+                  value={formatDateForApi(currentDate)}
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      const [year, month, day] = e.target.value.split('-').map(Number);
+                      setCurrentDate(new Date(year, month - 1, day));
+                    }
+                  }}
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                />
+              </label>
             </div>
           )}
 
@@ -539,46 +591,53 @@ export function MatchesPage() {
               {/* Date Navigation - only show when not on live tab */}
               {activeTab !== 'live' && (
                 <>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setCurrentDate(new Date(currentDate.getTime() - 86400000))}
-                      className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50"
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <polyline points="15 18 9 12 15 6" />
-                      </svg>
-                    </button>
-                    <span className="text-sm font-medium text-gray-700 min-w-[80px] text-center">
-                      {formatDate(currentDate)}
-                    </span>
-                    <button
-                      onClick={() => setCurrentDate(new Date(currentDate.getTime() + 86400000))}
-                      className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50"
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <polyline points="9 18 15 12 9 6" />
-                      </svg>
-                    </button>
-                  </div>
-
-                  {/* Calendar */}
-                  <button className="w-10 h-10 rounded-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <rect x="3" y="4" width="18" height="18" rx="2" />
-                      <line x1="16" y1="2" x2="16" y2="6" />
-                      <line x1="8" y1="2" x2="8" y2="6" />
-                      <line x1="3" y1="10" x2="21" y2="10" />
+                  {/* Left arrow in grey box */}
+                  <button
+                    onClick={() => setCurrentDate(new Date(currentDate.getTime() - 86400000))}
+                    className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors flex items-center justify-center"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polyline points="15 18 9 12 15 6" />
                     </svg>
                   </button>
+
+                  {/* Date display */}
+                  <span className="text-sm font-semibold text-gray-900 min-w-[100px] text-center">
+                    {currentDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
+                  </span>
+
+                  {/* Right arrow in grey box */}
+                  <button
+                    onClick={() => setCurrentDate(new Date(currentDate.getTime() + 86400000))}
+                    className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors flex items-center justify-center"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polyline points="9 18 15 12 9 6" />
+                    </svg>
+                  </button>
+
+                  {/* Calendar in grey box */}
+                  <label className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors flex items-center justify-center cursor-pointer relative">
+                    <img src="/Calendar.svg" alt="Calendar" className="w-[20px] h-[20px]" />
+                    <input
+                      type="date"
+                      value={formatDateForApi(currentDate)}
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          const [year, month, day] = e.target.value.split('-').map(Number);
+                          setCurrentDate(new Date(year, month - 1, day));
+                        }
+                      }}
+                      className="absolute inset-0 opacity-0 cursor-pointer"
+                    />
+                  </label>
                 </>
               )}
 
               {/* Filter */}
-              <button className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 text-sm font-medium text-gray-700">
+              <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors text-sm font-medium text-gray-700">
                 Filter
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
+                <img src="/arrow-down.svg" alt="Arrow" className="w-[15px] h-auto" />
               </button>
             </div>
           </div>

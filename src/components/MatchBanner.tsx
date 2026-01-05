@@ -24,9 +24,11 @@ interface MatchBannerProps {
   activeIndex?: number;
   onCarouselChange?: (index: number) => void;
   isPremium?: boolean;
+  /** Mobile layout variant: 'full' (215px with team names) or 'compact' (85px with short codes) */
+  variant?: 'full' | 'compact';
 }
 
-export function MatchBanner({ fixture, predictions = [], showPredictions = false, carouselCount = 0, activeIndex = 0, onCarouselChange, isPremium = false }: MatchBannerProps) {
+export function MatchBanner({ fixture, predictions = [], showPredictions = false, carouselCount = 0, activeIndex = 0, onCarouselChange, isPremium = false, variant = 'full' }: MatchBannerProps) {
   const homeScore = fixture.home_team_score ?? 0;
   const awayScore = fixture.away_team_score ?? 0;
 
@@ -46,7 +48,92 @@ export function MatchBanner({ fixture, predictions = [], showPredictions = false
 
   return (
     <>
-      {/* Mobile Version - Fixed height to accommodate 2-line team names */}
+      {/* Mobile Version - Compact variant (85px height, logos beside score) */}
+      {variant === 'compact' && (
+        <div className="md:hidden w-full mx-auto rounded-[12px] overflow-hidden shadow-2xl">
+          <div
+            className="relative h-[85px] flex flex-col items-center justify-center"
+            style={{
+              backgroundImage: `linear-gradient(180deg, rgba(9, 17, 67, 0) 0%, rgba(9, 17, 67, 1) 100%), linear-gradient(0deg, rgba(13, 26, 103, 0.55) 0%, rgba(13, 26, 103, 0.55) 100%), url('/stadium-bg.jpg')`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center bottom',
+            }}
+          >
+            <div className="flex items-center justify-center w-full px-4 gap-4">
+              {/* Home Team - Logo + Short code */}
+              <div className="flex items-center gap-2">
+                {fixture.home_team_image_path ? (
+                  <img
+                    src={fixture.home_team_image_path}
+                    alt={fixture.home_team_name}
+                    className="w-[40px] h-[40px] object-contain"
+                  />
+                ) : (
+                  <div className="w-[40px] h-[40px] rounded-lg bg-white/10 flex items-center justify-center border border-white/20">
+                    <span className="text-white font-bold text-[10px]">
+                      {fixture.home_team_short_code?.slice(0, 3) || 'HOM'}
+                    </span>
+                  </div>
+                )}
+                <span
+                  className="text-white font-semibold text-[14px]"
+                  style={{ fontFamily: 'Montserrat, sans-serif' }}
+                >
+                  {fixture.home_team_short_code || fixture.home_team_name?.slice(0, 3).toUpperCase() || 'HOM'}
+                </span>
+              </div>
+
+              {/* Score */}
+              <div className="flex items-center justify-center">
+                <span
+                  className="text-white text-[38px] font-semibold leading-none"
+                  style={{ fontFamily: 'Montserrat, sans-serif' }}
+                >
+                  {homeScore}
+                </span>
+                <span
+                  className="text-white text-[38px] font-semibold leading-none mx-[4px]"
+                  style={{ fontFamily: 'Montserrat, sans-serif' }}
+                >
+                  -
+                </span>
+                <span
+                  className="text-white text-[38px] font-semibold leading-none"
+                  style={{ fontFamily: 'Montserrat, sans-serif' }}
+                >
+                  {awayScore}
+                </span>
+              </div>
+
+              {/* Away Team - Short code + Logo */}
+              <div className="flex items-center gap-2">
+                <span
+                  className="text-white font-semibold text-[14px]"
+                  style={{ fontFamily: 'Montserrat, sans-serif' }}
+                >
+                  {fixture.away_team_short_code || fixture.away_team_name?.slice(0, 3).toUpperCase() || 'AWY'}
+                </span>
+                {fixture.away_team_image_path ? (
+                  <img
+                    src={fixture.away_team_image_path}
+                    alt={fixture.away_team_name}
+                    className="w-[40px] h-[40px] object-contain"
+                  />
+                ) : (
+                  <div className="w-[40px] h-[40px] rounded-lg bg-white/10 flex items-center justify-center border border-white/20">
+                    <span className="text-white font-bold text-[10px]">
+                      {fixture.away_team_short_code?.slice(0, 3) || 'AWY'}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Version - Full variant (215px height with team names below logos) */}
+      {variant === 'full' && (
       <div className="md:hidden w-[358px] h-[215px] mx-auto rounded-[14px] overflow-hidden shadow-2xl">
         <div
           className="relative flex flex-col h-full"
@@ -212,8 +299,104 @@ export function MatchBanner({ fixture, predictions = [], showPredictions = false
           )}
         </div>
       </div>
+      )}
 
-      {/* Desktop Version - Figma specs: 1440x330px */}
+      {/* Desktop Version - Compact variant (207px height) for Match Detail page */}
+      {variant === 'compact' && (
+        <div className="hidden md:block w-full max-w-[1440px] mx-auto h-[207px] rounded-[20px] overflow-hidden shadow-2xl">
+          <div
+            className="relative flex items-center justify-center h-full"
+            style={{
+              backgroundImage: `linear-gradient(180deg, rgba(9, 17, 67, 0) 0%, rgba(9, 17, 67, 1) 100%), linear-gradient(0deg, rgba(13, 26, 103, 0.55) 0%, rgba(13, 26, 103, 0.55) 100%), url('/stadium-bg.jpg')`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center bottom',
+            }}
+          >
+            {/* Match Info Container - 950px width, centered */}
+            <div className="flex items-center justify-between w-[950px]">
+              {/* Home Team - Logo + Short code */}
+              <div className="flex items-center gap-5">
+                {fixture.home_team_image_path ? (
+                  <img
+                    src={fixture.home_team_image_path}
+                    alt={fixture.home_team_name}
+                    className="w-[90px] h-[90px] object-contain"
+                  />
+                ) : (
+                  <div className="w-[90px] h-[90px] rounded-lg bg-white/10 flex items-center justify-center border border-white/20">
+                    <span className="text-white font-bold text-base">
+                      {fixture.home_team_short_code?.slice(0, 3) || 'HOM'}
+                    </span>
+                  </div>
+                )}
+                <span
+                  className="text-white font-semibold text-[14px] leading-[20px]"
+                  style={{ fontFamily: 'Montserrat, sans-serif' }}
+                >
+                  {fixture.home_team_short_code || fixture.home_team_name?.slice(0, 3).toUpperCase() || 'HOM'}
+                </span>
+              </div>
+
+              {/* Score and Minutes - centered */}
+              <div className="flex flex-col items-center">
+                <div className="flex items-center justify-center">
+                  <span
+                    className="text-white text-[66px] font-semibold leading-none w-[50px] text-center"
+                    style={{ fontFamily: 'Montserrat, sans-serif' }}
+                  >
+                    {homeScore}
+                  </span>
+                  <span
+                    className="text-white text-[66px] font-semibold leading-none w-[50px] text-center"
+                    style={{ fontFamily: 'Montserrat, sans-serif' }}
+                  >
+                    -
+                  </span>
+                  <span
+                    className="text-white text-[66px] font-semibold leading-none w-[50px] text-center"
+                    style={{ fontFamily: 'Montserrat, sans-serif' }}
+                  >
+                    {awayScore}
+                  </span>
+                </div>
+                {/* Minutes */}
+                <span
+                  className="text-white text-[18px] font-medium leading-[135%] mt-[10px]"
+                  style={{ fontFamily: 'Montserrat, sans-serif' }}
+                >
+                  {fixture.minutes_elapsed ?? 0}'
+                </span>
+              </div>
+
+              {/* Away Team - Short code + Logo */}
+              <div className="flex items-center gap-5">
+                <span
+                  className="text-white font-semibold text-[14px] leading-[20px]"
+                  style={{ fontFamily: 'Montserrat, sans-serif' }}
+                >
+                  {fixture.away_team_short_code || fixture.away_team_name?.slice(0, 3).toUpperCase() || 'AWY'}
+                </span>
+                {fixture.away_team_image_path ? (
+                  <img
+                    src={fixture.away_team_image_path}
+                    alt={fixture.away_team_name}
+                    className="w-[90px] h-[90px] object-contain"
+                  />
+                ) : (
+                  <div className="w-[90px] h-[90px] rounded-lg bg-white/10 flex items-center justify-center border border-white/20">
+                    <span className="text-white font-bold text-base">
+                      {fixture.away_team_short_code?.slice(0, 3) || 'AWY'}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Desktop Version - Full variant (330px height) for Home page */}
+      {variant === 'full' && (
       <div className="hidden md:block w-full max-w-[1440px] mx-auto h-[330px] rounded-[20px] overflow-hidden shadow-2xl">
         <div
           className="relative flex flex-col h-full"
@@ -401,6 +584,7 @@ export function MatchBanner({ fixture, predictions = [], showPredictions = false
           )}
         </div>
       </div>
+      )}
     </>
   );
 }
