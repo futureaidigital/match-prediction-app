@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { usePlayersWatchlist, useMultiplePlayerStatistics, useMultiplePlayerDetails } from '@/hooks/usePlayers';
 import { ApiDebugInfo } from '@/components/ApiDebugInfo';
 import { PlayerStatisticsResponse } from '@/services/api';
@@ -249,6 +250,7 @@ function PlayerCard({ player, onViewProfile, variant = 'default' }: PlayerCardPr
 }
 
 export function PlayersToWatch() {
+  const navigate = useNavigate();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -391,7 +393,7 @@ export function PlayersToWatch() {
   };
 
   const handleViewProfile = (playerId: number) => {
-    console.log('View profile for player:', playerId);
+    navigate(`/player/${playerId}`);
   };
 
   // Loading state
@@ -426,45 +428,60 @@ export function PlayersToWatch() {
             </div>
           </div>
         </div>
-        {/* Mobile Loading - 335x303px card */}
-        <div className="md:hidden pt-[15px] pb-[16px] flex justify-center">
-          <div className="bg-white rounded-2xl w-[335px] h-[303px] animate-pulse flex flex-col items-center pt-4">
-            <div className="w-28 h-28 rounded-full bg-gray-200 mb-4" />
-            <div className="h-6 bg-gray-200 rounded w-40 mb-3" />
-            <div className="h-4 bg-gray-200 rounded w-48 mb-6" />
-            <div className="flex gap-3 w-full px-4 mb-6">
+        {/* Mobile Loading - 335x303px card matching actual mobile PlayerCard */}
+        <div className="md:hidden pt-[15px] pb-[16px] pl-[16px]">
+          <div className="bg-white rounded-2xl border border-gray-200 w-[335px] h-[303px] animate-pulse shadow-sm flex flex-col">
+            {/* Player Image - 112x112 (w-28 h-28) */}
+            <div className="flex justify-center mb-4 pt-4">
+              <div className="w-28 h-28 rounded-full bg-gray-200 border-4 border-gray-100" />
+            </div>
+            {/* Player Name - 20px */}
+            <div className="h-6 bg-gray-200 rounded w-40 mx-auto mb-2" />
+            {/* Position/Team/Country */}
+            <div className="h-4 bg-gray-200 rounded w-48 mx-auto mb-6" />
+            {/* Stats Row - 4 grey boxes matching 66.25x59px */}
+            <div className="flex items-center gap-[10px] w-[295px] h-[59px] mx-auto mb-6">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="flex-1 border border-gray-200 rounded-xl py-3">
-                  <div className="h-6 bg-gray-200 rounded mx-auto w-8 mb-1" />
-                  <div className="h-3 bg-gray-200 rounded mx-auto w-12" />
+                <div key={i} className="w-[66.25px] h-[59px] bg-[#f7f8fa] rounded-[8px] flex flex-col items-center justify-center">
+                  <div className="h-5 bg-gray-200 rounded w-6 mb-1" />
+                  <div className="h-3 bg-gray-200 rounded w-10" />
                 </div>
               ))}
             </div>
-            <div className="h-5 bg-gray-200 rounded w-24" />
+            {/* View Profile */}
+            <div className="h-5 bg-gray-200 rounded w-24 mx-auto" />
           </div>
         </div>
-        {/* Desktop Loading */}
+        {/* Desktop Loading - matching actual card structure (335x302px) */}
         <div className="hidden md:block px-[20px] py-[20px]">
           <div className="flex gap-[20px]">
             {[1, 2, 3, 4].map((i) => (
               <div
                 key={i}
-                className="bg-white rounded-2xl border border-gray-200 p-4 w-[335px] h-[302px] shrink-0 animate-pulse shadow-sm"
+                className="bg-white rounded-2xl border border-gray-200 w-[335px] h-[302px] shrink-0 animate-pulse shadow-sm flex flex-col items-center pt-4"
               >
-                <div className="flex justify-center mb-4">
-                  <div className="w-20 h-20 rounded-full bg-gray-200" />
+                {/* Top section: Photo, Name, Position - 224x142px box */}
+                <div className="w-[224px] h-[142px] flex flex-col items-center">
+                  {/* Player Image - 80x80px */}
+                  <div className="w-[80px] h-[80px] rounded-full bg-gray-200 border-4 border-gray-100 mb-2" />
+                  {/* Player Name - 18px */}
+                  <div className="h-5 bg-gray-200 rounded w-32 mb-1" />
+                  {/* Position/Team/Country */}
+                  <div className="h-3 bg-gray-200 rounded w-40" />
                 </div>
-                <div className="h-5 bg-gray-200 rounded mx-auto w-28 mb-2" />
-                <div className="h-3 bg-gray-200 rounded mx-auto w-32 mb-4" />
-                <div className="flex items-center justify-between mb-4 px-2">
-                  {[1, 2, 3].map((j) => (
-                    <div key={j} className="flex-1 text-center">
-                      <div className="h-5 bg-gray-200 rounded mb-1 mx-auto w-8" />
-                      <div className="h-2 bg-gray-200 rounded mx-auto w-10" />
+                {/* Stats Row - 4 grey boxes */}
+                <div className="flex items-center gap-2 px-4 mt-3 w-full">
+                  {[1, 2, 3, 4].map((j) => (
+                    <div key={j} className="flex-1 bg-gray-100 rounded-xl py-2.5">
+                      <div className="h-5 bg-gray-200 rounded mx-auto w-6 mb-1" />
+                      <div className="h-2.5 bg-gray-200 rounded mx-auto w-10" />
                     </div>
                   ))}
                 </div>
-                <div className="h-8 bg-gray-200 rounded mx-auto w-24" />
+                {/* View Profile Link */}
+                <div className="mt-auto py-3">
+                  <div className="h-4 bg-gray-200 rounded w-20 mx-auto" />
+                </div>
               </div>
             ))}
           </div>
