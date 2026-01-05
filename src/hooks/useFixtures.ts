@@ -1,5 +1,5 @@
 import { useQuery, UseQueryOptions } from '@tanstack/react-query';
-import { api, Fixture, ApiResponse, Commentary, Weather, FixtureStatistics, FixturesResponse } from '@/services/api';
+import { api, Fixture, ApiResponse, CommentaryResponse, Weather, FixtureStatisticsResponse, FixturesResponse } from '@/services/api';
 import { queryKeys } from '@/lib/queryClient';
 import { CACHE_DURATIONS } from '@/config/cache';
 
@@ -48,7 +48,7 @@ export function useFixture(
 export function useFixtureCommentary(
   fixtureId: string,
   options?: Omit<
-    UseQueryOptions<ApiResponse<Commentary[]>>,
+    UseQueryOptions<ApiResponse<CommentaryResponse>>,
     'queryKey' | 'queryFn'
   >
 ) {
@@ -79,7 +79,7 @@ export function useFixtureWeather(
 export function useFixtureStatistics(
   fixtureId: string,
   options?: Omit<
-    UseQueryOptions<ApiResponse<FixtureStatistics>>,
+    UseQueryOptions<ApiResponse<FixtureStatisticsResponse>>,
     'queryKey' | 'queryFn'
   >
 ) {
