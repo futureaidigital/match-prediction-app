@@ -1,5 +1,5 @@
 import { useQuery, UseQueryOptions } from '@tanstack/react-query';
-import { api, ApiResponse, LeaguesResponse } from '@/services/api';
+import { api, ApiResponse, LeaguesResponse, LeaguePlayerRankingsResponse } from '@/services/api';
 import { queryKeys } from '@/lib/queryClient';
 import { CACHE_DURATIONS } from '@/config/cache';
 
@@ -45,4 +45,24 @@ export function useLeagueNames() {
     getLeagueInfo: (leagueId: number) => leagueMap.get(leagueId),
     ...rest,
   };
+}
+
+// Hook to fetch player rankings for a league/season
+export function useLeaguePlayerRankings(
+  params: { league_id: number; season_id: number } | null,
+  options?: Omit<
+    UseQueryOptions<ApiResponse<LeaguePlayerRankingsResponse>>,
+    'queryKey' | 'queryFn'
+  >
+) {
+  return useQuery({
+    queryKey: queryKeys.leagues.playerRankings(params?.league_id ?? 0, params?.season_id ?? 0),
+    queryFn: () => api.getLeaguePlayerRankings({
+      league_id: params!.league_id,
+      season_id: params!.season_id,
+    }),
+    enabled: !!params?.league_id && !!params?.season_id,
+    staleTime: CACHE_DURATIONS.LEAGUES,
+    ...options,
+  });
 }

@@ -126,6 +126,28 @@ export interface SmartCombo {
   accuracy_label?: string;
 }
 
+// Commentary item from backend API
+export interface CommentaryItem {
+  minute: number;
+  comment: string;
+  type?: 'goal' | 'yellow_card' | 'red_card' | 'substitution' | 'whistle' | 'corner' | 'chance' | 'clock' | 'general';
+  extra_minute?: number;
+  is_goal?: boolean;
+  score?: string;
+  player_name?: string;
+  team_id?: number;
+}
+
+// Commentary response wrapper from backend
+export interface CommentaryResponse {
+  fixture_id: number;
+  total_commentaries: number;
+  league_id: number;
+  starting_at: string;
+  commentaries: CommentaryItem[];
+}
+
+// Legacy Commentary type (kept for backwards compatibility)
 export interface Commentary {
   id: string;
   fixture_id: number;
@@ -143,6 +165,21 @@ export interface Weather {
   forecast_time: string;
 }
 
+// Statistics response from backend - wraps statistics object
+export interface FixtureStatisticsResponse {
+  statistics: FixtureStatisticsData;
+}
+
+// Actual statistics data from backend
+export interface FixtureStatisticsData {
+  fixture_id: number;
+  basic: Record<string, any>;  // Backend returns dynamic dict
+  advanced: Record<string, any>;  // Backend returns dynamic dict
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Parsed/normalized statistics for UI consumption
 export interface FixtureStatistics {
   fixture_id: number;
   home_team_stats: TeamStatistics;
@@ -241,11 +278,13 @@ export interface Player {
     country_id?: number;
     name?: string;
     iso2?: string;
+    image_path?: string;
   };
   country?: {
     country_id?: number;
     name?: string;
     iso2?: string;
+    image_path?: string;
   };
   image_path?: string;
   team_id?: number;
@@ -253,6 +292,15 @@ export interface Player {
   current_team?: {
     team_id?: number;
     jersey_number?: number;
+    image_path?: string;
+    team_name?: string;
+    short_code?: string;
+  };
+  team?: {
+    team_id?: number;
+    team_name?: string;
+    short_code?: string;
+    image_path?: string;
   };
   goals?: number;
   assists?: number;
@@ -433,6 +481,26 @@ export interface LeagueFixturesResponse {
   fixtures: FixtureWithPredictions[];
   fixture_ids?: number[] | null;
   fixture_ids_by_league?: Record<string, number[]> | null;
+}
+
+// League Player Rankings Types
+export interface LeaguePlayerRanking {
+  player_id: number;
+  player_name: string;
+  player_image_url?: string;
+  club_id: number;
+  club_name: string;
+  club_image_url?: string;
+  stat_value: number;
+}
+
+export interface LeaguePlayerRankingsResponse {
+  league_id: number;
+  season_id: number;
+  top_scorers: LeaguePlayerRanking[];
+  best_defensive: LeaguePlayerRanking[];
+  most_aggressive: LeaguePlayerRanking[];
+  top_playmaker: LeaguePlayerRanking[];
 }
 
 // Fixtures response types (actual API structure)
@@ -643,16 +711,16 @@ class ApiClient {
     return this.request<Fixture>(`/fixtures/${fixtureId}`);
   }
 
-  async getFixtureCommentary(fixtureId: string): Promise<ApiResponse<Commentary[]>> {
-    return this.request<Commentary[]>(`/fixtures/${fixtureId}/commentary`);
+  async getFixtureCommentary(fixtureId: string): Promise<ApiResponse<CommentaryResponse>> {
+    return this.request<CommentaryResponse>(`/fixtures/${fixtureId}/commentary`);
   }
 
   async getFixtureWeather(fixtureId: string): Promise<ApiResponse<Weather>> {
     return this.request<Weather>(`/fixtures/${fixtureId}/weather`);
   }
 
-  async getFixtureStatistics(fixtureId: string): Promise<ApiResponse<FixtureStatistics>> {
-    return this.request<FixtureStatistics>(`/fixtures/${fixtureId}/statistics`);
+  async getFixtureStatistics(fixtureId: string): Promise<ApiResponse<FixtureStatisticsResponse>> {
+    return this.request<FixtureStatisticsResponse>(`/fixtures/${fixtureId}/statistics`);
   }
 
   // Predictions endpoints
@@ -781,6 +849,14 @@ class ApiClient {
     season_id: number;
   }): Promise<ApiResponse<LeagueFixturesResponse>> {
     return this.request<LeagueFixturesResponse>(`/leagues/${params.league_id}/fixtures?season_id=${params.season_id}`);
+  }
+
+  // League Player Rankings endpoint - returns top players in various categories
+  async getLeaguePlayerRankings(params: {
+    league_id: number;
+    season_id: number;
+  }): Promise<ApiResponse<LeaguePlayerRankingsResponse>> {
+    return this.request<LeaguePlayerRankingsResponse>(`/leagues/player-rankings?league_id=${params.league_id}&season_id=${params.season_id}`);
   }
 }
 
