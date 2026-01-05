@@ -109,5 +109,7 @@ export const queryKeys = {
   // Leagues keys
   leagues: {
     all: () => ['leagues'] as const,
+    playerRankings: (leagueId: number, seasonId: number) =>
+      ['leagues', 'player-rankings', leagueId, seasonId] as const,
   },
 } as const;
