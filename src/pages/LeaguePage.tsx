@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { SmartCombo } from '@/components/SmartCombo';
@@ -270,14 +271,18 @@ export function LeaguePage() {
   );
   const playerRankings = playerRankingsResponse?.data;
 
-  // Use standings from either current response or season-specific response
-  const standings = isNonCurrentSeason
-    ? (standingsResponse?.data?.standings || [])
-    : (leagueData?.standings || []);
-  const isLoadingStandingsData = isNonCurrentSeason ? isLoadingStandings : isLoadingCurrent;
-
   // Standings filter tab
   const [standingsFilter, setStandingsFilter] = useState<'all' | 'home' | 'away' | 'form'>('all');
+
+  // Use standings from either current response or season-specific response
+  // API returns { all: [...], home: [...], away: [...], form: [...] }
+  const standingsData = isNonCurrentSeason
+    ? standingsResponse?.data?.standings
+    : leagueData?.standings;
+
+  // Get the correct standings array based on the selected filter
+  const standings = standingsData?.[standingsFilter] || [];
+  const isLoadingStandingsData = isNonCurrentSeason ? isLoadingStandings : isLoadingCurrent;
 
   // Set first league as selected when leagues load
   useEffect(() => {
@@ -329,6 +334,34 @@ export function LeaguePage() {
       left: direction === 'left' ? -scrollAmount : scrollAmount,
       behavior: 'smooth',
     });
+  };
+
+  // Center selected league in carousel on mobile
+  const centerSelectedLeague = (leagueId: number) => {
+    // Only apply on mobile (< 768px)
+    if (window.innerWidth >= 768) return;
+
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    // Small delay to ensure DOM is updated
+    setTimeout(() => {
+      const button = container.querySelector(`[data-league-id="${leagueId}"]`) as HTMLElement;
+      if (!button) return;
+
+      const containerRect = container.getBoundingClientRect();
+      const buttonRect = button.getBoundingClientRect();
+
+      // Calculate the offset of button relative to container's scroll position
+      const buttonCenter = buttonRect.left + buttonRect.width / 2;
+      const containerCenter = containerRect.left + containerRect.width / 2;
+      const scrollOffset = buttonCenter - containerCenter;
+
+      container.scrollBy({
+        left: scrollOffset,
+        behavior: 'smooth',
+      });
+    }, 10);
   };
 
   // Check matches scroll position
@@ -421,7 +454,11 @@ export function LeaguePage() {
                       return (
                         <button
                           key={league.league_id}
-                          onClick={() => setSelectedLeagueId(league.league_id)}
+                          data-league-id={league.league_id}
+                          onClick={() => {
+                            setSelectedLeagueId(league.league_id);
+                            centerSelectedLeague(league.league_id);
+                          }}
                           className={`flex items-center gap-2 px-3 py-2 shrink-0 transition-all font-medium text-sm rounded-lg ${
                             isSelected
                               ? 'bg-[#0d1a67] text-white'
@@ -675,7 +712,7 @@ export function LeaguePage() {
                     )}
                   </div>
 
-                  {isLoadingFixtures ? (
+                  {(isLoadingFixtures || !selectedSeasonId) ? (
                     <div className="bg-gray-100 rounded-xl py-4">
                       <div className="flex gap-4 px-4">
                         <SkeletonMatchCard />
@@ -685,14 +722,14 @@ export function LeaguePage() {
                       </div>
                     </div>
                   ) : fixtures.length > 0 ? (
-                    <div className="bg-gray-100 rounded-xl py-4">
+                    <div className="bg-gray-100 rounded-xl">
                       {/* Scrollable Matches */}
                       <div
                         ref={matchesScrollRef}
                         className="overflow-x-auto scrollbar-hide"
                         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                       >
-                        <div className="flex gap-4 py-2 px-4">
+                        <div className="flex gap-5 py-4 px-4">
                           {fixtures.map((fixture: any) => (
                             <div key={fixture.fixture.fixture_id} className="w-[280px] shrink-0">
                               <LeagueMatchCard
@@ -750,146 +787,104 @@ export function LeaguePage() {
                             </div>
                           ))}
                         </div>
-                      ) : (standingsFilter === 'home' || standingsFilter === 'away') ? (
-                        // Home/Away filter - data not available
-                        <div className="p-8 text-center">
-                          <p className="text-gray-500 mb-2">
-                            {standingsFilter === 'home' ? 'Home' : 'Away'} standings coming soon
-                          </p>
-                          <p className="text-xs text-gray-400">
-                            Separate home/away statistics will be available in a future update
-                          </p>
-                        </div>
                       ) : standings.length > 0 ? (
                         <>
                           {/* Mobile Standings Table - Simplified */}
-                          <div className="md:hidden">
+                          <div className="md:hidden overflow-hidden">
                             <table className="w-full">
                               <thead className="bg-[#0d1a67] text-white text-xs">
                                 <tr>
                                   <th className="py-2 px-2 text-left font-medium">#</th>
                                   <th className="py-2 px-2 text-left font-medium">Team</th>
-                                  {standingsFilter === 'form' ? (
-                                    <th className="py-2 px-2 text-center font-medium">Form</th>
-                                  ) : (
-                                    <>
-                                      <th className="py-2 px-2 text-center font-medium">MP</th>
-                                      <th className="py-2 px-2 text-center font-medium">GD</th>
-                                      <th className="py-2 px-2 text-center font-medium">PTS</th>
-                                    </>
-                                  )}
+                                  <th className="py-2 px-2 text-center font-medium">MP</th>
+                                  <th className="py-2 px-2 text-center font-medium">GD</th>
+                                  <th className="py-2 px-2 text-center font-medium">PTS</th>
                                 </tr>
                               </thead>
-                              <tbody>
-                                {standings.map((team: LeagueStandingTeam) => (
-                                  <tr key={team.team.team_id} className="border-b border-gray-100">
-                                    <td className="py-2 px-2 text-xs font-medium text-gray-900">{team.position}</td>
-                                    <td className="py-2 px-2">
-                                      <div className="flex items-center gap-1.5">
-                                        {team.team.team_logo ? (
-                                          <img src={team.team.team_logo} alt={team.team.team_name} className="w-4 h-4 object-contain" />
-                                        ) : (
-                                          <div className="w-4 h-4 bg-gray-200 rounded-full" />
-                                        )}
-                                        <span className="text-xs font-medium text-gray-900">{team.team.team_name}</span>
-                                      </div>
-                                    </td>
-                                    {standingsFilter === 'form' ? (
-                                      <td className="py-2 px-2">
-                                        <div className="flex items-center justify-center gap-0.5 flex-wrap">
-                                          {team.form && team.form.length > 0 ? (
-                                            team.form.map((result, i) => (
-                                              <span
-                                                key={i}
-                                                className={`w-4 h-4 rounded text-[10px] font-bold flex items-center justify-center ${
-                                                  result === 'W' ? 'bg-green-500 text-white' :
-                                                  result === 'D' ? 'bg-yellow-500 text-white' :
-                                                  'bg-red-500 text-white'
-                                                }`}
-                                              >
-                                                {result}
-                                              </span>
-                                            ))
-                                          ) : (
-                                            <span className="text-xs text-gray-400">-</span>
-                                          )}
-                                        </div>
-                                      </td>
-                                    ) : (
-                                      <>
+                              <LayoutGroup>
+                                <tbody>
+                                  <AnimatePresence mode="popLayout">
+                                    {standings.map((team: LeagueStandingTeam) => (
+                                      <motion.tr
+                                        key={team.team.team_id}
+                                        layout
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        transition={{
+                                          layout: { type: "spring", stiffness: 350, damping: 30 },
+                                          opacity: { duration: 0.2 }
+                                        }}
+                                        className="border-b border-gray-100"
+                                      >
+                                        <td className="py-2 px-2 text-xs font-medium text-gray-900">{team.position}</td>
+                                        <td className="py-2 px-2">
+                                          <div className="flex items-center gap-1.5">
+                                            {team.team.team_logo ? (
+                                              <img src={team.team.team_logo} alt={team.team.team_name} className="w-4 h-4 object-contain" />
+                                            ) : (
+                                              <div className="w-4 h-4 bg-gray-200 rounded-full" />
+                                            )}
+                                            <span className="text-xs font-medium text-gray-900">{team.team.team_name}</span>
+                                          </div>
+                                        </td>
                                         <td className="py-2 px-2 text-center text-xs text-gray-600">{team.matches_played}</td>
                                         <td className="py-2 px-2 text-center text-xs text-gray-600">
                                           {team.goal_difference > 0 ? `+${team.goal_difference}` : team.goal_difference}
                                         </td>
                                         <td className="py-2 px-2 text-center text-xs font-bold text-gray-900">{team.points}</td>
-                                      </>
-                                    )}
-                                  </tr>
-                                ))}
-                              </tbody>
+                                      </motion.tr>
+                                    ))}
+                                  </AnimatePresence>
+                                </tbody>
+                              </LayoutGroup>
                             </table>
                           </div>
 
                           {/* Desktop Standings Table - Full */}
-                          <div className="hidden md:block overflow-x-auto">
+                          <div className="hidden md:block overflow-hidden">
                             <table className="w-full">
                               <thead className="bg-[#0d1a67] text-white text-sm">
                                 <tr>
                                   <th className="py-3 px-4 text-left font-medium">#</th>
                                   <th className="py-3 px-4 text-left font-medium">Team</th>
-                                  {standingsFilter === 'form' ? (
-                                    <th className="py-3 px-4 text-center font-medium">Form (All Matches)</th>
-                                  ) : (
-                                    <>
-                                      <th className="py-3 px-2 text-center font-medium">MP</th>
-                                      <th className="py-3 px-2 text-center font-medium">W</th>
-                                      <th className="py-3 px-2 text-center font-medium">D</th>
-                                      <th className="py-3 px-2 text-center font-medium">L</th>
-                                      <th className="py-3 px-2 text-center font-medium">GD</th>
-                                      <th className="py-3 px-2 text-center font-medium">PTS</th>
-                                      <th className="py-3 px-4 text-center font-medium">Form</th>
-                                      <th className="py-3 px-4 text-center font-medium">Next</th>
-                                    </>
-                                  )}
+                                  <th className="py-3 px-2 text-center font-medium">MP</th>
+                                  <th className="py-3 px-2 text-center font-medium">W</th>
+                                  <th className="py-3 px-2 text-center font-medium">D</th>
+                                  <th className="py-3 px-2 text-center font-medium">L</th>
+                                  <th className="py-3 px-2 text-center font-medium">GD</th>
+                                  <th className="py-3 px-2 text-center font-medium">PTS</th>
+                                  <th className="py-3 px-4 text-center font-medium">Form</th>
+                                  <th className="py-3 px-4 text-center font-medium">Next</th>
                                 </tr>
                               </thead>
-                              <tbody>
-                                {standings.map((team: LeagueStandingTeam) => (
-                                  <tr key={team.team.team_id} className="border-b border-gray-100 hover:bg-gray-50">
-                                    <td className="py-3 px-4 text-sm font-medium text-gray-900">{team.position}</td>
-                                    <td className="py-3 px-4">
-                                      <div className="flex items-center gap-2">
-                                        {team.team.team_logo ? (
-                                          <img src={team.team.team_logo} alt={team.team.team_name} className="w-6 h-6 object-contain" />
-                                        ) : (
-                                          <div className="w-6 h-6 bg-gray-200 rounded-full" />
-                                        )}
-                                        <span className="text-sm font-medium text-gray-900">{team.team.team_name}</span>
-                                      </div>
-                                    </td>
-                                    {standingsFilter === 'form' ? (
-                                      <td className="py-3 px-4">
-                                        <div className="flex items-center justify-center gap-1 flex-wrap">
-                                          {team.form && team.form.length > 0 ? (
-                                            team.form.map((result, i) => (
-                                              <span
-                                                key={i}
-                                                className={`w-5 h-5 rounded text-xs font-bold flex items-center justify-center ${
-                                                  result === 'W' ? 'bg-green-500 text-white' :
-                                                  result === 'D' ? 'bg-yellow-500 text-white' :
-                                                  'bg-red-500 text-white'
-                                                }`}
-                                              >
-                                                {result}
-                                              </span>
-                                            ))
-                                          ) : (
-                                            <span className="text-sm text-gray-400">-</span>
-                                          )}
-                                        </div>
-                                      </td>
-                                    ) : (
-                                      <>
+                              <LayoutGroup>
+                                <tbody>
+                                  <AnimatePresence mode="popLayout">
+                                    {standings.map((team: LeagueStandingTeam) => (
+                                      <motion.tr
+                                        key={team.team.team_id}
+                                        layout
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        transition={{
+                                          layout: { type: "spring", stiffness: 350, damping: 30 },
+                                          opacity: { duration: 0.2 }
+                                        }}
+                                        className="border-b border-gray-100 hover:bg-gray-50"
+                                      >
+                                        <td className="py-3 px-4 text-sm font-medium text-gray-900">{team.position}</td>
+                                        <td className="py-3 px-4">
+                                          <div className="flex items-center gap-2">
+                                            {team.team.team_logo ? (
+                                              <img src={team.team.team_logo} alt={team.team.team_name} className="w-6 h-6 object-contain" />
+                                            ) : (
+                                              <div className="w-6 h-6 bg-gray-200 rounded-full" />
+                                            )}
+                                            <span className="text-sm font-medium text-gray-900">{team.team.team_name}</span>
+                                          </div>
+                                        </td>
                                         <td className="py-3 px-2 text-center text-sm text-gray-600">{team.matches_played}</td>
                                         <td className="py-3 px-2 text-center text-sm text-gray-600">{team.wins}</td>
                                         <td className="py-3 px-2 text-center text-sm text-gray-600">{team.draws}</td>
@@ -899,7 +894,7 @@ export function LeaguePage() {
                                         </td>
                                         <td className="py-3 px-2 text-center text-sm font-bold text-gray-900">{team.points}</td>
                                         <td className="py-3 px-4">
-                                          <div className="flex items-center justify-center gap-1">
+                                          <div className="flex items-center justify-start gap-1 w-[124px]">
                                             {team.form && team.form.length > 0 ? (
                                               team.form.slice(0, 5).map((result, i) => (
                                                 <span
@@ -929,11 +924,11 @@ export function LeaguePage() {
                                             <span className="text-sm text-gray-400">-</span>
                                           )}
                                         </td>
-                                      </>
-                                    )}
-                                  </tr>
-                                ))}
-                              </tbody>
+                                      </motion.tr>
+                                    ))}
+                                  </AnimatePresence>
+                                </tbody>
+                              </LayoutGroup>
                             </table>
                           </div>
                         </>
@@ -986,6 +981,70 @@ export function LeaguePage() {
                       players={playerRankings?.top_playmaker || []}
                       isLoading={isLoadingRankings}
                     />
+                  </div>
+                </div>
+              </>
+            ) : isLoadingLeagues ? (
+              /* Loading skeleton while leagues are being fetched */
+              <>
+                {/* League Header Skeleton - Mobile */}
+                <div className="md:hidden bg-gray-100 rounded-xl p-4 flex items-center justify-between animate-pulse">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-gray-200 rounded-full" />
+                    <div>
+                      <div className="h-4 bg-gray-200 rounded w-32 mb-2" />
+                      <div className="h-3 bg-gray-200 rounded w-16" />
+                    </div>
+                  </div>
+                  <div className="h-8 bg-gray-200 rounded-lg w-24" />
+                </div>
+
+                {/* League Header Skeleton - Desktop */}
+                <div className="hidden md:flex items-center justify-between py-2 animate-pulse">
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 bg-gray-200 rounded-full" />
+                    <div>
+                      <div className="h-5 bg-gray-200 rounded w-40 mb-2" />
+                      <div className="h-4 bg-gray-200 rounded w-20" />
+                    </div>
+                  </div>
+                  <div className="h-8 bg-gray-200 rounded w-28" />
+                </div>
+
+                {/* Matches Section Skeleton */}
+                <div className="mt-6">
+                  <div className="hidden md:flex items-center justify-between mb-4">
+                    <div className="h-5 bg-gray-200 rounded w-20 animate-pulse" />
+                  </div>
+                  <div className="bg-gray-100 rounded-xl">
+                    <div className="flex gap-4 px-4 py-4">
+                      <SkeletonMatchCard />
+                      <SkeletonMatchCard />
+                      <SkeletonMatchCard />
+                      <SkeletonMatchCard />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Standings Section Skeleton */}
+                <div className="mt-8">
+                  <div className="hidden md:flex items-center justify-between mb-4">
+                    <div className="h-5 bg-gray-200 rounded w-24 animate-pulse" />
+                  </div>
+                  <div className="bg-white rounded-xl border border-gray-200 p-4 animate-pulse">
+                    <div className="space-y-3">
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <div key={i} className="flex items-center gap-3 py-2">
+                          <div className="w-6 h-4 bg-gray-100 rounded" />
+                          <div className="w-8 h-8 bg-gray-100 rounded-full" />
+                          <div className="h-4 bg-gray-100 rounded w-32" />
+                          <div className="flex-1" />
+                          <div className="h-4 bg-gray-100 rounded w-8" />
+                          <div className="h-4 bg-gray-100 rounded w-8" />
+                          <div className="h-4 bg-gray-100 rounded w-8" />
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </>

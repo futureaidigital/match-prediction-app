@@ -1,18 +1,23 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useFixtures } from '@/hooks/useFixtures';
 import { MatchBanner } from '@/components/MatchBanner';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface LiveMatchBannerProps {
   isPremium?: boolean;
 }
 
 export function LiveMatchBanner({ isPremium = false }: LiveMatchBannerProps) {
+  const { isAuthenticated } = useAuth();
   const [activeIndex, setActiveIndex] = useState(0);
+  const touchStartX = useRef<number | null>(null);
+  const touchEndX = useRef<number | null>(null);
 
   // Fetch live fixtures for carousel display
   const {
     data: liveResponse,
     isLoading: isLoadingLive,
+    refetch: refetchLive,
   } = useFixtures({
     match_type: 'live',
     sort_by: 'kickoff_asc',
@@ -22,9 +27,18 @@ export function LiveMatchBanner({ isPremium = false }: LiveMatchBannerProps) {
   const {
     data: featuredResponse,
     isLoading: isLoadingFeatured,
+    refetch: refetchFeatured,
   } = useFixtures({
     sort_by: 'kickoff_asc',
   });
+
+  // Refetch fixtures when authentication state changes
+  useEffect(() => {
+    if (isAuthenticated) {
+      refetchLive();
+      refetchFeatured();
+    }
+  }, [isAuthenticated, refetchLive, refetchFeatured]);
 
   const liveFixtures = liveResponse?.data?.fixtures || [];
   const featuredFixtures = featuredResponse?.data?.fixtures || [];
@@ -56,6 +70,36 @@ export function LiveMatchBanner({ isPremium = false }: LiveMatchBannerProps) {
 
     return () => clearInterval(interval);
   }, [hasMultipleFixtures, fixtures.length]);
+
+  // Touch handlers for swipe
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchEndX.current = null;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStartX.current || !touchEndX.current || !hasMultipleFixtures) return;
+
+    const diff = touchStartX.current - touchEndX.current;
+    const minSwipeDistance = 50;
+
+    if (Math.abs(diff) > minSwipeDistance) {
+      if (diff > 0) {
+        // Swipe left - next
+        setActiveIndex((prev) => (prev + 1) % fixtures.length);
+      } else {
+        // Swipe right - previous
+        setActiveIndex((prev) => (prev - 1 + fixtures.length) % fixtures.length);
+      }
+    }
+
+    touchStartX.current = null;
+    touchEndX.current = null;
+  };
 
   // Loading state
   if (isLoading) {
@@ -182,14 +226,37 @@ export function LiveMatchBanner({ isPremium = false }: LiveMatchBannerProps) {
   }
 
   return (
-    <MatchBanner
-      fixture={fixture}
-      predictions={predictions}
-      showPredictions={true}
-      carouselCount={fixtures.length}
-      activeIndex={activeIndex}
-      onCarouselChange={setActiveIndex}
-      isPremium={isPremium}
-    />
+    <>
+      {/* Mobile - swipeable */}
+      <div
+        className="md:hidden"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        <MatchBanner
+          fixture={fixture}
+          predictions={predictions}
+          showPredictions={true}
+          carouselCount={fixtures.length}
+          activeIndex={activeIndex}
+          onCarouselChange={setActiveIndex}
+          isPremium={isPremium}
+        />
+      </div>
+
+      {/* Desktop - no swipe needed */}
+      <div className="hidden md:block">
+        <MatchBanner
+          fixture={fixture}
+          predictions={predictions}
+          showPredictions={true}
+          carouselCount={fixtures.length}
+          activeIndex={activeIndex}
+          onCarouselChange={setActiveIndex}
+          isPremium={isPremium}
+        />
+      </div>
+    </>
   );
 }

@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "fourthofficial-api-collection",
     "name": "FourthOfficial Complete API Collection",
-    "description": "Complete API testing collection for FourthOfficial sports betting platform.\n\n## Features\n- Firebase Authentication\n- Sports Data Endpoints (Leagues, Teams, Fixtures)\n- Smart Combos & Predictions\n- Complete Payment Integration (Stripe & Paystack)\n- User Management\n- Subscription Management\n\n## Payment Providers\n\n### Stripe (UK, EU, US)\n- Card subscriptions (weekly, monthly, yearly)\n- Payment Element integration\n- Subscription management\n\n### Paystack (Ghana, Nigeria, Kenya, South Africa)\n- One-time payments for time-based access (3, 7, 30 days)\n- Mobile money (MTN, Vodafone, Tigo, M-Pesa)\n- Card subscriptions\n- USSD payments\n\n## Setup\n1. Import this collection and environment file\n2. Set base_url (default: http://localhost:8000)\n3. Register/login to get auth token\n4. Test endpoints based on your region\n\n## Testing Flow\n1. Authentication → Register/Login\n2. User Profile → Get/Update user info\n3. Sports Data → Browse leagues, teams, fixtures\n4. Payments → Create customer, initialize payment\n5. Subscriptions → Check status, manage subscription",
+    "description": "Complete API testing collection for FourthOfficial sports betting platform.\n\n## Features\n- Firebase Authentication\n- Sports Data Endpoints (Leagues, Teams, Fixtures)\n- Smart Combos & Predictions\n- Complete Payment Integration (Stripe & Paystack)\n- User Management\n- Subscription Management\n\n## Payment Providers\n\n### Stripe (UK, EU, US)\n- Card subscriptions (weekly, monthly, yearly)\n- Stripe hosted checkout\n- Subscription management\n\n### Paystack (Ghana, Nigeria, Kenya, South Africa)\n- One-time payments for time-based access (3, 7, 30 days)\n- Mobile money (MTN, Vodafone, Tigo, M-Pesa)\n- Card subscriptions\n- USSD payments\n\n## Setup\n1. Import this collection and environment file\n2. Set base_url (default: http://localhost:8000)\n3. Register/login to get auth token\n4. Test endpoints based on your region\n\n## Testing Flow\n1. Authentication \u2192 Register/Login\n2. User Profile \u2192 Get/Update user info\n3. Sports Data \u2192 Browse leagues, teams, fixtures\n4. Payments \u2192 Create customer, initialize payment\n5. Subscriptions \u2192 Check status, manage subscription",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -415,8 +415,88 @@
               "raw": "{\n  \"email\": \"{{user_email}}\",\n  \"name\": \"John Doe\",\n  \"phone\": \"+447700900000\",\n  \"address\": {\n    \"line1\": \"123 Main Street\",\n    \"city\": \"London\",\n    \"postal_code\": \"SW1A 1AA\",\n    \"country\": \"GB\"\n  }\n}"
             },
             "url": "{{base_url}}/api/v1/payments/create-customer",
-            "description": "Create or get existing payment customer.\n\nProvider auto-selected based on country:\n- UK/EU/US → Stripe\n- GH/NG/KE/ZA → Paystack"
+            "description": "Create or get existing payment customer.\n\nProvider auto-selected based on country:\n- UK/EU/US \u2192 Stripe\n- GH/NG/KE/ZA \u2192 Paystack"
           }
+        },
+        {
+          "name": "Create Checkout Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/payments/create-checkout-session",
+            "description": "Create a Stripe hosted checkout session for subscriptions. Returns a URL to redirect the user.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price_id\": \"price_monthly_premium\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Checkout session created\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains checkout url\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('url');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Portal Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/payments/create-portal-session",
+            "description": "Create a Stripe billing portal session for subscription management.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"return_url\": \"{{base_url}}/\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Portal session created\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains portal url\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('url');",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Cancel Subscription",
@@ -438,55 +518,6 @@
             },
             "url": "{{base_url}}/api/v1/payments/cancel-subscription",
             "description": "Cancel subscription at period end.\n\n**Subscriptions:** Cancels at period end\n**Time-based access:** Prevents renewal\n\nWorks for both Stripe and Paystack."
-          }
-        },
-        {
-          "name": "Create Subscription Intent",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Subscription intent created\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "pm.test(\"Response contains client secret\", function () {",
-                  "    const jsonData = pm.response.json();",
-                  "    pm.expect(jsonData.data).to.have.property('client_secret');",
-                  "    pm.expect(jsonData.data).to.have.property('subscription_id');",
-                  "    ",
-                  "    // Save for later use",
-                  "    if (jsonData.data.client_secret) {",
-                  "        pm.environment.set('payment_client_secret', jsonData.data.client_secret);",
-                  "    }",
-                  "    if (jsonData.data.subscription_id) {",
-                  "        pm.environment.set('subscription_id', jsonData.data.subscription_id);",
-                  "    }",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{auth_token}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"provider_subscription_type_id\": \"price_monthly_premium\",\n  \"metadata\": {\n    \"source\": \"mobile_app\"\n  }\n}"
-            },
-            "url": "{{base_url}}/api/v1/payments/create-subscription-intent",
-            "description": "Create subscription with payment intent.\n\n**For Stripe (UK/EU/US):**\n- provider_subscription_type_id: price_monthly_premium, price_yearly_premium, etc.\n- Returns client_secret for Payment Element\n\n**For Paystack (GH/NG/KE/ZA):**\n- provider_subscription_type_id: Plan code (PLN_monthly_premium)\n- Returns authorization_url\n\nProvider auto-selected by user's country."
           }
         },
         {
@@ -512,28 +543,6 @@
           }
         },
         {
-          "name": "Update Payment Setup",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{auth_token}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"subscription_id\": \"{{subscription_id}}\"\n}"
-            },
-            "url": "{{base_url}}/api/v1/payments/update-payment-setup",
-            "description": "Create setup intent for updating payment method on existing subscription"
-          }
-        },
-        {
           "name": "List Invoices",
           "request": {
             "method": "GET",
@@ -545,8 +554,15 @@
             ],
             "url": {
               "raw": "{{base_url}}/api/v1/payments/invoices?limit=10",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "payments", "invoices"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "payments",
+                "invoices"
+              ],
               "query": [
                 {
                   "key": "limit",
@@ -560,47 +576,6 @@
               ]
             },
             "description": "List customer invoices with pagination"
-          }
-        },
-        {
-          "name": "Test Complete Payment (Dev Only)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Test payment completed\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "pm.test(\"Subscription activated\", function () {",
-                  "    const jsonData = pm.response.json();",
-                  "    pm.expect(jsonData.data).to.have.property('subscription_id');",
-                  "    pm.expect(jsonData.data).to.have.property('subscription_status');",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{auth_token}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"client_secret\": \"{{payment_client_secret}}\"\n}"
-            },
-            "url": "{{base_url}}/api/v1/payments/test-complete-payment",
-            "description": "TEST ONLY: Complete payment with test card.\n\n**Stripe Test Mode Only** (sk_test_*)\nAutomatically uses pm_card_visa test card."
           }
         },
         {
@@ -697,8 +672,14 @@
             ],
             "url": {
               "raw": "{{base_url}}/api/v1/fixtures",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "fixtures"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "fixtures"
+              ]
             },
             "description": "Get all fixture IDs for the next 7 days (default date range) and full data for the first 6 fixtures.\n\n**Default Behavior:** Only returns fixtures from supported leagues (Premier League, La Liga, Champions League, etc.)\n\n**Supported League IDs:** 8, 9, 24, 27, 82, 384, 387, 564\n\n**New Fields:**\n- Each fixture now includes `league_id`\n- Response includes either `fixture_ids` (flat list) or `fixture_ids_by_league` (grouped)"
           }
@@ -734,8 +715,14 @@
             ],
             "url": {
               "raw": "{{base_url}}/api/v1/fixtures?leagues=1,2,3&match_type=upcoming&sort_by=kickoff_asc&date_from=2025-09-10&date_to=2025-09-17",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "fixtures"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "fixtures"
+              ],
               "query": [
                 {
                   "key": "leagues",
@@ -779,8 +766,14 @@
             ],
             "url": {
               "raw": "{{base_url}}/api/v1/fixtures?match_type=live&sort_by=kickoff_desc",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "fixtures"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "fixtures"
+              ],
               "query": [
                 {
                   "key": "match_type",
@@ -809,8 +802,14 @@
             ],
             "url": {
               "raw": "{{base_url}}/api/v1/fixtures?sort_by=prediction_accuracy_desc",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "fixtures"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "fixtures"
+              ],
               "query": [
                 {
                   "key": "sort_by",
@@ -840,8 +839,14 @@
             ],
             "url": {
               "raw": "{{base_url}}/api/v1/fixtures?date_from=2025-09-15&date_to=2025-09-16",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "fixtures"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "fixtures"
+              ],
               "query": [
                 {
                   "key": "date_from",
@@ -902,8 +907,14 @@
             ],
             "url": {
               "raw": "{{base_url}}/api/v1/fixtures?fixture_ids={{test_fixture_ids}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "fixtures"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "fixtures"
+              ],
               "query": [
                 {
                   "key": "fixture_ids",
@@ -966,8 +977,14 @@
             ],
             "url": {
               "raw": "{{base_url}}/api/v1/fixtures?group_by_league=true",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "fixtures"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "fixtures"
+              ],
               "query": [
                 {
                   "key": "group_by_league",
@@ -1015,8 +1032,14 @@
             ],
             "url": {
               "raw": "{{base_url}}/api/v1/fixtures?leagues=8,24",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "fixtures"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "fixtures"
+              ],
               "query": [
                 {
                   "key": "leagues",
@@ -1070,8 +1093,14 @@
             ],
             "url": {
               "raw": "{{base_url}}/api/v1/fixtures?date_from=2025-12-20&date_to=2025-12-20",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "fixtures"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "fixtures"
+              ],
               "query": [
                 {
                   "key": "date_from",
@@ -1140,8 +1169,14 @@
             ],
             "url": {
               "raw": "{{base_url}}/api/v1/fixtures?date_from=2025-12-20&date_to=2025-12-20&group_by_league=true",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "fixtures"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "fixtures"
+              ],
               "query": [
                 {
                   "key": "date_from",
@@ -1195,8 +1230,14 @@
             ],
             "url": {
               "raw": "{{base_url}}/api/v1/fixtures?leagues=999",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "fixtures"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "fixtures"
+              ],
               "query": [
                 {
                   "key": "leagues",
@@ -1260,8 +1301,16 @@
             ],
             "url": {
               "raw": "{{base_url}}/api/v1/fixtures/19427561/commentary",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "fixtures", "19427561", "commentary"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "fixtures",
+                "19427561",
+                "commentary"
+              ]
             },
             "description": "Get all commentary entries for a specific fixture from the commentaries_refactor collection.\n\n**Example:** Manchester City vs Liverpool (fixture_id: 19427561)\n\n**Returns:**\n- fixture_id: The fixture identifier (int)\n- total_commentaries: Count of commentary entries (int)\n- league_id: League identifier - 8 = Premier League (int)\n- starting_at: Match start time (string: \"YYYY-MM-DD HH:MM:SS\")\n- commentaries: Array of commentary objects with:\n  - commentary_id: Unique commentary ID (int)\n  - comment: The commentary text (string)\n  - minute: Match minute (int or null for pre/post match)\n  - extra_minute: Extra time minute (int or null)\n  - is_goal: Boolean flag for goal events (bool)\n  - is_important: Boolean flag for important events (bool)\n  - order: Sort order for frontend display (int)\n\n**Success Response Example:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"fixture_id\": 19427561,\n    \"total_commentaries\": 126,\n    \"league_id\": 8,\n    \"starting_at\": \"2025-11-09 16:30:00\",\n    \"commentaries\": [\n      {\n        \"commentary_id\": 9761129,\n        \"comment\": \"The opening half kicks off...\",\n        \"minute\": null,\n        \"extra_minute\": null,\n        \"is_goal\": false,\n        \"is_important\": false,\n        \"order\": 1\n      },\n      ...\n    ]\n  }\n}\n```"
           }
@@ -1297,8 +1346,16 @@
             ],
             "url": {
               "raw": "{{base_url}}/api/v1/fixtures/18446328/commentary",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "fixtures", "18446328", "commentary"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "fixtures",
+                "18446328",
+                "commentary"
+              ]
             },
             "description": "Test error case when commentaries are not available for a fixture.\n\n**Example:** Cambridge United vs Northampton Town (fixture_id: 18446328)\nThis fixture has an empty commentaries array.\n\n**Error Response (404):**\n```json\n{\n  \"status_code\": 404,\n  \"detail\": \"COMMENTARIES_NOT_AVAILABLE: Commentaries are not available for this fixture.\"\n}\n```\n\n**Error Conditions:**\n- Fixture document not found in database\n- Commentaries field is null\n- Commentaries array is empty []\n\n**Frontend Usage:**\nParse the error detail for \"COMMENTARIES_NOT_AVAILABLE\" to display a custom graphic informing users that commentaries are unavailable for this match."
           }
@@ -1315,8 +1372,16 @@
             ],
             "url": {
               "raw": "{{base_url}}/api/v1/fixtures/{{fixture_id}}/weather",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "fixtures", "{{fixture_id}}", "weather"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "fixtures",
+                "{{fixture_id}}",
+                "weather"
+              ]
             },
             "description": "Get weather snapshot for the fixture window."
           }
@@ -1333,8 +1398,16 @@
             ],
             "url": {
               "raw": "{{base_url}}/api/v1/fixtures/{{fixture_id}}/statistics",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "fixtures", "{{fixture_id}}", "statistics"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "fixtures",
+                "{{fixture_id}}",
+                "statistics"
+              ]
             },
             "description": "Get basic and advanced statistics for a fixture."
           }
@@ -1351,8 +1424,15 @@
             ],
             "url": {
               "raw": "{{base_url}}/api/v1/fixtures/predictions?fixture_id={{fixture_id}}&sort_by=pct_change&sort_order=desc&limit=50",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "fixtures", "predictions"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "fixtures",
+                "predictions"
+              ],
               "query": [
                 {
                   "key": "fixture_id",
@@ -1402,8 +1482,15 @@
             ],
             "url": {
               "raw": "{{base_url}}/api/v1/fixtures/stream?fixture_ids={{fixture_ids}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "fixtures", "stream"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "fixtures",
+                "stream"
+              ],
               "query": [
                 {
                   "key": "fixture_ids",
@@ -1427,8 +1514,16 @@
             ],
             "url": {
               "raw": "{{base_url}}/api/v1/fixtures/{{fixture_id}}/predictions?sort_by=pct_change&sort_order=desc&limit=50",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "fixtures", "{{fixture_id}}", "predictions"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "fixtures",
+                "{{fixture_id}}",
+                "predictions"
+              ],
               "query": [
                 {
                   "key": "sort_by",
@@ -1466,8 +1561,17 @@
             ],
             "url": {
               "raw": "{{base_url}}/api/v1/fixtures/{{fixture_id}}/predictions/stream",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "fixtures", "{{fixture_id}}", "predictions", "stream"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "fixtures",
+                "{{fixture_id}}",
+                "predictions",
+                "stream"
+              ]
             },
             "description": "**SSE Stream for Prediction Updates**\n\nServer-Sent Events stream for real-time prediction updates on a single fixture.\n\n**Usage Pattern:**\n1. Call GET /fixtures/{fixture_id}/predictions for initial data\n2. Open this SSE stream for live updates\n3. Close stream on navigation away\n\n**Channel:** prediction_updates:{fixture_id}\n**Event Type:** prediction_update\n\n**Note:** This is an SSE endpoint. In Postman, the response will remain open. Use browser DevTools or a dedicated SSE client for proper testing."
           }
@@ -1509,8 +1613,14 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/leagues",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "leagues"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "leagues"
+              ]
             },
             "description": "**Get all production leagues** - Returns list of leagues available in the app.\n\n**Public endpoint** - No authentication required.\n\n**Use this endpoint for:**\n- Populating league selection dropdown/list\n- Showing available leagues on homepage\n\n**Returns:**\n- **leagues**: Array of league objects sorted alphabetically\n  - league_id, league_name, short_code\n  - country_id, league_type, league_sub_type\n  - image_path (logo URL)\n\n**Response Example:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"leagues\": [\n      {\n        \"league_id\": 82,\n        \"league_name\": \"Bundesliga\",\n        \"short_code\": \"GER BI\",\n        \"country_id\": 11,\n        \"league_type\": \"league\",\n        \"league_sub_type\": \"domestic\",\n        \"image_path\": \"https://cdn.sportmonks.com/images/soccer/leagues/18/82.png\"\n      },\n      {\n        \"league_id\": 24,\n        \"league_name\": \"FA Cup\",\n        \"short_code\": \"UK FA Cup\",\n        \"country_id\": 462,\n        \"league_type\": \"cup\",\n        \"league_sub_type\": \"domestic_cup\",\n        \"image_path\": \"https://cdn.sportmonks.com/images/soccer/leagues/24/24.png\"\n      },\n      ...\n    ]\n  }\n}\n```"
           }
@@ -1565,8 +1675,15 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/leagues/current?league_id={{league_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "leagues", "current"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "leagues",
+                "current"
+              ],
               "query": [
                 {
                   "key": "league_id",
@@ -1626,8 +1743,16 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/leagues/standings/23614?league_id={{league_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "leagues", "standings", "23614"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "leagues",
+                "standings",
+                "23614"
+              ],
               "query": [
                 {
                   "key": "league_id",
@@ -1638,6 +1763,39 @@
             },
             "description": "**Get standings for a specific season** - Use this when user selects a different season from dropdown.\n\n**Public endpoint** - No authentication required.\n\n**Use this endpoint when:**\n- User changes season in dropdown (after initial page load)\n- Only need standings, not the full season list again\n\n**Path Parameter:**\n- **season_id**: The season ID to fetch standings for (e.g., 23614 for 2024/2025)\n\n**Query Parameter:**\n- **league_id**: League ID (required)\n\n**Returns:**\n- **league_id**, **season_id**: Identifiers\n- **standings**: Standings with team stats, form, and next fixtures\n- **updated_at**: Latest update timestamp\n\n**Note:** This endpoint does NOT return available_seasons list - use `/leagues/current` for initial page load.\n\n**Response Example:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"league_id\": 8,\n    \"season_id\": 23614,\n    \"standings\": [\n      {\n        \"position\": 1,\n        \"points\": 84,\n        \"goal_difference\": 45,\n        \"wins\": 25,\n        \"draws\": 9,\n        \"losses\": 4,\n        \"matches_played\": 38,\n        \"form\": [\"W\", \"W\", \"D\", \"W\", \"L\"],\n        \"team\": {\n          \"team_id\": 8,\n          \"team_name\": \"Liverpool\",\n          \"team_logo\": \"https://...\"\n        },\n        \"next_fixture\": null\n      },\n      ...\n    ],\n    \"updated_at\": \"2025-12-06T10:00:00Z\"\n  }\n}\n```"
           }
+        },
+        {
+          "name": "Get League Player Rankings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/leagues/player-rankings?league_id=8&season_id=25583",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "leagues",
+                "player-rankings"
+              ],
+              "query": [
+                {
+                  "key": "league_id",
+                  "value": "8",
+                  "description": "Premier League"
+                },
+                {
+                  "key": "season_id",
+                  "value": "25583",
+                  "description": "2024/2025 season"
+                }
+              ]
+            },
+            "description": "**Get player rankings for a league/season** - Mock data for frontend until feature store is ready.\n\n**Public endpoint** - No authentication required.\n\n**Query Parameters:**\n- **league_id**: League ID (required)\n- **season_id**: Season ID (required)\n\n**Returns:**\n- **top_scorers**: 5 players with integer stat_value (0-10)\n- **best_defensive**: 5 players with float stat_value (0-10, 1dp)\n- **most_aggressive**: 5 players with float stat_value (0-10, 1dp)\n- **top_playmaker**: 5 players with float stat_value (0-10, 1dp)\n\n**Response Example:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"league_id\": 8,\n    \"season_id\": 25583,\n    \"top_scorers\": [\n      {\n        \"player_id\": 123,\n        \"player_name\": \"Player A\",\n        \"player_image_url\": \"https://...\",\n        \"club_id\": 1,\n        \"club_name\": \"Club A\",\n        \"club_image_url\": \"https://...\",\n        \"stat_value\": 7\n      }\n    ],\n    \"best_defensive\": [],\n    \"most_aggressive\": [],\n    \"top_playmaker\": []\n  }\n}\n```"
+          },
+          "response": []
         },
         {
           "name": "Get League Fixtures",
@@ -1676,8 +1834,16 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/leagues/8/fixtures?season_id=25583",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "leagues", "8", "fixtures"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "leagues",
+                "8",
+                "fixtures"
+              ],
               "query": [
                 {
                   "key": "season_id",
@@ -1739,8 +1905,15 @@
             ],
             "url": {
               "raw": "{{base_url}}/api/v1/players/player?player_id={{player_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "players", "player"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "players",
+                "player"
+              ],
               "query": [
                 {
                   "key": "player_id",
@@ -1811,8 +1984,15 @@
             ],
             "url": {
               "raw": "{{base_url}}/api/v1/players/statistics?player_id={{player_id}}&season_id={{season_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "players", "statistics"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "players",
+                "statistics"
+              ],
               "query": [
                 {
                   "key": "player_id",
@@ -1851,7 +2031,7 @@
                   "pm.test(\"Check for warning if data is stale\", function () {",
                   "    const jsonData = pm.response.json();",
                   "    if (jsonData.data.warning) {",
-                  "        console.log('⚠️  WARNING:', jsonData.data.warning);",
+                  "        console.log('\u26a0\ufe0f  WARNING:', jsonData.data.warning);",
                   "        pm.expect(jsonData.data.warning).to.be.a('string');",
                   "    }",
                   "});",
@@ -1896,8 +2076,15 @@
             ],
             "url": {
               "raw": "{{base_url}}/api/v1/players/predictions?player_id={{player_id}}&sort_by=pct_change&sort_order=desc&limit=50",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "players", "predictions"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "players",
+                "predictions"
+              ],
               "query": [
                 {
                   "key": "player_id",
@@ -1927,6 +2114,150 @@
       ]
     },
     {
+      "name": "News",
+      "item": [
+        {
+          "name": "Get News Articles",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/news?limit=10&offset=0",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "news"
+              ],
+              "query": [
+                {
+                  "key": "league_id",
+                  "value": "8",
+                  "description": "Filter by league ID (e.g., 8=Premier League)",
+                  "disabled": true
+                },
+                {
+                  "key": "team_id",
+                  "value": "1",
+                  "description": "Filter by team ID",
+                  "disabled": true
+                },
+                {
+                  "key": "player_id",
+                  "value": "1",
+                  "description": "Filter by player ID",
+                  "disabled": true
+                },
+                {
+                  "key": "source",
+                  "value": "sky_sports",
+                  "description": "Filter by source (sky_sports, bbc, football_espana, football_italia)",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Max articles to return (1-50)"
+                },
+                {
+                  "key": "offset",
+                  "value": "0",
+                  "description": "Number of articles to skip"
+                }
+              ]
+            },
+            "description": "Get news articles with optional filtering by league, team, player, or source.\n\n**Filters:**\n- `league_id`: 8 (Premier League), 9 (La Liga), 82 (Bundesliga), 564 (Serie A), 384 (Champions League), 387 (Europa League)\n- `source`: sky_sports, bbc, football_espana, football_italia\n- `news_type` in response: article, video, live_blog\n- `news_category` in response: transfers (for transfer news)"
+          }
+        },
+        {
+          "name": "Get News by League",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/news/by-league/8?limit=5",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "news",
+                "by-league",
+                "8"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "5",
+                  "description": "Max articles (1-20)"
+                }
+              ]
+            },
+            "description": "Get recent news for a specific league.\n\n**League IDs:**\n- 8: Premier League\n- 9: La Liga\n- 82: Bundesliga\n- 564: Serie A\n- 384: Champions League\n- 387: Europa League"
+          }
+        },
+        {
+          "name": "Get News by Team",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/news/by-team/14?limit=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "news",
+                "by-team",
+                "14"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Max articles (1-20)"
+                }
+              ]
+            },
+            "description": "Get news articles mentioning a specific team."
+          }
+        },
+        {
+          "name": "Get News by Player",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/news/by-player/882?limit=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "news",
+                "by-player",
+                "882"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Max articles (1-20)"
+                }
+              ]
+            },
+            "description": "Get news articles mentioning a specific player."
+          }
+        }
+      ]
+    },
+    {
       "name": "Predictions",
       "item": [
         {
@@ -1941,8 +2272,15 @@
             ],
             "url": {
               "raw": "{{base_url}}/api/v1/smart-combos/predictions?smart_combo_id={{smart_combo_id}}&fixture_id={{fixture_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "smart-combos", "predictions"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "smart-combos",
+                "predictions"
+              ],
               "query": [
                 {
                   "key": "smart_combo_id",
@@ -2019,8 +2357,15 @@
             ],
             "url": {
               "raw": "{{base_url}}/api/v1/smart-combos/current",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "smart-combos", "current"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "smart-combos",
+                "current"
+              ]
             },
             "description": "**Primary Smart Combo Endpoint** - Returns the active smart combo with complete fixture and prediction data.\n\n**Response includes:**\n- **combo**: Smart combo details (ID, name, confidence, odds, etc.)\n- **fixtures**: Array of fixtures with full details:\n  - Complete fixture info (FixtureBasic format)\n  - Team IDs, short codes, and logo URLs\n  - League ID and name\n  - Scores and match status\n  - All predictions for the fixture\n\n**Example Response:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"combo\": {\n      \"combo_id\": 1,\n      \"name\": \"Weekend Winners\",\n      \"confidence\": 0.85,\n      \"total_odds\": 12.5,\n      \"is_active\": true\n    },\n    \"fixtures\": [\n      {\n        \"fixture\": {\n          \"fixture_id\": 123,\n          \"league_id\": 8,\n          \"league_name\": \"Premier League\",\n          \"starting_at\": \"2025-12-20T15:00:00\",\n          \"home_team_id\": 19,\n          \"home_team_short_code\": \"ARS\",\n          \"home_team_image_path\": \"https://cdn.sportmonks.com/...\",\n          \"away_team_id\": 18,\n          \"away_team_short_code\": \"CHE\",\n          \"away_team_image_path\": \"https://cdn.sportmonks.com/...\",\n          \"home_team_score\": null,\n          \"away_team_score\": null,\n          \"number_of_predictions\": 3\n        },\n        \"predictions\": [\n          {\n            \"prediction_id\": 1,\n            \"prediction_display_name\": \"Over 2.5 Goals\",\n            \"pre_game_prediction\": 0.72,\n            ...\n          }\n        ]\n      }\n    ]\n  }\n}\n```"
           }
@@ -2090,8 +2435,15 @@
             ],
             "url": {
               "raw": "{{base_url}}/api/v1/carousel/current",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "carousel", "current"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "carousel",
+                "current"
+              ]
             },
             "description": "**Primary Carousel Endpoint** - Returns featured fixtures for the home page carousel.\n\n**Business Logic:**\n- Returns 3-5 fixtures marked with `is_carousel: true`\n- Live games are prioritized (shown first)\n- Remaining slots filled by upcoming games sorted by `importance_score`\n- If no carousel fixtures exist, falls back to next 3 upcoming fixtures\n- Response cached for 60 seconds\n\n**Free vs Premium:**\n- **Premium users**: See all prediction values\n- **Free users**: See all predictions but only the first prediction has a real value, others are null\n\n**Response includes:**\n- **fixtures**: Array of carousel fixtures with:\n  - Complete fixture info (team IDs, logos, scores, league)\n  - `importance_score` - ML-generated match importance (0-100)\n  - `is_live` - Whether the match is currently in play\n  - Minimal predictions (id, name, value only - no reasons or % change)\n\n**Example Response:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"fixtures\": [\n      {\n        \"fixture\": {\n          \"fixture_id\": 19345678,\n          \"league_id\": 384,\n          \"league_name\": \"Champions League\",\n          \"starting_at\": \"2025-12-20T20:00:00Z\",\n          \"home_team_score\": 2,\n          \"away_team_score\": 1,\n          \"minutes_elapsed\": 67,\n          \"home_team_id\": 19,\n          \"home_team_short_code\": \"ARS\",\n          \"home_team_image_path\": \"https://cdn.sportmonks.com/...\",\n          \"away_team_id\": 18,\n          \"away_team_short_code\": \"CHE\",\n          \"away_team_image_path\": \"https://cdn.sportmonks.com/...\",\n          \"importance_score\": 92.5,\n          \"is_live\": true\n        },\n        \"predictions\": [\n          {\n            \"prediction_id\": 45,\n            \"prediction_display_name\": \"Home Win\",\n            \"prediction\": 0.72\n          },\n          {\n            \"prediction_id\": 46,\n            \"prediction_display_name\": \"Over 2.5 Goals\",\n            \"prediction\": 0.85\n          }\n        ]\n      }\n    ]\n  },\n  \"meta\": {\n    \"request_duration_ms\": 45\n  }\n}\n```"
           }

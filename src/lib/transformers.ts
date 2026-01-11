@@ -67,10 +67,10 @@ export function fixtureToMatchCard(fixtureItem: FixtureWithPredictions): MatchCa
   }
 
   return {
-    id: fixture.fixture_id.toString(),
+    id: fixture.fixture_id?.toString() || '0',
     competition: fixture.league_name?.trim() || DEFAULTS.COMPETITION,
     homeTeam: {
-      id: fixture.home_team_id.toString(),
+      id: fixture.home_team_id?.toString() || '0',
       name: fixture.home_team_name || fixture.home_team_short_code || DEFAULTS.HOME_TEAM,
       shortName:
         fixture.home_team_short_code ||
@@ -78,7 +78,7 @@ export function fixtureToMatchCard(fixtureItem: FixtureWithPredictions): MatchCa
       logo: fixture.home_team_image_path,
     },
     awayTeam: {
-      id: fixture.away_team_id.toString(),
+      id: fixture.away_team_id?.toString() || '0',
       name: fixture.away_team_name || fixture.away_team_short_code || DEFAULTS.AWAY_TEAM,
       shortName:
         fixture.away_team_short_code ||

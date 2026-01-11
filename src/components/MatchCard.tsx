@@ -207,8 +207,8 @@ export function MatchCard({
       {/* Teams and Score Section - Horizontal Layout */}
       <div className="flex items-center justify-between mb-[12px] md:mb-4 px-0 md:px-2 shrink-0">
         {/* Home Team */}
-        <div className="flex flex-col items-center justify-center gap-1 w-[101px] h-[57px] shrink-0 md:w-20 md:h-auto">
-          <div className="md:mb-2">
+        <div className="flex flex-col items-center justify-start w-[101px] shrink-0 md:w-20">
+          <div className="mb-1 md:mb-2">
             <TeamAvatar
               logo={homeTeam.logo}
               name={homeTeam.name}
@@ -216,7 +216,9 @@ export function MatchCard({
               size="md"
             />
           </div>
-          <span className="font-semibold text-black text-[12px] md:text-[14px]" style={{ fontFamily: 'Montserrat, sans-serif' }}>{homeTeam.shortName}</span>
+          <div className="h-[30px] flex items-start justify-center">
+            <span className="font-semibold text-black text-[12px] text-center line-clamp-2 leading-tight" style={{ fontFamily: 'Montserrat, sans-serif' }}>{homeTeam.name}</span>
+          </div>
         </div>
 
         {/* Score */}
@@ -237,8 +239,8 @@ export function MatchCard({
         </div>
 
         {/* Away Team */}
-        <div className="flex flex-col items-center justify-center gap-1 w-[101px] h-[57px] shrink-0 md:w-20 md:h-auto">
-          <div className="md:mb-2">
+        <div className="flex flex-col items-center justify-start w-[101px] shrink-0 md:w-20">
+          <div className="mb-1 md:mb-2">
             <TeamAvatar
               logo={awayTeam.logo}
               name={awayTeam.name}
@@ -246,7 +248,9 @@ export function MatchCard({
               size="md"
             />
           </div>
-          <span className="font-semibold text-black text-[12px] md:text-[14px]" style={{ fontFamily: 'Montserrat, sans-serif' }}>{awayTeam.shortName}</span>
+          <div className="h-[30px] flex items-start justify-center">
+            <span className="font-semibold text-black text-[12px] text-center line-clamp-2 leading-tight" style={{ fontFamily: 'Montserrat, sans-serif' }}>{awayTeam.name}</span>
+          </div>
         </div>
       </div>
 
@@ -256,7 +260,7 @@ export function MatchCard({
       {/* Predictions Section */}
       {/* Mobile: Show only 1 prediction (unblurred for premium, unblurred for free on page 1) */}
       {/* Desktop: Show all predictions (premium sees all unblurred, free sees 1 unblurred + rest blurred) */}
-      <div className="flex-1 space-y-2 overflow-hidden min-h-0 md:-mx-2 flex flex-col justify-center md:justify-start">
+      <div className="flex-1 md:flex-none space-y-2 overflow-hidden min-h-0 md:-mx-2 flex flex-col justify-center md:justify-start">
         {/* Mobile: Show first 2 predictions */}
         <div className="md:hidden space-y-2">
           {predictions.slice(0, 2).map((prediction, index) => (
@@ -300,16 +304,16 @@ export function MatchCard({
       </div>
 
       {/* Footer */}
-      <div className="pt-[12px] md:pt-4 shrink-0" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+      <div className="pt-[12px] md:pt-1 shrink-0" style={{ fontFamily: 'Montserrat, sans-serif' }}>
         {/* Predictions Count Divider */}
         {totalPredictions && totalPredictions > 0 && (
           <div className="flex items-center justify-center mb-3">
-            <div className="flex-1 h-px bg-gradient-to-r from-white to-gray-200" />
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent to-gray-900" />
             <span className="px-3 text-[11px] md:text-xs text-gray-500 font-medium whitespace-nowrap">
               <span className="md:hidden">{Math.min(2, predictions.length)} out of {totalPredictions} Predictions</span>
               <span className="hidden md:inline">{predictions.length} out of {totalPredictions} Predictions</span>
             </span>
-            <div className="flex-1 h-px bg-gradient-to-r from-gray-200 to-white" />
+            <div className="flex-1 h-px bg-gradient-to-l from-transparent to-gray-900" />
           </div>
         )}
 

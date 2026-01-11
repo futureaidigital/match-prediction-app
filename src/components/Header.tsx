@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { LoginModal } from '@/components/ui/LoginModal';
+import { RegisterModal } from '@/components/ui/RegisterModal';
 
 interface HeaderProps {
   onNavigate?: (page: string) => void;
@@ -9,7 +12,10 @@ interface HeaderProps {
 export function Header({ onNavigate, currentPage = '' }: HeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMenuAnimating, setIsMenuAnimating] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
   const navigate = useNavigate();
+  const { user, isAuthenticated, logout } = useAuth();
 
   // Handle menu open/close with animation
   const openMenu = () => {
@@ -42,15 +48,51 @@ export function Header({ onNavigate, currentPage = '' }: HeaderProps) {
     { id: 'league', label: 'League', path: '/league' },
     { id: 'smart-combo', label: 'Smart Combo', path: '/smart-combo' },
     { id: 'pricing', label: 'Pricing', path: '/pricing' },
-    { id: 'login', label: 'Login', path: '/login' },
+    ...(isAuthenticated
+      ? [{ id: 'logout', label: 'Log out', path: '' }]
+      : [
+          { id: 'register', label: 'Register', path: '' },
+          { id: 'login', label: 'Login', path: '' },
+        ]
+    ),
   ];
 
   const handleNavigation = (item: { id: string; path: string }) => {
+    // Handle login specially - show modal instead of navigating
+    if (item.id === 'login') {
+      setShowLoginModal(true);
+      return;
+    }
+
+    // Handle register specially - show modal instead of navigating
+    if (item.id === 'register') {
+      setShowRegisterModal(true);
+      return;
+    }
+
+    // Handle logout
+    if (item.id === 'logout') {
+      logout();
+      return;
+    }
+
     if (onNavigate) {
       onNavigate(item.id);
     } else {
       navigate(item.path);
     }
+  };
+
+  // Switch from login to register modal
+  const handleSwitchToRegister = () => {
+    setShowLoginModal(false);
+    setShowRegisterModal(true);
+  };
+
+  // Switch from register to login modal
+  const handleSwitchToLogin = () => {
+    setShowRegisterModal(false);
+    setShowLoginModal(true);
   };
 
   return (
@@ -113,15 +155,38 @@ export function Header({ onNavigate, currentPage = '' }: HeaderProps) {
               <img src="/search.svg" alt="Search" className="w-10 h-10" />
             </button>
 
-            {/* Desktop: Register Button */}
-            <button className="hidden md:block px-5 py-2 border border-white text-white text-sm font-semibold rounded-lg hover:bg-white/10 transition-colors">
-              Register
-            </button>
+            {isAuthenticated ? (
+              <>
+                {/* Desktop: Logged in state */}
+                <span className="hidden md:block text-white text-sm font-medium">
+                  Logged in as: {user?.email}
+                </span>
+                <button
+                  onClick={logout}
+                  className="hidden md:block px-5 py-2 bg-white text-[#091143] text-sm font-semibold rounded-lg hover:bg-white/90 transition-colors"
+                >
+                  Log out
+                </button>
+              </>
+            ) : (
+              <>
+                {/* Desktop: Register Button */}
+                <button
+                  onClick={() => setShowRegisterModal(true)}
+                  className="hidden md:block px-5 py-2 border border-white text-white text-sm font-semibold rounded-lg hover:bg-white/10 transition-colors"
+                >
+                  Register
+                </button>
 
-            {/* Desktop: Login Button */}
-            <button className="hidden md:block px-5 py-2 bg-white text-[#091143] text-sm font-semibold rounded-lg hover:bg-white/90 transition-colors">
-              Login
-            </button>
+                {/* Desktop: Login Button */}
+                <button
+                  onClick={() => setShowLoginModal(true)}
+                  className="hidden md:block px-5 py-2 bg-white text-[#091143] text-sm font-semibold rounded-lg hover:bg-white/90 transition-colors"
+                >
+                  Login
+                </button>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -145,6 +210,12 @@ export function Header({ onNavigate, currentPage = '' }: HeaderProps) {
           >
             {/* Menu Content */}
             <div className="flex-1 bg-white px-6 py-4 overflow-y-auto">
+              {/* Show logged in email on mobile */}
+              {isAuthenticated && user?.email && (
+                <div className="py-4 border-b border-gray-200 text-sm text-gray-600">
+                  Logged in as: {user.email}
+                </div>
+              )}
               <nav className="flex flex-col">
                 {mobileNavItems.map((item, index) => (
                   <button
@@ -172,6 +243,20 @@ export function Header({ onNavigate, currentPage = '' }: HeaderProps) {
           </div>
         </div>
       )}
+
+      {/* Login Modal */}
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onSwitchToRegister={handleSwitchToRegister}
+      />
+
+      {/* Register Modal */}
+      <RegisterModal
+        isOpen={showRegisterModal}
+        onClose={() => setShowRegisterModal(false)}
+        onSwitchToLogin={handleSwitchToLogin}
+      />
     </>
   );
 }

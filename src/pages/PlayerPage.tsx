@@ -3,10 +3,14 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { usePlayerStatistics, useMultiplePlayerDetails } from '@/hooks/usePlayers';
 
+// Default theme color for player banner (darker navy blue)
+const DEFAULT_PLAYER_THEME_COLOR = '#060d33';
+
 // Player Banner component - similar to MatchBanner but for players
 function PlayerBanner({
   player,
   stats,
+  themeColor,
 }: {
   player: {
     player_name?: string;
@@ -25,137 +29,140 @@ function PlayerBanner({
     appearances?: number;
     minutes_played?: number;
   };
+  themeColor?: string;
 }) {
+  // Use provided theme color or fallback to default
+  const bgColor = themeColor || DEFAULT_PLAYER_THEME_COLOR;
   return (
     <>
-      {/* Mobile Version - 358x415px per Figma specs */}
-      <div className="md:hidden w-full max-w-[358px] mx-auto h-[415px] rounded-[14px] overflow-hidden shadow-2xl">
+      {/* Mobile Version - reduced height */}
+      <div className="md:hidden w-full max-w-[358px] mx-auto rounded-[14px] overflow-hidden shadow-2xl">
         <div
           className="relative flex flex-col h-full"
           style={{
-            backgroundImage: `linear-gradient(180deg, rgba(4, 10, 48, 0) 0%, rgba(4, 10, 48, 1) 100%), url('/stadium-bg.jpg')`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center top',
+            backgroundColor: bgColor,
           }}
         >
-          {/* Player Info - Centered */}
-          <div className="flex-1 flex flex-col items-center justify-center pt-4">
-            {/* Player Image */}
-            <div className="relative mb-4">
-              {player.image_path ? (
-                <img
-                  src={player.image_path}
-                  alt={player.player_name}
-                  className="w-[120px] h-[120px] rounded-full object-cover"
-                />
-              ) : (
-                <div className="w-[120px] h-[120px] rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
-                  <span className="text-4xl font-bold text-white">
-                    {player.player_name?.slice(0, 2).toUpperCase() || 'PL'}
+          {/* Player Info - Side by side layout */}
+          <div className="flex flex-col justify-center px-[14px] py-[14px]">
+            {/* Player Image and Name row */}
+            <div className="flex items-center gap-[16px]">
+              {/* Player Image */}
+              <div className="relative shrink-0">
+                {player.image_path ? (
+                  <img
+                    src={player.image_path}
+                    alt={player.player_name}
+                    className="w-[70px] h-[70px] rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-[70px] h-[70px] rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
+                    <span className="text-2xl font-bold text-white">
+                      {player.player_name?.slice(0, 2).toUpperCase() || 'PL'}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Player Name and Info */}
+              <div>
+                {/* Player Name */}
+                <h1
+                  className="text-white font-semibold text-[22px] leading-[125%] mb-[6px]"
+                  style={{ fontFamily: 'Montserrat, sans-serif' }}
+                >
+                  {player.player_name || 'Player Name'}
+                </h1>
+
+                {/* Position | Team | Country row */}
+                <div className="flex items-center gap-[8px] flex-wrap">
+                  <span
+                    className="text-white font-medium text-[12px] leading-[150%]"
+                    style={{ fontFamily: 'Montserrat, sans-serif' }}
+                  >
+                    {player.position_name || 'Forward'}
                   </span>
-                </div>
-              )}
-            </div>
 
-            {/* Player Name - 26px SemiBold, centered */}
-            <h1
-              className="text-white font-semibold text-[26px] leading-[125%] text-center mb-[6px]"
-              style={{ fontFamily: 'Montserrat, sans-serif' }}
-            >
-              {player.player_name || 'Player Name'}
-            </h1>
-
-            {/* Position | Team | Country row - 14px Medium with vertical dividers */}
-            <div className="flex items-center justify-center gap-[10px]">
-              <span
-                className="text-white font-medium text-[14px] leading-[150%]"
-                style={{ fontFamily: 'Montserrat, sans-serif' }}
-              >
-                {player.position_name || 'Forward'}
-              </span>
-
-              {(player.team_short_code || player.team_logo) && (
-                <>
-                  <div className="w-px h-[17px] bg-white" />
-                  <div className="flex items-center gap-[6px]">
+                  <div className="w-px h-[14px] bg-white" />
+                  <div className="flex items-center gap-[4px]">
                     {player.team_logo ? (
                       <img
                         src={player.team_logo}
                         alt={player.team_short_code || 'Team'}
-                        className="w-[20px] h-[20px] rounded-full object-contain"
+                        className="w-[16px] h-[16px] rounded-full object-contain"
                       />
                     ) : (
-                      <div className="w-[20px] h-[20px] rounded-full bg-white/20" />
+                      <div className="w-[16px] h-[16px] rounded-full bg-white/20" />
                     )}
                     <span
-                      className="text-white font-medium text-[14px] leading-[150%]"
+                      className="text-white font-medium text-[12px] leading-[150%]"
                       style={{ fontFamily: 'Montserrat, sans-serif' }}
                     >
-                      {player.team_short_code}
+                      {player.team_short_code || 'N/A'}
                     </span>
                   </div>
-                </>
-              )}
 
-              {player.country_name && (
-                <>
-                  <div className="w-px h-[17px] bg-white" />
-                  <div className="flex items-center gap-[6px]">
-                    {player.country_flag ? (
-                      <img
-                        src={player.country_flag}
-                        alt={player.country_name}
-                        className="w-[20px] h-[20px] rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-[20px] h-[20px] rounded-full bg-white/20" />
-                    )}
-                    <span
-                      className="text-white font-medium text-[14px] leading-[150%]"
-                      style={{ fontFamily: 'Montserrat, sans-serif' }}
-                    >
-                      {player.country_name}
-                    </span>
-                  </div>
-                </>
-              )}
+                  {player.country_name && (
+                    <>
+                      <div className="w-px h-[14px] bg-white" />
+                      <div className="flex items-center gap-[4px]">
+                        {player.country_flag ? (
+                          <img
+                            src={player.country_flag}
+                            alt={player.country_name}
+                            className="w-[16px] h-[16px] rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-[16px] h-[16px] rounded-full bg-white/20" />
+                        )}
+                        <span
+                          className="text-white font-medium text-[12px] leading-[150%]"
+                          style={{ fontFamily: 'Montserrat, sans-serif' }}
+                        >
+                          {player.country_name}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Stats Grid - 2x2 layout with 10px gap */}
+          {/* Stats Grid - 2x2 layout with 8px gap */}
           <div className="px-[14px] pb-[14px]">
-            <div className="flex flex-col gap-[10px]">
+            <div className="flex flex-col gap-[8px]">
               {/* First row: Goals, Assists */}
-              <div className="flex gap-[10px]">
+              <div className="flex gap-[8px]">
                 <div
-                  className="flex-1 h-[86px] rounded-[10px] flex flex-col items-center justify-center p-[14px] gap-[4px]"
+                  className="flex-1 h-[65px] rounded-[8px] flex flex-col items-center justify-center p-[10px] gap-[2px]"
                   style={{ backgroundColor: 'rgba(13, 26, 103, 0.65)' }}
                 >
                   <span
-                    className="text-white text-[26px] font-bold leading-[125%]"
+                    className="text-white text-[20px] font-bold leading-[125%]"
                     style={{ fontFamily: 'Montserrat, sans-serif' }}
                   >
                     {stats.goals ?? 0}
                   </span>
                   <span
-                    className="text-white text-[14px] font-medium leading-[150%]"
+                    className="text-white text-[11px] font-medium leading-[150%]"
                     style={{ fontFamily: 'Montserrat, sans-serif' }}
                   >
                     Goals
                   </span>
                 </div>
                 <div
-                  className="flex-1 h-[86px] rounded-[10px] flex flex-col items-center justify-center p-[14px] gap-[4px]"
+                  className="flex-1 h-[65px] rounded-[8px] flex flex-col items-center justify-center p-[10px] gap-[2px]"
                   style={{ backgroundColor: 'rgba(13, 26, 103, 0.65)' }}
                 >
                   <span
-                    className="text-white text-[26px] font-bold leading-[125%]"
+                    className="text-white text-[20px] font-bold leading-[125%]"
                     style={{ fontFamily: 'Montserrat, sans-serif' }}
                   >
                     {stats.assists ?? 0}
                   </span>
                   <span
-                    className="text-white text-[14px] font-medium leading-[150%]"
+                    className="text-white text-[11px] font-medium leading-[150%]"
                     style={{ fontFamily: 'Montserrat, sans-serif' }}
                   >
                     Assists
@@ -163,36 +170,36 @@ function PlayerBanner({
                 </div>
               </div>
               {/* Second row: Matches, Minutes */}
-              <div className="flex gap-[10px]">
+              <div className="flex gap-[8px]">
                 <div
-                  className="flex-1 h-[86px] rounded-[10px] flex flex-col items-center justify-center p-[14px] gap-[4px]"
+                  className="flex-1 h-[65px] rounded-[8px] flex flex-col items-center justify-center p-[10px] gap-[2px]"
                   style={{ backgroundColor: 'rgba(13, 26, 103, 0.65)' }}
                 >
                   <span
-                    className="text-white text-[26px] font-bold leading-[125%]"
+                    className="text-white text-[20px] font-bold leading-[125%]"
                     style={{ fontFamily: 'Montserrat, sans-serif' }}
                   >
                     {stats.appearances ?? 0}
                   </span>
                   <span
-                    className="text-white text-[14px] font-medium leading-[150%]"
+                    className="text-white text-[11px] font-medium leading-[150%]"
                     style={{ fontFamily: 'Montserrat, sans-serif' }}
                   >
                     Matches
                   </span>
                 </div>
                 <div
-                  className="flex-1 h-[86px] rounded-[10px] flex flex-col items-center justify-center p-[14px] gap-[4px]"
+                  className="flex-1 h-[65px] rounded-[8px] flex flex-col items-center justify-center p-[10px] gap-[2px]"
                   style={{ backgroundColor: 'rgba(13, 26, 103, 0.65)' }}
                 >
                   <span
-                    className="text-white text-[26px] font-bold leading-[125%]"
+                    className="text-white text-[20px] font-bold leading-[125%]"
                     style={{ fontFamily: 'Montserrat, sans-serif' }}
                   >
                     {stats.minutes_played?.toLocaleString() ?? 0}
                   </span>
                   <span
-                    className="text-white text-[14px] font-medium leading-[150%]"
+                    className="text-white text-[11px] font-medium leading-[150%]"
                     style={{ fontFamily: 'Montserrat, sans-serif' }}
                   >
                     Minutes
@@ -204,29 +211,27 @@ function PlayerBanner({
         </div>
       </div>
 
-      {/* Desktop Version - 1440x380px per Figma specs */}
-      <div className="hidden md:block w-full max-w-[1440px] mx-auto h-[380px] rounded-[20px] overflow-hidden shadow-2xl">
+      {/* Desktop Version - Half height with 2x2 stats grid on right */}
+      <div className="hidden md:block w-full max-w-[1440px] mx-auto h-[190px] rounded-[20px] overflow-hidden shadow-2xl">
         <div
-          className="relative h-full"
+          className="relative h-full flex items-center justify-between px-[30px]"
           style={{
-            backgroundImage: `linear-gradient(to bottom, rgba(4, 10, 48, 0) 0%, rgba(4, 10, 48, 1) 100%), url('/stadium-bg.jpg')`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center top',
+            backgroundColor: bgColor,
           }}
         >
-          {/* Player Info - positioned bottom-left, above stats */}
-          <div className="absolute left-[30px] bottom-[110px] flex items-end gap-[15px]">
-            {/* Player Image - 100x100px circular */}
+          {/* Left side - Player Info */}
+          <div className="flex items-center gap-[20px]">
+            {/* Player Image - 80x80px circular */}
             <div className="relative shrink-0">
               {player.image_path ? (
                 <img
                   src={player.image_path}
                   alt={player.player_name}
-                  className="w-[100px] h-[100px] rounded-full object-cover"
+                  className="w-[80px] h-[80px] rounded-full object-cover"
                 />
               ) : (
-                <div className="w-[100px] h-[100px] rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
-                  <span className="text-3xl font-bold text-white">
+                <div className="w-[80px] h-[80px] rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
+                  <span className="text-2xl font-bold text-white">
                     {player.player_name?.slice(0, 2).toUpperCase() || 'PL'}
                   </span>
                 </div>
@@ -234,10 +239,10 @@ function PlayerBanner({
             </div>
 
             {/* Player Name and Info */}
-            <div className="pb-[10px]">
-              {/* Player Name - 28px SemiBold */}
+            <div>
+              {/* Player Name - 24px SemiBold */}
               <h1
-                className="text-white font-semibold text-[28px] leading-[130%] mb-[6px]"
+                className="text-white font-semibold text-[24px] leading-[130%] mb-[6px]"
                 style={{ fontFamily: 'Montserrat, sans-serif' }}
               >
                 {player.player_name || 'Player Name'}
@@ -252,28 +257,24 @@ function PlayerBanner({
                   {player.position_name || 'Forward'}
                 </span>
 
-                {(player.team_short_code || player.team_logo) && (
-                  <>
-                    <div className="w-px h-[17px] bg-white" />
-                    <div className="flex items-center gap-[6px]">
-                      {player.team_logo ? (
-                        <img
-                          src={player.team_logo}
-                          alt={player.team_short_code || 'Team'}
-                          className="w-[20px] h-[20px] object-contain"
-                        />
-                      ) : (
-                        <div className="w-[20px] h-[20px] rounded-full bg-white/20" />
-                      )}
-                      <span
-                        className="text-white font-medium leading-[20px]"
-                        style={{ fontFamily: 'Montserrat, sans-serif' }}
-                      >
-                        {player.team_short_code}
-                      </span>
-                    </div>
-                  </>
-                )}
+                <div className="w-px h-[17px] bg-white" />
+                <div className="flex items-center gap-[6px]">
+                  {player.team_logo ? (
+                    <img
+                      src={player.team_logo}
+                      alt={player.team_short_code || 'Team'}
+                      className="w-[20px] h-[20px] object-contain"
+                    />
+                  ) : (
+                    <div className="w-[20px] h-[20px] rounded-full bg-white/20" />
+                  )}
+                  <span
+                    className="text-white font-medium leading-[20px]"
+                    style={{ fontFamily: 'Montserrat, sans-serif' }}
+                  >
+                    {player.team_short_code || 'N/A'}
+                  </span>
+                </div>
 
                 {player.country_name && (
                   <>
@@ -301,21 +302,21 @@ function PlayerBanner({
             </div>
           </div>
 
-          {/* Stats Row - Bottom edge, 4 boxes stretching full width */}
-          <div className="absolute bottom-[20px] left-[20px] right-[20px] flex items-center gap-[10px]">
+          {/* Right side - Stats 2x2 Grid (50% of banner width) */}
+          <div className="w-1/2 grid grid-cols-2 gap-[10px]">
             {/* Goals */}
             <div
-              className="flex-1 h-[80px] rounded-[10px] flex flex-col items-center justify-center"
-              style={{ backgroundColor: 'rgba(13, 26, 103, 0.65)' }}
+              className="h-[70px] rounded-[10px] flex flex-col items-center justify-center"
+              style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
             >
               <span
-                className="text-white text-[28px] font-bold leading-none"
+                className="text-white text-[22px] font-bold leading-none"
                 style={{ fontFamily: 'Montserrat, sans-serif' }}
               >
                 {stats.goals ?? 0}
               </span>
               <span
-                className="text-white text-[14px] font-medium leading-[20px] mt-[4px]"
+                className="text-white/80 text-[12px] font-medium leading-[18px] mt-[2px]"
                 style={{ fontFamily: 'Montserrat, sans-serif' }}
               >
                 Goals
@@ -324,17 +325,17 @@ function PlayerBanner({
 
             {/* Assists */}
             <div
-              className="flex-1 h-[80px] rounded-[10px] flex flex-col items-center justify-center"
-              style={{ backgroundColor: 'rgba(13, 26, 103, 0.65)' }}
+              className="h-[70px] rounded-[10px] flex flex-col items-center justify-center"
+              style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
             >
               <span
-                className="text-white text-[28px] font-bold leading-none"
+                className="text-white text-[22px] font-bold leading-none"
                 style={{ fontFamily: 'Montserrat, sans-serif' }}
               >
                 {stats.assists ?? 0}
               </span>
               <span
-                className="text-white text-[14px] font-medium leading-[20px] mt-[4px]"
+                className="text-white/80 text-[12px] font-medium leading-[18px] mt-[2px]"
                 style={{ fontFamily: 'Montserrat, sans-serif' }}
               >
                 Assists
@@ -343,17 +344,17 @@ function PlayerBanner({
 
             {/* Matches */}
             <div
-              className="flex-1 h-[80px] rounded-[10px] flex flex-col items-center justify-center"
-              style={{ backgroundColor: 'rgba(13, 26, 103, 0.65)' }}
+              className="h-[70px] rounded-[10px] flex flex-col items-center justify-center"
+              style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
             >
               <span
-                className="text-white text-[28px] font-bold leading-none"
+                className="text-white text-[22px] font-bold leading-none"
                 style={{ fontFamily: 'Montserrat, sans-serif' }}
               >
                 {stats.appearances ?? 0}
               </span>
               <span
-                className="text-white text-[14px] font-medium leading-[20px] mt-[4px]"
+                className="text-white/80 text-[12px] font-medium leading-[18px] mt-[2px]"
                 style={{ fontFamily: 'Montserrat, sans-serif' }}
               >
                 Matches
@@ -362,17 +363,17 @@ function PlayerBanner({
 
             {/* Minutes */}
             <div
-              className="flex-1 h-[80px] rounded-[10px] flex flex-col items-center justify-center"
-              style={{ backgroundColor: 'rgba(13, 26, 103, 0.65)' }}
+              className="h-[70px] rounded-[10px] flex flex-col items-center justify-center"
+              style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
             >
               <span
-                className="text-white text-[28px] font-bold leading-none"
+                className="text-white text-[22px] font-bold leading-none"
                 style={{ fontFamily: 'Montserrat, sans-serif' }}
               >
                 {stats.minutes_played?.toLocaleString() ?? 0}
               </span>
               <span
-                className="text-white text-[14px] font-medium leading-[20px] mt-[4px]"
+                className="text-white/80 text-[12px] font-medium leading-[18px] mt-[2px]"
                 style={{ fontFamily: 'Montserrat, sans-serif' }}
               >
                 Minutes
@@ -442,7 +443,7 @@ function PlayerPredictionCard({
   const isPositiveChange = (change ?? 0) >= 0;
 
   return (
-    <div className="bg-white rounded-[14px] border border-[#e1e4eb] shadow-sm p-4">
+    <div className="bg-white rounded-[14px] border border-[#e1e4eb] shadow-[0_1px_15px_rgba(0,0,0,0.1)] p-4">
       <div className="flex items-center justify-between mb-3">
         <h4
           className="text-[#0a0a0a] text-[14px] font-semibold"
@@ -652,7 +653,7 @@ export function PlayerPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Header currentPage="matches" />
+        <Header currentPage="players" />
         <main className="pb-32 md:pb-0">
           <div className="max-w-[1400px] mx-auto px-4 md:px-6 pt-6">
             {/* Banner skeleton */}
@@ -673,7 +674,7 @@ export function PlayerPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header currentPage="matches" />
+      <Header currentPage="players" />
 
       <main className="pb-32 md:pb-0">
         {/* Back button */}
