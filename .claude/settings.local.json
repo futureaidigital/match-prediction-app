@@ -18,7 +18,15 @@
       "Bash(cmd /c copy \"C:\\Users\\USER\\Downloads\\Frame 2147224179.svg\" \"C:\\Users\\USER\\Documents\\Development\\match-prediction-app\\public\\cta-overlay.svg\")",
       "Bash(powershell -Command:*)",
       "Bash(cmd /c copy:*)",
-      "Bash(copy \"public\\\\Fourth official \\(lanrenathaniela\\)\\\\Logo files\\\\PNGs - SVGs\\\\SVG\\\\Asset 4.svg\" \"public\\\\logo.svg\")"
+      "Bash(copy \"public\\\\Fourth official \\(lanrenathaniela\\)\\\\Logo files\\\\PNGs - SVGs\\\\SVG\\\\Asset 4.svg\" \"public\\\\logo.svg\")",
+      "Bash(git -C \"c:\\\\Users\\\\prana\\\\Downloads\\\\match-prediction-app\" log --oneline -15)",
+      "Bash(git -C \"c:\\\\Users\\\\prana\\\\Downloads\\\\match-prediction-app\" add public/Dribble.svg public/Football.svg public/Star.svg public/Tackle.svg public/Target.svg public/Yellow_Card.svg)",
+      "Bash(git -C \"c:\\\\Users\\\\prana\\\\Downloads\\\\match-prediction-app\" log -3 --oneline)",
+      "Bash(git -C \"c:\\\\Users\\\\prana\\\\Downloads\\\\match-prediction-app\" commit -m \"$\\(cat <<''EOF''\nAdd player statistics icons for PlayerPage\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git -C \"c:\\\\Users\\\\prana\\\\Downloads\\\\match-prediction-app\" status)",
+      "Bash(git -C \"c:\\\\Users\\\\prana\\\\Downloads\\\\match-prediction-app\" add:*)",
+      "Bash(git -C \"c:\\\\Users\\\\prana\\\\Downloads\\\\match-prediction-app\" commit -m \"$\\(cat <<''EOF''\nRemove top padding from SmartCombo match cards container\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git -C \"c:\\\\Users\\\\prana\\\\Downloads\\\\match-prediction-app\" push)"
     ],
     "deny": [],
     "ask": []

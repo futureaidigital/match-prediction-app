@@ -457,6 +457,14 @@ export interface LeagueSeason {
   is_current: boolean;
 }
 
+// Standings grouped by all/home/away/form
+export interface LeagueStandingsData {
+  all: LeagueStandingTeam[];
+  home: LeagueStandingTeam[];
+  away: LeagueStandingTeam[];
+  form: LeagueStandingTeam[];
+}
+
 export interface LeagueCurrentResponse {
   league: {
     league_id: number;
@@ -466,14 +474,14 @@ export interface LeagueCurrentResponse {
   };
   current_season: LeagueSeason;
   available_seasons: LeagueSeason[];
-  standings: LeagueStandingTeam[];
+  standings: LeagueStandingsData;
   updated_at?: string;
 }
 
 export interface LeagueStandingsResponse {
   league_id: number;
   season_id: number;
-  standings: LeagueStandingTeam[];
+  standings: LeagueStandingsData;
   updated_at?: string;
 }
 
@@ -518,6 +526,8 @@ export interface FixtureWithPredictions {
     away_team_short_code?: string;
     away_team_image_path?: string;
     starting_at?: string;
+    kickoff_at?: string;
+    is_live?: boolean;
     home_team_score?: number;
     away_team_score?: number;
     minutes_elapsed?: number | null;
@@ -682,7 +692,7 @@ class ApiClient {
       query.append('fixture_ids', params.fixture_ids.join(','));
     }
     if (params.leagues?.length) {
-      query.append('league_id', params.leagues.join(','));
+      query.append('leagues', params.leagues.join(','));
     }
     if (params.match_type) {
       query.append('match_type', params.match_type);

@@ -59,22 +59,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const initializeAuth = async () => {
       devLog.log('Initializing auth...');
       const token = api.getToken();
-      devLog.log('Token exists:', !!token);
+      const wasLoggedOut = localStorage.getItem('logged_out') === 'true';
+      devLog.log('Token exists:', !!token, 'Was logged out:', wasLoggedOut);
 
       if (!token) {
-        devLog.log('No token found, auto-logging in with premium user...');
-        try {
-          const response = await api.login(TEST_CREDENTIALS.PREMIUM);
-          if (response.success) {
-            api.setToken(response.data.access_token);
-            localStorage.setItem('refresh_token', response.data.refresh_token);
-            setUser(response.data.user);
-            // Set demo premium flag for hasAccess check
-            localStorage.setItem('demo_premium', 'true');
-            devLog.log('Auto-logged in as premium user');
+        // Only auto-login if user hasn't explicitly logged out
+        if (!wasLoggedOut) {
+          devLog.log('No token found, auto-logging in with premium user...');
+          try {
+            const response = await api.login(TEST_CREDENTIALS.PREMIUM);
+            if (response.success) {
+              api.setToken(response.data.access_token);
+              localStorage.setItem('refresh_token', response.data.refresh_token);
+              setUser(response.data.user);
+              // Set demo premium flag for hasAccess check
+              localStorage.setItem('demo_premium', 'true');
+              devLog.log('Auto-logged in as premium user');
+            }
+          } catch (err) {
+            devLog.warn('Auto-login failed, continuing as guest', err);
           }
-        } catch (err) {
-          devLog.warn('Auto-login failed, continuing as guest', err);
+        } else {
+          devLog.log('User previously logged out, not auto-logging in');
         }
         setIsLoading(false);
         return;
@@ -182,6 +188,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const response = await api.login(credentials);
 
       if (response.success) {
+        // Clear logged_out flag since user is explicitly logging in
+        localStorage.removeItem('logged_out');
+
         // Set the token first
         api.setToken(response.data.access_token);
         localStorage.setItem('refresh_token', response.data.refresh_token);
@@ -214,6 +223,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const response = await api.register(data);
 
       if (response.success) {
+        // Clear logged_out flag since user is explicitly registering
+        localStorage.removeItem('logged_out');
+
         // Set token first
         api.setToken(response.data.access_token);
         localStorage.setItem('refresh_token', response.data.refresh_token);
@@ -242,9 +254,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Continue with local logout even if API call fails
     } finally {
       // Clear all auth state
+      api.setToken(null);
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('demo_premium');
+      // Set flag to prevent auto-login on next page load
+      localStorage.setItem('logged_out', 'true');
       setUser(null);
       setSubscriptionStatus(null);
-      localStorage.removeItem('demo_premium');
       setIsLoading(false);
     }
   };

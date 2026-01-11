@@ -1,8 +1,9 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MatchCard } from '@/components/MatchCard';
 import { useCurrentSmartCombo } from '@/hooks/useSmartCombo';
 import { useSmartComboPredictions } from '@/hooks/usePredictions';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface SmartComboProps {
   isPremium?: boolean;
@@ -10,13 +11,18 @@ interface SmartComboProps {
 
 export function SmartCombo({ isPremium = false }: SmartComboProps) {
   const navigate = useNavigate();
+  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
 
   // Fetch combo metadata and fixture details from /smart-combos/current
+  // Only fetch when authenticated since the API requires auth
   const {
     data: comboResponse,
     isLoading: isLoadingCombo,
     error: comboError,
-  } = useCurrentSmartCombo();
+    refetch: refetchCombo,
+  } = useCurrentSmartCombo({
+    enabled: isAuthenticated,
+  });
 
   const combo = comboResponse?.data?.combo;
   const fixtures = comboResponse?.data?.fixtures || [];
@@ -26,6 +32,7 @@ export function SmartCombo({ isPremium = false }: SmartComboProps) {
   const {
     data: predictionsResponse,
     isLoading: isLoadingPredictions,
+    refetch: refetchPredictions,
   } = useSmartComboPredictions(
     {
       combo_id: combo?.combo_id,
@@ -34,9 +41,19 @@ export function SmartCombo({ isPremium = false }: SmartComboProps) {
       limit: 50,
     },
     {
-      enabled: !!combo?.combo_id,
+      enabled: !!combo?.combo_id && isAuthenticated,
     }
   );
+
+  // Refetch data when authentication state changes
+  useEffect(() => {
+    if (isAuthenticated) {
+      refetchCombo();
+      if (combo?.combo_id) {
+        refetchPredictions();
+      }
+    }
+  }, [isAuthenticated]);
 
   // Get the sorted predictions and group by fixture_id
   const sortedPredictions = predictionsResponse?.data?.predictions || [];
@@ -113,7 +130,7 @@ export function SmartCombo({ isPremium = false }: SmartComboProps) {
 
 
   // Loading state
-  if (isLoadingCombo || isLoadingPredictions) {
+  if (isAuthLoading || isLoadingCombo || isLoadingPredictions) {
     return (
       <div className="w-[358px] md:w-[460px] mx-auto md:mx-0">
         <div
@@ -189,8 +206,8 @@ export function SmartCombo({ isPremium = false }: SmartComboProps) {
     );
   }
 
-  // Error state
-  if (comboError) {
+  // Error state (only show if authenticated - unauthenticated has its own state)
+  if (comboError && isAuthenticated) {
     return (
       <div className="w-[358px] md:w-[460px] mx-auto md:mx-0">
         <div
@@ -203,6 +220,32 @@ export function SmartCombo({ isPremium = false }: SmartComboProps) {
           <div className="bg-white rounded-xl w-[342px] md:w-[444px] mx-auto mb-[3px] p-8 text-center">
             <p className="text-red-500 font-medium">Failed to load Smart Combo</p>
             <p className="text-gray-500 text-sm mt-1">Please try again later</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Unauthenticated state - show login prompt
+  if (!isAuthenticated && !isLoadingCombo) {
+    return (
+      <div className="w-[358px] md:w-[460px] mx-auto md:mx-0">
+        <div
+          className="rounded-2xl overflow-hidden shadow-lg p-[3px]"
+          style={{ backgroundImage: 'linear-gradient(180deg, rgba(9, 17, 67, 0) 0%, rgba(9, 17, 67, 1) 100%), linear-gradient(0deg, rgba(13, 26, 103, 0.55) 0%, rgba(13, 26, 103, 0.55) 100%)', backgroundColor: '#0d1a67' }}
+        >
+          <div className="text-white px-4 py-3">
+            <h2 className="text-[18px] md:text-[22px] font-semibold" style={{ fontFamily: 'Montserrat, sans-serif' }}>Smart Combo</h2>
+          </div>
+          <div className="bg-white rounded-xl w-[342px] md:w-[444px] mx-auto mb-[3px] p-6 text-center">
+            <div className="w-12 h-12 mx-auto mb-3 bg-[#091143]/10 rounded-full flex items-center justify-center">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#091143" strokeWidth="1.5">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+            </div>
+            <p className="text-gray-900 font-medium text-sm mb-1">Login to View</p>
+            <p className="text-gray-500 text-xs">Access expert predictions</p>
           </div>
         </div>
       </div>

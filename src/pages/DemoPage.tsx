@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { MatchCard } from '@/components/MatchCard';
 import { SmartCombo } from '@/components/SmartCombo';
 import { Pagination } from '@/components/Pagination';
@@ -7,23 +7,24 @@ import { LiveMatchBanner } from '@/components/LiveMatchBanner';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { ApiDebugInfo } from '@/components/ApiDebugInfo';
+import { Calendar } from '@/components/ui/Calendar';
+import { FilterPanel } from '@/components/ui/FilterPanel';
 import { useFixtures } from '@/hooks/useFixtures';
 import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
 import { MatchCardSkeleton } from '@/components/ui/skeletons/MatchCardSkeleton';
 import { fixtureToMatchCard } from '@/lib/transformers';
-import { TEST_CREDENTIALS, DEFAULTS } from '@/config/defaults';
+import { DEFAULTS } from '@/config/defaults';
 import { COLORS } from '@/config/theme';
 
 export function DemoPage() {
-  const { user, isAuthenticated, login, logout, error: authError, hasAccess } = useAuth();
-  const [loginLoading, setLoginLoading] = useState(false);
+  const { hasAccess, isAuthenticated } = useAuth();
   const [currentPage, setCurrentPage] = useState(1);
-  const [showAuthPanel, setShowAuthPanel] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
   const itemsPerPage = DEFAULTS.ITEMS_PER_PAGE;
 
   // First fetch to get all fixture_ids
-  const { data: initialResponse, isLoading: isLoadingInitial, error } = useFixtures({
+  const { data: initialResponse, isLoading: isLoadingInitial, error, refetch: refetchInitial } = useFixtures({
     sort_by: 'kickoff_asc',
   });
 
@@ -39,7 +40,7 @@ export function DemoPage() {
   }, [allFixtureIds, currentPage, itemsPerPage]);
 
   // Fetch fixtures for current page by IDs
-  const { data: fixturesResponse, isLoading: isLoadingPage, refetch } = useFixtures(
+  const { data: fixturesResponse, isLoading: isLoadingPage, refetch: refetchPage } = useFixtures(
     {
       fixture_ids: pageFixtureIds.length > 0 ? pageFixtureIds : undefined,
       sort_by: 'kickoff_asc',
@@ -56,39 +57,15 @@ export function DemoPage() {
 
   const isLoading = isLoadingInitial || (currentPage > 1 && isLoadingPage && pageFixtureIds.length > 0);
 
-  // Login handlers
-  const handleFreeLogin = async () => {
-    setLoginLoading(true);
-    try {
-      await login(TEST_CREDENTIALS.FREE);
-      await refetch();
-    } catch (err) {
-      console.error('Free login failed:', err);
-    } finally {
-      setLoginLoading(false);
+  // Refetch fixtures when authentication state changes
+  useEffect(() => {
+    if (isAuthenticated) {
+      refetchInitial();
+      if (pageFixtureIds.length > 0) {
+        refetchPage();
+      }
     }
-  };
-
-  const handlePremiumLogin = async () => {
-    setLoginLoading(true);
-    try {
-      await login(TEST_CREDENTIALS.PREMIUM);
-      await refetch();
-    } catch (err) {
-      console.error('Premium login failed:', err);
-    } finally {
-      setLoginLoading(false);
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-      await refetch();
-    } catch (err) {
-      console.error('Logout failed:', err);
-    }
-  };
+  }, [isAuthenticated, refetchInitial, refetchPage, pageFixtureIds.length]);
 
   // Check if user is premium - use hasAccess() which checks both subscriptionStatus and demo_premium flag
   const isPremium = hasAccess();
@@ -220,69 +197,6 @@ export function DemoPage() {
       {/* Header */}
       <Header />
 
-      {/* Auth Toggle Button - Fixed Position */}
-      <button
-        onClick={() => setShowAuthPanel(!showAuthPanel)}
-        className="fixed top-4 right-4 z-50 bg-white shadow-lg rounded-full p-3 hover:bg-gray-50 transition-colors"
-        title={isAuthenticated ? `Logged in as ${user?.email}` : 'Login'}
-      >
-        {isAuthenticated ? (
-          <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-          </div>
-        ) : (
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-            <circle cx="12" cy="7" r="4" />
-          </svg>
-        )}
-      </button>
-
-      {/* Auth Panel - Slide Out */}
-      {showAuthPanel && (
-        <div className="fixed top-16 right-4 z-40 w-80 bg-white rounded-xl shadow-2xl border border-gray-100 p-4">
-          {isAuthenticated ? (
-            <div className="space-y-3">
-              <div className="text-sm text-gray-600">
-                Logged in as: <span className="font-medium text-gray-900">{user?.email}</span>
-              </div>
-              <div className="text-xs text-gray-500">
-                Status: <span className={isPremium ? 'text-green-600' : 'text-gray-600'}>{isPremium ? 'Premium' : 'Free'}</span>
-              </div>
-              <Button
-                onClick={handleLogout}
-                className="w-full bg-red-500 hover:bg-red-600 text-white text-sm"
-              >
-                Logout
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="text-sm font-medium text-gray-900 mb-2">Test Accounts</div>
-              <Button
-                onClick={handleFreeLogin}
-                disabled={loginLoading}
-                className="w-full bg-gray-600 hover:bg-gray-700 text-white text-sm"
-              >
-                {loginLoading ? 'Loading...' : 'Login as Free User'}
-              </Button>
-              <Button
-                onClick={handlePremiumLogin}
-                disabled={loginLoading}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm"
-              >
-                {loginLoading ? 'Loading...' : 'Login as Premium User'}
-              </Button>
-              {authError && (
-                <div className="text-xs text-red-500 mt-2">{authError}</div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
       <div className="mx-auto px-6 md:px-0 py-8 flex flex-col items-center">
         {/* Live Match Banner - Full Width */}
         <div className="w-full mb-8 md:w-[1440px]">
@@ -313,16 +227,34 @@ export function DemoPage() {
                   />
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                {/* Calendar Button */}
-                <button className="w-[40px] h-[40px] rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors flex items-center justify-center">
-                  <img src="/Calendar.svg" alt="Calendar" className="w-[20px] h-[20px]" />
-                </button>
+              <div className="flex items-center gap-3 relative">
+                {/* Calendar - display only, no effect on data */}
+                <Calendar
+                  selectedDate={selectedDate}
+                  onDateSelect={setSelectedDate}
+                />
                 {/* Filter Button */}
-                <button className="w-[80px] h-[40px] rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors flex items-center justify-center gap-2 text-gray-700 text-sm font-medium">
+                <button
+                  onClick={() => setShowFilterPanel(!showFilterPanel)}
+                  className={`w-[80px] h-[40px] rounded-lg transition-colors flex items-center justify-center gap-2 text-sm font-medium ${
+                    showFilterPanel
+                      ? 'bg-[#0d1a67] text-white'
+                      : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                  }`}
+                >
                   Filter
-                  <img src="/arrow-down.svg" alt="Arrow" className="w-[15px] h-auto" />
+                  <img
+                    src="/arrow-down.svg"
+                    alt="Arrow"
+                    className={`w-[15px] h-auto transition-transform ${showFilterPanel ? 'rotate-180 invert brightness-0' : ''}`}
+                    style={showFilterPanel ? { filter: 'invert(1)' } : {}}
+                  />
                 </button>
+                {/* Filter Panel */}
+                <FilterPanel
+                  isOpen={showFilterPanel}
+                  onClose={() => setShowFilterPanel(false)}
+                />
               </div>
             </div>
 

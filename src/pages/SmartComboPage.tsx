@@ -1,61 +1,32 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { TeamAvatar } from '@/components/ui/TeamAvatar';
-import { Button } from '@/components/ui/button';
+import { LoginModal } from '@/components/ui/LoginModal';
+import { RegisterModal } from '@/components/ui/RegisterModal';
 import { useCurrentSmartCombo } from '@/hooks/useSmartCombo';
 import { useSmartComboPredictions } from '@/hooks/usePredictions';
 import { useAuth } from '@/contexts/AuthContext';
-import { TEST_CREDENTIALS } from '@/config/defaults';
 
 export function SmartComboPage() {
   const navigate = useNavigate();
-  const { isAuthenticated, user, login, logout, error: authError, subscriptionStatus, hasAccess } = useAuth();
-  const [showAuthPanel, setShowAuthPanel] = useState(false);
-  const [loginLoading, setLoginLoading] = useState(false);
+  const { isAuthenticated, isLoading: isAuthLoading, subscriptionStatus, hasAccess } = useAuth();
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
 
   // Check premium status - use hasAccess() which checks both subscriptionStatus and demo_premium flag
   const isPremium = hasAccess();
 
-  // Login handlers
-  const handleFreeLogin = async () => {
-    setLoginLoading(true);
-    try {
-      await login(TEST_CREDENTIALS.FREE);
-    } catch (err) {
-      console.error('Free login failed:', err);
-    } finally {
-      setLoginLoading(false);
-    }
-  };
-
-  const handlePremiumLogin = async () => {
-    setLoginLoading(true);
-    try {
-      await login(TEST_CREDENTIALS.PREMIUM);
-    } catch (err) {
-      console.error('Premium login failed:', err);
-    } finally {
-      setLoginLoading(false);
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (err) {
-      console.error('Logout failed:', err);
-    }
-  };
-
-  // Fetch combo metadata and fixture details
+  // Fetch combo metadata and fixture details - only when authenticated
   const {
     data: comboResponse,
     isLoading: isLoadingCombo,
     error: comboError,
     refetch: refetchCombo,
-  } = useCurrentSmartCombo();
+  } = useCurrentSmartCombo({
+    enabled: isAuthenticated, // Only fetch when authenticated
+  });
 
   const combo = comboResponse?.data?.combo;
   const fixtures = comboResponse?.data?.fixtures || [];
@@ -93,7 +64,7 @@ export function SmartComboPage() {
     ? Math.round(combo.previous_week_combo_accuracy)
     : 85;
 
-  const isLoading = isLoadingCombo || isLoadingPredictions;
+  const isLoading = isAuthLoading || isLoadingCombo || isLoadingPredictions;
 
   // Refetch data when auth state changes
   useEffect(() => {
@@ -107,201 +78,202 @@ export function SmartComboPage() {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header currentPage="smart-combo" />
 
-      {/* Auth Toggle Button - Fixed Position */}
-      <button
-        onClick={() => setShowAuthPanel(!showAuthPanel)}
-        className="fixed top-4 right-4 z-50 bg-white shadow-lg rounded-full p-3 hover:bg-gray-50 transition-colors"
-        title={isAuthenticated ? `Logged in as ${user?.email}` : 'Login'}
-      >
-        {isAuthenticated ? (
-          <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-          </div>
-        ) : (
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-            <circle cx="12" cy="7" r="4" />
-          </svg>
-        )}
-      </button>
-
-      {/* Auth Panel - Slide Out */}
-      {showAuthPanel && (
-        <div className="fixed top-16 right-4 z-40 w-80 bg-white rounded-xl shadow-2xl border border-gray-100 p-4">
-          {isAuthenticated ? (
-            <div className="space-y-3">
-              <div className="text-sm text-gray-600">
-                Logged in as: <span className="font-medium text-gray-900">{user?.email}</span>
-              </div>
-              <div className="text-xs text-gray-500">
-                Status: <span className={isPremium ? 'text-green-600' : 'text-gray-600'}>{isPremium ? 'Premium' : 'Free'}</span>
-              </div>
-              <Button
-                onClick={handleLogout}
-                className="w-full bg-red-500 hover:bg-red-600 text-white text-sm"
-              >
-                Logout
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="text-sm font-medium text-gray-900 mb-2">Test Accounts</div>
-              <Button
-                onClick={handleFreeLogin}
-                disabled={loginLoading}
-                className="w-full bg-gray-600 hover:bg-gray-700 text-white text-sm"
-              >
-                {loginLoading ? 'Loading...' : 'Login as Free User'}
-              </Button>
-              <Button
-                onClick={handlePremiumLogin}
-                disabled={loginLoading}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm"
-              >
-                {loginLoading ? 'Loading...' : 'Login as Premium User'}
-              </Button>
-              {authError && (
-                <div className="text-xs text-red-500 mt-2">{authError}</div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
       <main className="flex-1">
-        <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-4 md:py-8">
-          {/* Main Card Container - Same style as SmartCombo component */}
+        <div className="max-w-[1440px] mx-auto px-4 md:px-0 py-4 md:py-8">
+          {/* Main Card Container - Figma: 1440x820, 30px corner radius, gradient border (bottom-left to top-right) */}
           <div
-            className="rounded-2xl overflow-hidden shadow-lg"
-            style={{ background: 'linear-gradient(to top right, #091143 65%, #11207f 100%)' }}
+            className="rounded-[30px] overflow-hidden shadow-lg p-[12px]"
+            style={{
+              background: 'linear-gradient(to top right, #091143 0%, #172ba9 100%)',
+            }}
           >
-            {/* Header Section */}
-            <div className="p-4 md:px-6 md:py-4 text-white">
-              {/* Title Row with Stats on right (desktop) */}
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0">
-                <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-3">
-                  <h1 className="text-lg md:text-2xl font-bold">This Week's Smart Combo</h1>
-                  <div className="flex items-center gap-2">
-                    <span className="flex items-center gap-1 md:gap-1.5 bg-yellow-500/20 text-yellow-400 px-2 md:px-3 py-1 rounded-full text-xs md:text-sm font-medium">
-                      <img src="/icon-trusted-pick.svg" alt="" className="w-3 h-3 md:w-4 md:h-4" /> Trusted Pick
-                    </span>
-                    <span className="flex items-center gap-1 md:gap-1.5 bg-blue-500/20 text-blue-400 px-2 md:px-3 py-1 rounded-full text-xs md:text-sm font-medium">
-                      <img src="/icon-safe-pick.svg" alt="" className="w-3 h-3 md:w-4 md:h-4" /> Safe Pick
-                    </span>
+          {/* Inner content with same gradient background */}
+          <div
+            className="rounded-[18px] overflow-hidden"
+            style={{
+              background: 'linear-gradient(to top right, #091143 0%, #172ba9 100%)',
+            }}
+          >
+            {/* Header Section - Figma: horizontal layout with space-between */}
+            <div className="px-[18px] py-[18px] text-white">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                {/* Left Side - Title, Badges, and Accuracy */}
+                <div className="flex flex-col gap-[10px]" style={{ maxWidth: '570px' }}>
+                  {/* Title Row with Badges */}
+                  <div className="flex flex-wrap items-center gap-3 md:gap-5">
+                    <h1
+                      className="text-lg md:text-[22px] font-semibold leading-[130%]"
+                      style={{ fontFamily: 'Montserrat, sans-serif' }}
+                    >
+                      This Week's Smart Combo
+                    </h1>
+                    <div className="flex items-center gap-[10px]">
+                      {/* Trusted Pick Badge */}
+                      <span
+                        className="flex items-center gap-[6px] bg-white/10 px-[10px] py-[6px] rounded-full text-[14px] font-medium"
+                        style={{ fontFamily: 'Montserrat, sans-serif' }}
+                      >
+                        <img src="/icon-trusted-pick.svg" alt="" className="w-[18px] h-[18px]" />
+                        Trusted Pick
+                      </span>
+                      {/* Safe Pick Badge */}
+                      <span
+                        className="flex items-center gap-[6px] bg-white/10 px-[10px] py-[6px] rounded-full text-[14px] font-medium"
+                        style={{ fontFamily: 'Montserrat, sans-serif' }}
+                      >
+                        <img src="/icon-safe-pick.svg" alt="" className="w-[18px] h-[18px]" />
+                        Safe Pick
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Accuracy Circle and Text */}
+                  <div className="flex items-center gap-[10px]">
+                    {/* Circular Progress - 60x60, strokeAlign INSIDE means radius should be (60-5.5)/2 = 27.25 */}
+                    <div className="relative w-[60px] h-[60px] shrink-0">
+                      <svg className="w-[60px] h-[60px] transform -rotate-90">
+                        {/* Background circle - #253076 */}
+                        <circle
+                          cx="30"
+                          cy="30"
+                          r="27.25"
+                          stroke="#253076"
+                          strokeWidth="5.5"
+                          fill="none"
+                        />
+                        {/* Progress circle - #27ae60 */}
+                        <circle
+                          cx="30"
+                          cy="30"
+                          r="27.25"
+                          stroke="#27ae60"
+                          strokeWidth="5.5"
+                          fill="none"
+                          strokeDasharray={`${(accuracy / 100) * (2 * Math.PI * 27.25)} ${2 * Math.PI * 27.25}`}
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span
+                          className="text-white font-semibold text-[18px]"
+                          style={{ fontFamily: 'Montserrat, sans-serif' }}
+                        >
+                          {accuracy}%
+                        </span>
+                      </div>
+                    </div>
+                    {/* Accuracy Text */}
+                    <div className="flex flex-col gap-[4px]">
+                      <p
+                        className="text-white font-semibold text-[18px]"
+                        style={{ fontFamily: 'Montserrat, sans-serif' }}
+                      >
+                        Last Week Accuracy
+                      </p>
+                      <p
+                        className="text-[#a6aebb] text-[14px] font-medium leading-[20px]"
+                        style={{ fontFamily: 'Montserrat, sans-serif' }}
+                      >
+                        Consistently delivering winning predictions
+                      </p>
+                    </div>
                   </div>
                 </div>
 
-                {/* Stats Badges - Desktop only, smaller and inline with title */}
-                <div className="hidden md:flex items-center gap-2">
-                  <div className="bg-[#1a2555] rounded-xl px-3 py-1.5 text-center min-w-[70px]">
-                    <div className="flex items-center justify-center mb-0.5">
-                      <img src="/icon-success.svg" alt="Success Rate" className="w-7 h-7" />
-                    </div>
-                    <p className="text-white font-bold text-sm">{combo?.confidence ? Math.round(combo.confidence) : 87}%</p>
-                    <p className="text-white/60 text-[10px]">Success</p>
+                {/* Right Side - Stats Boxes (Desktop: 4 boxes in row, Mobile: 4 column grid) */}
+                <div className="grid grid-cols-4 gap-3 md:gap-5">
+                  {/* Success Rate */}
+                  <div
+                    className="bg-[#0d1a67] rounded-[12px] p-[10px] flex flex-col items-center justify-center"
+                    style={{ width: '100px', height: '100px' }}
+                  >
+                    <img src="/icon-success.svg" alt="Success Rate" className="w-[34px] h-[34px] mb-[6px]" />
+                    <p
+                      className="text-white font-semibold text-[16px] leading-[150%]"
+                      style={{ fontFamily: 'Montserrat, sans-serif' }}
+                    >
+                      {combo?.confidence ? Math.round(combo.confidence) : 87}%
+                    </p>
+                    <p
+                      className="text-[#a6aebb] text-[12px] font-medium"
+                      style={{ fontFamily: 'Montserrat, sans-serif' }}
+                    >
+                      Success Rate
+                    </p>
                   </div>
-                  <div className="bg-[#1a2555] rounded-xl px-3 py-1.5 text-center min-w-[70px]">
-                    <div className="flex items-center justify-center mb-0.5">
-                      <img src="/icon-proven.svg" alt="Proven" className="w-7 h-7" />
-                    </div>
-                    <p className="text-white font-bold text-sm">Proven</p>
-                    <p className="text-white/60 text-[10px]">Record</p>
+                  {/* Proven Track Record */}
+                  <div
+                    className="bg-[#0d1a67] rounded-[12px] p-[10px] flex flex-col items-center justify-center"
+                    style={{ width: '100px', height: '100px' }}
+                  >
+                    <img src="/icon-proven.svg" alt="Proven" className="w-[34px] h-[34px] mb-[6px]" />
+                    <p
+                      className="text-white font-semibold text-[16px] leading-[150%]"
+                      style={{ fontFamily: 'Montserrat, sans-serif' }}
+                    >
+                      Proven
+                    </p>
+                    <p
+                      className="text-[#a6aebb] text-[12px] font-medium"
+                      style={{ fontFamily: 'Montserrat, sans-serif' }}
+                    >
+                      Track Record
+                    </p>
                   </div>
-                  <div className="bg-[#1a2555] rounded-xl px-3 py-1.5 text-center min-w-[70px]">
-                    <div className="flex items-center justify-center mb-0.5">
-                      <img src="/icon-expert.svg" alt="Expert" className="w-7 h-7" />
-                    </div>
-                    <p className="text-white font-bold text-sm">Expert</p>
-                    <p className="text-white/60 text-[10px]">Analysis</p>
+                  {/* Expert Analysis */}
+                  <div
+                    className="bg-[#0d1a67] rounded-[12px] p-[10px] flex flex-col items-center justify-center"
+                    style={{ width: '100px', height: '100px' }}
+                  >
+                    <img src="/icon-expert.svg" alt="Expert" className="w-[34px] h-[34px] mb-[6px]" />
+                    <p
+                      className="text-white font-semibold text-[16px] leading-[150%]"
+                      style={{ fontFamily: 'Montserrat, sans-serif' }}
+                    >
+                      Expert
+                    </p>
+                    <p
+                      className="text-[#a6aebb] text-[12px] font-medium"
+                      style={{ fontFamily: 'Montserrat, sans-serif' }}
+                    >
+                      Analysis
+                    </p>
                   </div>
-                  <div className="bg-[#1a2555] rounded-xl px-3 py-1.5 text-center min-w-[70px]">
-                    <div className="flex items-center justify-center mb-0.5">
-                      <img src="/icon-global.svg" alt="Global" className="w-7 h-7" />
-                    </div>
-                    <p className="text-white font-bold text-sm">Global</p>
-                    <p className="text-white/60 text-[10px]">Coverage</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Stats Row - Accuracy on left (desktop), full row on mobile */}
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between mt-3 gap-4">
-                {/* Accuracy Circle */}
-                <div className="flex items-center gap-3 md:gap-4">
-                  <div className="relative w-14 h-14 md:w-14 md:h-14 shrink-0">
-                    <svg className="w-14 h-14 transform -rotate-90">
-                      <circle
-                        cx="50%"
-                        cy="50%"
-                        r="24"
-                        stroke="rgba(255,255,255,0.2)"
-                        strokeWidth="4"
-                        fill="none"
-                      />
-                      <circle
-                        cx="50%"
-                        cy="50%"
-                        r="24"
-                        stroke="#22c55e"
-                        strokeWidth="4"
-                        fill="none"
-                        strokeDasharray={`${(accuracy / 100) * 151} 151`}
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-white font-bold text-base">{accuracy}%</span>
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-white font-semibold text-sm md:text-base">Last Week Accuracy</p>
-                    <p className="text-white/60 text-xs md:text-sm">Consistently delivering winning predictions</p>
-                  </div>
-                </div>
-
-                {/* Mobile Stats Badges - 4 column grid */}
-                <div className="grid grid-cols-4 gap-2 md:hidden">
-                  <div className="bg-[#1a2555] rounded-xl px-2 py-2 text-center">
-                    <div className="flex items-center justify-center mb-0.5">
-                      <img src="/icon-success.svg" alt="Success Rate" className="w-6 h-6" />
-                    </div>
-                    <p className="text-white font-bold text-sm">{combo?.confidence ? Math.round(combo.confidence) : 87}%</p>
-                    <p className="text-white/60 text-[10px]">Success</p>
-                  </div>
-                  <div className="bg-[#1a2555] rounded-xl px-2 py-2 text-center">
-                    <div className="flex items-center justify-center mb-0.5">
-                      <img src="/icon-proven.svg" alt="Proven" className="w-6 h-6" />
-                    </div>
-                    <p className="text-white font-bold text-sm">Proven</p>
-                    <p className="text-white/60 text-[10px]">Record</p>
-                  </div>
-                  <div className="bg-[#1a2555] rounded-xl px-2 py-2 text-center">
-                    <div className="flex items-center justify-center mb-0.5">
-                      <img src="/icon-expert.svg" alt="Expert" className="w-6 h-6" />
-                    </div>
-                    <p className="text-white font-bold text-sm">Expert</p>
-                    <p className="text-white/60 text-[10px]">Analysis</p>
-                  </div>
-                  <div className="bg-[#1a2555] rounded-xl px-2 py-2 text-center">
-                    <div className="flex items-center justify-center mb-0.5">
-                      <img src="/icon-global.svg" alt="Global" className="w-6 h-6" />
-                    </div>
-                    <p className="text-white font-bold text-sm">Global</p>
-                    <p className="text-white/60 text-[10px]">Coverage</p>
+                  {/* Global Coverage */}
+                  <div
+                    className="bg-[#0d1a67] rounded-[12px] p-[10px] flex flex-col items-center justify-center"
+                    style={{ width: '100px', height: '100px' }}
+                  >
+                    <img src="/icon-global.svg" alt="Global" className="w-[34px] h-[34px] mb-[6px]" />
+                    <p
+                      className="text-white font-semibold text-[16px] leading-[150%]"
+                      style={{ fontFamily: 'Montserrat, sans-serif' }}
+                    >
+                      Global
+                    </p>
+                    <p
+                      className="text-[#a6aebb] text-[12px] font-medium"
+                      style={{ fontFamily: 'Montserrat, sans-serif' }}
+                    >
+                      Coverage
+                    </p>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* White Content Area */}
-            <div className="bg-white rounded-t-2xl">
-              {/* Combo Overview Header */}
+            {/* White Content Area - Figma: 30px rounded corners to match outer container */}
+            <div className="bg-white rounded-[30px]">
+              {/* Combo Overview Header - Figma: space-between, 29px height */}
               <div className="flex items-center justify-between px-4 md:px-6 pt-4">
-                <h2 className="text-xl md:text-3xl font-semibold text-gray-900">Combo Overview</h2>
+                <h2
+                  className="text-[18px] md:text-[22px] font-semibold text-[#0a0a0a] leading-[130%]"
+                  style={{ fontFamily: 'Montserrat, sans-serif' }}
+                >
+                  Combo Overview
+                </h2>
                 <button className="text-gray-400 hover:text-gray-600">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                     <circle cx="12" cy="12" r="10" />
                     <line x1="12" y1="16" x2="12" y2="12" />
                     <line x1="12" y1="8" x2="12.01" y2="8" />
@@ -335,7 +307,7 @@ export function SmartComboPage() {
               )}
 
               {/* Error State */}
-              {comboError && !isLoading && (
+              {comboError && !isLoading && isAuthenticated && (
                 <div className="p-12 text-center">
                   <img src="/404.svg" alt="Error" className="w-32 h-32 mx-auto mb-6 opacity-60" />
                   <p className="text-gray-500 font-medium text-lg">Failed to load Smart Combo</p>
@@ -348,8 +320,38 @@ export function SmartComboPage() {
                 </div>
               )}
 
+              {/* Unauthenticated State - Prompt to login */}
+              {!isLoading && !isAuthenticated && (
+                <div className="p-12 text-center">
+                  <div className="w-20 h-20 mx-auto mb-6 bg-[#091143]/10 rounded-full flex items-center justify-center">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#091143" strokeWidth="1.5">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                  </div>
+                  <p className="text-gray-900 font-semibold text-xl mb-2">Login to View Smart Combo</p>
+                  <p className="text-gray-500 text-sm mb-6 max-w-md mx-auto">
+                    Access our expert predictions and weekly smart combos by logging in to your account.
+                  </p>
+                  <div className="flex items-center justify-center gap-3">
+                    <button
+                      onClick={() => setShowLoginModal(true)}
+                      className="px-6 py-2.5 bg-[#091143] text-white rounded-lg hover:bg-[#11207f] transition-colors font-medium"
+                    >
+                      Login
+                    </button>
+                    <button
+                      onClick={() => setShowRegisterModal(true)}
+                      className="px-6 py-2.5 border border-[#091143] text-[#091143] rounded-lg hover:bg-[#091143]/5 transition-colors font-medium"
+                    >
+                      Create Account
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Empty State */}
-              {!isLoading && !comboError && fixtures.length === 0 && (
+              {!isLoading && !comboError && isAuthenticated && fixtures.length === 0 && (
                 <div className="p-12 text-center">
                   <img src="/404.svg" alt="No combo" className="w-32 h-32 mx-auto mb-6 opacity-60" />
                   <p className="text-gray-500 font-medium text-lg">No Smart Combo available</p>
@@ -382,47 +384,87 @@ export function SmartComboPage() {
                     return (
                       <div
                         key={fixture.fixture_id}
-                        className={`border-2 border-dashed border-gray-300 rounded-xl p-3 md:p-5 hover:border-[#091143]/30 transition-colors ${isFixtureBlurred ? 'relative' : ''}`}
+                        className={`border border-[#e1e4eb] rounded-[20px] p-[14px] md:p-5 hover:border-[#091143]/30 transition-colors ${isFixtureBlurred ? 'select-none pointer-events-none' : ''}`}
+                        style={isFixtureBlurred ? { filter: 'blur(10px)' } : {}}
                       >
-                        {/* Blur overlay for non-first fixtures (free users) */}
-                        {isFixtureBlurred && (
-                          <div className="absolute inset-0 backdrop-blur-[6px] bg-white/50 z-10 rounded-xl" />
-                        )}
-                        {/* Match Header */}
-                        <div className="flex items-center justify-between mb-3 md:mb-4">
-                          {/* Home Team */}
-                          <div className="flex items-center gap-2 md:gap-3">
-                            <TeamAvatar
-                              logo={homeTeamLogo}
-                              name={fixture.home_team_name || 'Home'}
-                              shortName={fixture.home_team_name?.slice(0, 3).toUpperCase() || 'HOM'}
-                              size="md"
-                            />
-                            <span className="font-bold text-gray-900 text-sm md:text-lg">
+                        {/* League Name - Figma: 1360x20, centered, 14px Montserrat Medium #7c8a9c */}
+                        <div className="text-center">
+                          <span
+                            className="text-[12px] md:text-[14px] font-medium text-[#7c8a9c] leading-[20px]"
+                            style={{ fontFamily: 'Montserrat, sans-serif' }}
+                          >
+                            {fixture.league_name || 'International'}
+                          </span>
+                        </div>
+
+                        {/* Match Header - Figma: 1360x60, space-between, px-[20px], gap-[40px] */}
+                        <div className="flex items-center justify-between mb-3 md:mb-4 md:px-[20px]">
+                          {/* Home Team - Figma: gap 6px */}
+                          <div className="flex items-center gap-[6px]">
+                            <div className="w-[40px] h-[40px] md:w-[60px] md:h-[60px] shrink-0">
+                              {homeTeamLogo ? (
+                                <img
+                                  src={homeTeamLogo}
+                                  alt={fixture.home_team_name || 'Home'}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <TeamAvatar
+                                  logo={homeTeamLogo}
+                                  name={fixture.home_team_name || 'Home'}
+                                  shortName={fixture.home_team_name?.slice(0, 3).toUpperCase() || 'HOM'}
+                                  size="md"
+                                />
+                              )}
+                            </div>
+                            <span
+                              className="text-[14px] md:text-[16px] font-semibold text-[#0a0a0a] leading-[24px]"
+                              style={{ fontFamily: 'Montserrat, sans-serif' }}
+                            >
                               {fixture.home_team_name?.slice(0, 3).toUpperCase() || 'HOM'}
                             </span>
                           </div>
 
-                          {/* Center - Competition, Time */}
-                          <div className="flex flex-col items-center px-2">
-                            <span className="text-gray-400 text-[10px] md:text-xs font-medium mb-0.5 md:mb-1 text-center line-clamp-1">
-                              {fixture.league_name || 'International'}
+                          {/* Center - Time - Figma: 76px wide, vertical layout */}
+                          <div className="flex flex-col items-center w-[60px] md:w-[76px]">
+                            <span
+                              className="text-[14px] md:text-[18px] font-semibold text-[#0a0a0a]"
+                              style={{ fontFamily: 'Montserrat, sans-serif' }}
+                            >
+                              {kickoffTime}
                             </span>
-                            <span className="font-bold text-gray-900 text-base md:text-xl">{kickoffTime}</span>
-                            <span className="text-gray-400 text-[10px] md:text-xs font-medium">TODAY</span>
+                            <span
+                              className="text-[12px] md:text-[14px] font-medium text-[#7c8a9c] leading-[20px]"
+                              style={{ fontFamily: 'Montserrat, sans-serif' }}
+                            >
+                              TODAY
+                            </span>
                           </div>
 
-                          {/* Away Team */}
-                          <div className="flex items-center gap-2 md:gap-3">
-                            <span className="font-bold text-gray-900 text-sm md:text-lg">
+                          {/* Away Team - Figma: gap 6px, right aligned */}
+                          <div className="flex items-center gap-[6px]">
+                            <span
+                              className="text-[14px] md:text-[16px] font-semibold text-[#0a0a0a] leading-[24px]"
+                              style={{ fontFamily: 'Montserrat, sans-serif' }}
+                            >
                               {fixture.away_team_name?.slice(0, 3).toUpperCase() || 'AWY'}
                             </span>
-                            <TeamAvatar
-                              logo={awayTeamLogo}
-                              name={fixture.away_team_name || 'Away'}
-                              shortName={fixture.away_team_name?.slice(0, 3).toUpperCase() || 'AWY'}
-                              size="md"
-                            />
+                            <div className="w-[40px] h-[40px] md:w-[60px] md:h-[60px] shrink-0">
+                              {awayTeamLogo ? (
+                                <img
+                                  src={awayTeamLogo}
+                                  alt={fixture.away_team_name || 'Away'}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <TeamAvatar
+                                  logo={awayTeamLogo}
+                                  name={fixture.away_team_name || 'Away'}
+                                  shortName={fixture.away_team_name?.slice(0, 3).toUpperCase() || 'AWY'}
+                                  size="md"
+                                />
+                              )}
+                            </div>
                           </div>
                         </div>
 
@@ -432,59 +474,121 @@ export function SmartComboPage() {
                             // For free users: blur predictions after the first one (only in first fixture)
                             const isPredictionBlurred = !isPremium && fixtureIndex === 0 && idx > 0;
                             const percentage = Math.round(pred.prediction || pred.pre_game_prediction);
+                            const preGamePercentage = Math.round(pred.pre_game_prediction || 0);
+                            const category = pred.prediction_category || 'Goals';
+                            const predType = pred.prediction_type === 'player' ? 'Player' : 'Match';
 
                             return (
                               <div
                                 key={pred.prediction_id}
-                                className={`border border-gray-200 rounded-lg p-3 md:p-4 ${isPredictionBlurred ? 'relative overflow-hidden' : ''}`}
+                                className={`bg-white border border-[#e1e4eb] rounded-[16px] p-[16px] shadow-[0_2px_15px_rgba(0,0,0,0.1)] flex items-center gap-[20px] ${isPredictionBlurred ? 'select-none pointer-events-none' : ''}`}
+                                style={isPredictionBlurred ? { filter: 'blur(10px)' } : {}}
                               >
-                                {isPredictionBlurred && (
-                                  <div className="absolute inset-0 backdrop-blur-[6px] bg-white/50 z-10 flex items-center justify-center rounded-lg" />
-                                )}
+                                {/* Main Content */}
+                                <div className="flex-1 flex flex-col gap-[14px]">
+                                  {/* Prediction Name - Figma: 18px Montserrat Medium #0a0a0a */}
+                                  <span
+                                    className="text-[14px] md:text-[18px] font-medium text-[#0a0a0a] leading-[135%]"
+                                    style={{ fontFamily: 'Montserrat, sans-serif' }}
+                                  >
+                                    {pred.prediction_display_name}
+                                  </span>
 
-                                {/* Prediction Label & Trend */}
-                                <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-2 gap-1">
-                                  <span className="font-medium text-gray-900 text-sm md:text-base">{pred.prediction_display_name}</span>
-                                  <div className="flex items-center gap-1">
-                                    {pred.pct_change_value !== null && pred.pct_change_value !== undefined && (
-                                      <span className={`text-xs md:text-sm font-medium ${pred.pct_change_value >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                        {pred.pct_change_value >= 0 ? '↑' : '↓'} {Math.abs(pred.pct_change_value)}% in {pred.pct_change_interval || 13} min
+                                  {/* Progress Bar Row - Figma: horizontal layout, gap 40px */}
+                                  <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-[40px]">
+                                    {/* Progress Bar Section - flexible width to allow stats to fit */}
+                                    <div className="w-full md:w-auto md:min-w-[300px] md:flex-1 flex flex-col gap-[2px]">
+                                      {/* Progress Bar - Figma: 6px height, rounded-[100px], bg #27ae60/10 */}
+                                      <div className="w-full h-[6px] rounded-[100px]" style={{ backgroundColor: 'rgba(39, 174, 96, 0.1)' }}>
+                                        <div
+                                          className="h-[6px] rounded-[100px] transition-all duration-300"
+                                          style={{ width: `${percentage}%`, backgroundColor: '#27ae60' }}
+                                        />
+                                      </div>
+                                      {/* Percentage and Trend Row */}
+                                      <div className="flex items-center justify-between">
+                                        <span
+                                          className="text-[14px] font-semibold leading-[150%]"
+                                          style={{ fontFamily: 'Montserrat, sans-serif', color: '#27ae60' }}
+                                        >
+                                          {percentage}%
+                                        </span>
+                                        {pred.pct_change_value !== null && pred.pct_change_value !== undefined && (
+                                          <span
+                                            className="text-[12px] font-medium"
+                                            style={{ fontFamily: 'Montserrat, sans-serif', color: pred.pct_change_value >= 0 ? '#27ae60' : '#e74c3c' }}
+                                          >
+                                            {pred.pct_change_value >= 0 ? '↑' : '↓'} {Math.abs(pred.pct_change_value)}% in the last {pred.pct_change_interval || 13} min
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    {/* Divider - Hidden on mobile */}
+                                    <div className="hidden md:block w-[1px] h-[24px] bg-[#e1e4eb]" />
+
+                                    {/* Pre-game Prediction - Hidden on mobile */}
+                                    <div className="hidden md:flex items-center gap-[10px]">
+                                      <span
+                                        className="text-[14px] font-medium text-[#7c8a9c] leading-[20px]"
+                                        style={{ fontFamily: 'Montserrat, sans-serif' }}
+                                      >
+                                        Pre-game Prediction:
                                       </span>
-                                    )}
-                                    <button className="ml-1 md:ml-2 text-gray-400 hover:text-gray-600">
-                                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <polyline points="6 9 12 15 18 9" />
-                                      </svg>
-                                    </button>
+                                      <span
+                                        className="text-[16px] font-semibold leading-[24px]"
+                                        style={{ fontFamily: 'Montserrat, sans-serif', color: '#27ae60' }}
+                                      >
+                                        {preGamePercentage}%
+                                      </span>
+                                    </div>
+
+                                    {/* Divider - Hidden on mobile */}
+                                    <div className="hidden md:block w-[1px] h-[24px] bg-[#e1e4eb]" />
+
+                                    {/* Category - Hidden on mobile */}
+                                    <div className="hidden md:flex items-center gap-[10px]">
+                                      <span
+                                        className="text-[14px] font-medium text-[#7c8a9c] leading-[20px]"
+                                        style={{ fontFamily: 'Montserrat, sans-serif' }}
+                                      >
+                                        Category:
+                                      </span>
+                                      <span
+                                        className="text-[16px] font-semibold text-[#0a0a0a] leading-[24px]"
+                                        style={{ fontFamily: 'Montserrat, sans-serif' }}
+                                      >
+                                        {category}
+                                      </span>
+                                    </div>
+
+                                    {/* Divider - Hidden on mobile */}
+                                    <div className="hidden md:block w-[1px] h-[24px] bg-[#e1e4eb]" />
+
+                                    {/* Type - Hidden on mobile */}
+                                    <div className="hidden md:flex items-center gap-[10px]">
+                                      <span
+                                        className="text-[14px] font-medium text-[#7c8a9c] leading-[20px]"
+                                        style={{ fontFamily: 'Montserrat, sans-serif' }}
+                                      >
+                                        Type:
+                                      </span>
+                                      <span
+                                        className="text-[16px] font-semibold text-[#0a0a0a] leading-[24px]"
+                                        style={{ fontFamily: 'Montserrat, sans-serif' }}
+                                      >
+                                        {predType}
+                                      </span>
+                                    </div>
                                   </div>
                                 </div>
 
-                                {/* Progress Bar & Stats */}
-                                <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-6">
-                                  {/* Progress Bar */}
-                                  <div className="flex items-center gap-2 md:gap-3 flex-1">
-                                    <span className="text-green-500 font-bold text-base md:text-lg min-w-[40px] md:min-w-[48px]">{percentage}%</span>
-                                    <div className="flex-1 bg-gray-200 rounded-full h-2">
-                                      <div
-                                        className="bg-green-500 h-2 rounded-full transition-all duration-300"
-                                        style={{ width: `${percentage}%` }}
-                                      />
-                                    </div>
-                                  </div>
-
-                                  {/* Stats - Hidden on mobile */}
-                                  <div className="hidden md:flex items-center gap-6 text-sm">
-                                    <div className="text-gray-500">
-                                      Pre-game Prediction: <span className="text-green-500 font-medium">{Math.round(pred.pre_game_prediction)}%</span>
-                                    </div>
-                                    <div className="text-gray-500">
-                                      Category: <span className="text-gray-900 font-medium">Goals</span>
-                                    </div>
-                                    <div className="text-gray-500">
-                                      Type: <span className="text-gray-900 font-medium">Match</span>
-                                    </div>
-                                  </div>
-                                </div>
+                                {/* Down Arrow Icon - Figma: 24x24 */}
+                                <button className="text-[#7c8a9c] hover:text-[#0a0a0a] transition-colors shrink-0">
+                                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <polyline points="6 9 12 15 18 9" />
+                                  </svg>
+                                </button>
                               </div>
                             );
                           })}
@@ -496,6 +600,7 @@ export function SmartComboPage() {
               )}
 
             </div>
+          </div>
           </div>
 
           {/* Footer CTA - Separate box below main card */}
@@ -537,6 +642,26 @@ export function SmartComboPage() {
       </main>
 
       <Footer />
+
+      {/* Login Modal */}
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onSwitchToRegister={() => {
+          setShowLoginModal(false);
+          setShowRegisterModal(true);
+        }}
+      />
+
+      {/* Register Modal */}
+      <RegisterModal
+        isOpen={showRegisterModal}
+        onClose={() => setShowRegisterModal(false)}
+        onSwitchToLogin={() => {
+          setShowRegisterModal(false);
+          setShowLoginModal(true);
+        }}
+      />
     </div>
   );
 }

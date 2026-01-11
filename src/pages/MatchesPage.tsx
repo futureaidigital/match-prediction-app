@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { MatchCard } from '@/components/MatchCard';
+import { Calendar } from '@/components/ui/Calendar';
+import { FilterPanel, FilterValues } from '@/components/ui/FilterPanel';
 import { useFixtures } from '@/hooks/useFixtures';
 import { useLeagueNames } from '@/hooks/useLeagues';
 
@@ -261,6 +263,26 @@ function MobileBottomNav({ activeTab }: { activeTab: string }) {
 export function MatchesPage() {
   const [activeTab, setActiveTab] = useState<TabType>('all');
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
+
+  // Filter state
+  const [filterLeagues, setFilterLeagues] = useState<number[]>([]);
+  const [filterMatchStatus, setFilterMatchStatus] = useState<'all' | 'live' | 'upcoming' | 'finished'>('all');
+
+  // Handler for filter apply
+  const handleFilterApply = (filters: FilterValues) => {
+    setFilterLeagues(filters.leagues);
+    setFilterMatchStatus(filters.matchStatus);
+  };
+
+  // Current filter values for passing to FilterPanel
+  const currentFilters: FilterValues = {
+    leagues: filterLeagues,
+    matchStatus: filterMatchStatus,
+  };
+
+  // Check if any filters are active
+  const hasActiveFilters = filterLeagues.length > 0 || filterMatchStatus !== 'all';
 
   // Format date as YYYY-MM-DD for API (using local date, not UTC)
   const formatDateForApi = (date: Date) => {
@@ -270,22 +292,43 @@ export function MatchesPage() {
     return `${year}-${month}-${day}`;
   };
 
-  // Fetch fixtures for selected date
+  // Step 1: Fetch fixture IDs for selected date/filters
   // When on "live" tab, fetch live matches; otherwise fetch by date
-  const { data: fixturesResponse, isLoading } = useFixtures(
-    activeTab === 'live'
-      ? { match_type: 'live', sort_by: 'kickoff_asc' }
+  // Filter panel match_type overrides tab selection when not 'all'
+  const initialParams = {
+    ...(activeTab === 'live'
+      ? { match_type: 'live' as const }
       : {
           date_from: formatDateForApi(currentDate),
           date_to: formatDateForApi(currentDate),
-          sort_by: 'kickoff_asc',
-        }
+          ...(filterMatchStatus !== 'all' && { match_type: filterMatchStatus }),
+        }),
+    ...(filterLeagues.length > 0 && { leagues: filterLeagues }),
+    sort_by: 'kickoff_asc' as const,
+  };
+
+  const { data: initialResponse, isLoading: isLoadingInitial, isFetched: isInitialFetched } = useFixtures(initialParams);
+
+  // Get all fixture IDs from initial response
+  const allFixtureIds = initialResponse?.data?.fixture_ids ?? [];
+
+  // Step 2: Fetch full fixture data for ALL fixture IDs (not just first 6)
+  // Only fetch if we have fixture IDs to fetch
+  const shouldFetchDetails = isInitialFetched && allFixtureIds.length > 0;
+
+  const { data: fixturesResponse, isLoading: isLoadingFixtures } = useFixtures(
+    shouldFetchDetails ? { fixture_ids: allFixtureIds, sort_by: 'kickoff_asc' } : undefined,
+    { enabled: shouldFetchDetails }
   );
+
+  // Loading state: still loading initial, OR we have IDs and are loading details
+  const isLoading = isLoadingInitial || (shouldFetchDetails && isLoadingFixtures);
+
+  // Use fixtures from detail fetch if available, otherwise use fixtures from initial response
+  const fixtures = (shouldFetchDetails ? fixturesResponse?.data?.fixtures : initialResponse?.data?.fixtures) || [];
 
   // Fetch league names and images to fill in missing data from fixtures
   const { getLeagueName, getLeagueImage } = useLeagueNames();
-
-  const fixtures = fixturesResponse?.data?.fixtures || [];
 
   // Separate live and upcoming fixtures, group all by league
   const { liveFixtures, fixturesByLeague } = useMemo(() => {
@@ -405,10 +448,33 @@ export function MatchesPage() {
           {activeTab !== 'live' && (
             <div className="flex items-center justify-between px-4 pt-6 pb-4">
               <h1 className="text-xl font-bold text-gray-900">Matches</h1>
-              <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors text-sm font-medium text-gray-700">
-                Filter
-                <img src="/arrow-down.svg" alt="Arrow" className="w-[15px] h-auto" />
-              </button>
+              <div className="relative">
+                <button
+                  onClick={() => setShowFilterPanel(!showFilterPanel)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm font-medium ${
+                    showFilterPanel || hasActiveFilters
+                      ? 'bg-[#0d1a67] text-white'
+                      : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                  }`}
+                >
+                  Filter
+                  {hasActiveFilters && (
+                    <span className="w-2 h-2 bg-orange-500 rounded-full" />
+                  )}
+                  <img
+                    src="/arrow-down.svg"
+                    alt="Arrow"
+                    className={`w-[15px] h-auto transition-transform ${showFilterPanel ? 'rotate-180' : ''}`}
+                    style={showFilterPanel || hasActiveFilters ? { filter: 'invert(1)' } : {}}
+                  />
+                </button>
+                <FilterPanel
+                  isOpen={showFilterPanel}
+                  onClose={() => setShowFilterPanel(false)}
+                  onApply={handleFilterApply}
+                  initialFilters={currentFilters}
+                />
+              </div>
             </div>
           )}
 
@@ -446,20 +512,11 @@ export function MatchesPage() {
               </div>
 
               {/* Calendar in separate box */}
-              <label className="w-[52px] h-[52px] rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors flex items-center justify-center cursor-pointer relative">
-                <img src="/Calendar.svg" alt="Calendar" className="w-[20px] h-[20px]" />
-                <input
-                  type="date"
-                  value={formatDateForApi(currentDate)}
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      const [year, month, day] = e.target.value.split('-').map(Number);
-                      setCurrentDate(new Date(year, month - 1, day));
-                    }
-                  }}
-                  className="absolute inset-0 opacity-0 cursor-pointer"
-                />
-              </label>
+              <Calendar
+                selectedDate={currentDate}
+                onDateSelect={setCurrentDate}
+                className="[&>button]:w-[52px] [&>button]:h-[52px] [&>button]:rounded-xl"
+              />
             </div>
           )}
 
@@ -617,28 +674,41 @@ export function MatchesPage() {
                   </button>
 
                   {/* Calendar in grey box */}
-                  <label className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors flex items-center justify-center cursor-pointer relative">
-                    <img src="/Calendar.svg" alt="Calendar" className="w-[20px] h-[20px]" />
-                    <input
-                      type="date"
-                      value={formatDateForApi(currentDate)}
-                      onChange={(e) => {
-                        if (e.target.value) {
-                          const [year, month, day] = e.target.value.split('-').map(Number);
-                          setCurrentDate(new Date(year, month - 1, day));
-                        }
-                      }}
-                      className="absolute inset-0 opacity-0 cursor-pointer"
-                    />
-                  </label>
+                  <Calendar
+                    selectedDate={currentDate}
+                    onDateSelect={setCurrentDate}
+                  />
                 </>
               )}
 
               {/* Filter */}
-              <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors text-sm font-medium text-gray-700">
-                Filter
-                <img src="/arrow-down.svg" alt="Arrow" className="w-[15px] h-auto" />
-              </button>
+              <div className="relative">
+                <button
+                  onClick={() => setShowFilterPanel(!showFilterPanel)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm font-medium ${
+                    showFilterPanel || hasActiveFilters
+                      ? 'bg-[#0d1a67] text-white'
+                      : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                  }`}
+                >
+                  Filter
+                  {hasActiveFilters && (
+                    <span className="w-2 h-2 bg-orange-500 rounded-full" />
+                  )}
+                  <img
+                    src="/arrow-down.svg"
+                    alt="Arrow"
+                    className={`w-[15px] h-auto transition-transform ${showFilterPanel ? 'rotate-180' : ''}`}
+                    style={showFilterPanel || hasActiveFilters ? { filter: 'invert(1)' } : {}}
+                  />
+                </button>
+                <FilterPanel
+                  isOpen={showFilterPanel}
+                  onClose={() => setShowFilterPanel(false)}
+                  onApply={handleFilterApply}
+                  initialFilters={currentFilters}
+                />
+              </div>
             </div>
           </div>
 
