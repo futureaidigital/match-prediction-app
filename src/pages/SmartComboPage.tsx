@@ -475,7 +475,7 @@ export function SmartComboPage() {
                             const isPredictionBlurred = !isPremium && fixtureIndex === 0 && idx > 0;
                             const percentage = Math.round(pred.prediction || pred.pre_game_prediction);
                             const preGamePercentage = Math.round(pred.pre_game_prediction || 0);
-                            const category = pred.prediction_category || 'Goals';
+                            const category = pred.prediction_type?.includes('goal') ? 'Goals' : pred.prediction_type?.includes('card') ? 'Cards' : 'Match';
                             const predType = pred.prediction_type === 'player' ? 'Player' : 'Match';
 
                             return (
