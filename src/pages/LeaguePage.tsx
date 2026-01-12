@@ -791,7 +791,14 @@ export function LeaguePage() {
                         <>
                           {/* Mobile Standings Table - Simplified */}
                           <div className="md:hidden overflow-hidden">
-                            <table className="w-full">
+                            <table className="w-full table-fixed">
+                              <colgroup>
+                                <col style={{ width: '12%' }} />
+                                <col style={{ width: '46%' }} />
+                                <col style={{ width: '14%' }} />
+                                <col style={{ width: '14%' }} />
+                                <col style={{ width: '14%' }} />
+                              </colgroup>
                               <thead className="bg-[#0d1a67] text-white text-xs">
                                 <tr>
                                   <th className="py-2 px-2 text-left font-medium">#</th>
@@ -843,7 +850,19 @@ export function LeaguePage() {
 
                           {/* Desktop Standings Table - Full */}
                           <div className="hidden md:block overflow-hidden">
-                            <table className="w-full">
+                            <table className="w-full table-fixed">
+                              <colgroup>
+                                <col style={{ width: '5%' }} />
+                                <col style={{ width: '25%' }} />
+                                <col style={{ width: '7%' }} />
+                                <col style={{ width: '7%' }} />
+                                <col style={{ width: '7%' }} />
+                                <col style={{ width: '7%' }} />
+                                <col style={{ width: '7%' }} />
+                                <col style={{ width: '8%' }} />
+                                <col style={{ width: '18%' }} />
+                                <col style={{ width: '9%' }} />
+                              </colgroup>
                               <thead className="bg-[#0d1a67] text-white text-sm">
                                 <tr>
                                   <th className="py-3 px-4 text-left font-medium">#</th>
