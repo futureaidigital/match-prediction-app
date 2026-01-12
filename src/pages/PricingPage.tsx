@@ -233,7 +233,7 @@ export function PricingPage() {
                 )}
               </div>
 
-              <div className="space-y-3 md:space-y-4 flex-1">
+              <div className="space-y-3 md:space-y-4">
                 <FeatureItem light>30 days full access to all predictions</FeatureItem>
                 <FeatureItem light>Coverage across all leagues</FeatureItem>
                 <FeatureItem light>All game predictions and analysis</FeatureItem>
