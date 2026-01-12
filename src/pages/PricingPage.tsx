@@ -243,7 +243,7 @@ export function PricingPage() {
 
               <button
                 onClick={handleMonthlyPlanClick}
-                className="w-full py-2.5 md:py-3 px-4 md:px-6 rounded-lg bg-white text-[#0d1a67] text-sm md:text-base font-semibold hover:bg-gray-100 transition-colors mt-6 md:mt-8 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-2.5 md:py-3 px-4 md:px-6 rounded-lg bg-white text-[#0d1a67] text-sm md:text-base font-semibold hover:bg-gray-100 transition-colors mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={loading || !!error}
               >
                 Get Monthly Pro
