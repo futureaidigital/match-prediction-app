@@ -192,7 +192,7 @@ export function MatchCard({
   // Default variant (for Featured Matches)
   return (
     <div
-      className="bg-white rounded-2xl p-[15px] md:p-5 w-[334px] h-[380px] md:w-[290px] md:h-[500px] flex flex-col transition-shadow overflow-hidden"
+      className="bg-white rounded-2xl p-[15px] md:px-5 md:pt-5 md:pb-[5px] w-[334px] h-[380px] md:w-[290px] md:h-auto flex flex-col transition-shadow overflow-hidden"
       style={{
         boxShadow: '0 0 12px rgba(0, 0, 0, 0.08)'
       }}
@@ -304,7 +304,7 @@ export function MatchCard({
       </div>
 
       {/* Footer */}
-      <div className="pt-[12px] md:pt-1 shrink-0" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+      <div className="pt-[12px] md:pt-0 shrink-0" style={{ fontFamily: 'Montserrat, sans-serif' }}>
         {/* Predictions Count Divider */}
         {totalPredictions && totalPredictions > 0 && (
           <div className="flex items-center justify-center mb-3">
@@ -330,7 +330,7 @@ export function MatchCard({
 
         {/* Last Updated */}
         {lastUpdated && (
-          <div className="text-center text-[11px] md:text-[10px] text-gray-400 mt-3">
+          <div className="text-center text-[11px] md:text-[10px] text-gray-400 mt-[8px] mb-[4px]">
             Updated {lastUpdated}
           </div>
         )}
