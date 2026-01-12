@@ -41,6 +41,17 @@ export function RegisterModal({ isOpen, onClose, onSwitchToLogin }: RegisterModa
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Password validation helpers
+  const passwordValidation = {
+    minLength: password.length >= 8,
+    hasUpperCase: /[A-Z]/.test(password),
+    hasLowerCase: /[a-z]/.test(password),
+    hasNumber: /[0-9]/.test(password),
+  };
+
+  const passwordsMatch = password && confirmPassword && password === confirmPassword;
+  const passwordsDontMatch = password && confirmPassword && password !== confirmPassword;
+
   // Reset form when modal opens/closes
   useEffect(() => {
     if (!isOpen) {
@@ -249,7 +260,11 @@ export function RegisterModal({ isOpen, onClose, onSwitchToLogin }: RegisterModa
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Enter your password"
-                      className="w-full h-[48px] px-4 pr-12 bg-white border border-[#7c8a9c] rounded-[8px] text-[14px] font-normal text-[#0a0a0a] placeholder:text-[#7c8a9c] outline-none focus:border-[#0a0a0a] transition-colors"
+                      className={`w-full h-[48px] px-4 pr-12 bg-white border rounded-[8px] text-[14px] font-normal text-[#0a0a0a] placeholder:text-[#7c8a9c] outline-none transition-colors ${
+                        password && (!passwordValidation.minLength || !passwordValidation.hasUpperCase || !passwordValidation.hasLowerCase || !passwordValidation.hasNumber)
+                          ? 'border-red-500 focus:border-red-500'
+                          : 'border-[#7c8a9c] focus:border-[#0a0a0a]'
+                      }`}
                       required
                     />
                     <button
@@ -270,9 +285,20 @@ export function RegisterModal({ isOpen, onClose, onSwitchToLogin }: RegisterModa
                       )}
                     </button>
                   </div>
-                  <p className="text-[11px] text-[#7c8a9c] leading-[140%]">
-                    Must be at least 8 characters with uppercase, lowercase, and number
-                  </p>
+                  <div className="flex flex-col gap-1 text-[11px] leading-[140%]">
+                    <span className={password && passwordValidation.minLength ? 'text-green-600' : 'text-[#7c8a9c]'}>
+                      {password && passwordValidation.minLength ? '✓' : '○'} At least 8 characters
+                    </span>
+                    <span className={password && passwordValidation.hasUpperCase ? 'text-green-600' : 'text-[#7c8a9c]'}>
+                      {password && passwordValidation.hasUpperCase ? '✓' : '○'} One uppercase letter
+                    </span>
+                    <span className={password && passwordValidation.hasLowerCase ? 'text-green-600' : 'text-[#7c8a9c]'}>
+                      {password && passwordValidation.hasLowerCase ? '✓' : '○'} One lowercase letter
+                    </span>
+                    <span className={password && passwordValidation.hasNumber ? 'text-green-600' : 'text-[#7c8a9c]'}>
+                      {password && passwordValidation.hasNumber ? '✓' : '○'} One number
+                    </span>
+                  </div>
                 </div>
 
                 {/* Confirm Password Field */}
@@ -285,8 +311,14 @@ export function RegisterModal({ isOpen, onClose, onSwitchToLogin }: RegisterModa
                       type={showConfirmPassword ? 'text' : 'password'}
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="Enter your password"
-                      className="w-full h-[48px] px-4 pr-12 bg-white border border-[#7c8a9c] rounded-[8px] text-[14px] font-normal text-[#0a0a0a] placeholder:text-[#7c8a9c] outline-none focus:border-[#0a0a0a] transition-colors"
+                      placeholder="Confirm your password"
+                      className={`w-full h-[48px] px-4 pr-12 bg-white border rounded-[8px] text-[14px] font-normal text-[#0a0a0a] placeholder:text-[#7c8a9c] outline-none transition-colors ${
+                        passwordsDontMatch
+                          ? 'border-red-500 focus:border-red-500'
+                          : passwordsMatch
+                          ? 'border-green-500 focus:border-green-500'
+                          : 'border-[#7c8a9c] focus:border-[#0a0a0a]'
+                      }`}
                       required
                     />
                     <button
@@ -307,6 +339,16 @@ export function RegisterModal({ isOpen, onClose, onSwitchToLogin }: RegisterModa
                       )}
                     </button>
                   </div>
+                  {passwordsDontMatch && (
+                    <p className="text-[11px] text-red-500 leading-[140%]">
+                      Passwords do not match
+                    </p>
+                  )}
+                  {passwordsMatch && (
+                    <p className="text-[11px] text-green-600 leading-[140%]">
+                      ✓ Passwords match
+                    </p>
+                  )}
                 </div>
 
                 {/* Terms Checkbox */}
