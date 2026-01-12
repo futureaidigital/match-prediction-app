@@ -161,7 +161,7 @@ export function PricingPage() {
           <div className="grid md:grid-cols-2 gap-4 md:gap-6 mb-12 items-stretch">
             {/* Weekly Pass Card */}
             <div className={`bg-white rounded-2xl border border-gray-200 p-5 md:p-8 flex flex-col ${loading ? 'animate-pulse' : ''}`}>
-              <div className="flex items-start justify-between mb-3 md:mb-4">
+              <div className="flex items-center justify-between mb-3 md:mb-4 min-h-[32px] md:min-h-[40px]">
                 <h2 className="text-xl md:text-2xl font-bold text-[#0d1a67]">Weekly Pass</h2>
                 <div className="w-8 h-8 md:w-10 md:h-10 rounded-full border border-gray-200 flex items-center justify-center shrink-0">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-[#0d1a67] md:w-5 md:h-5">
@@ -204,7 +204,7 @@ export function PricingPage() {
 
             {/* Monthly Pro Card */}
             <div className={`bg-[#0d1a67] rounded-2xl p-5 md:p-8 text-white flex flex-col ${loading ? 'animate-pulse' : ''}`}>
-              <div className="flex items-start justify-between mb-3 md:mb-4">
+              <div className="flex items-center justify-between mb-3 md:mb-4 min-h-[32px] md:min-h-[40px]">
                 <div className="flex items-center gap-2 md:gap-3">
                   <h2 className="text-xl md:text-2xl font-bold">Monthly Pro</h2>
                   <span className="px-1.5 py-0.5 md:px-2 md:py-1 bg-white/20 rounded text-[10px] md:text-xs font-medium whitespace-nowrap">
