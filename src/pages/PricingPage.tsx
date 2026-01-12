@@ -96,6 +96,10 @@ export function PricingPage() {
     setSelectedPlan(null);
   };
 
+  const handlePlanChange = (plan: 'weekly' | 'monthly') => {
+    setSelectedPlan(plan);
+  };
+
   const faqs = [
     {
       question: "Can I cancel anytime?",
@@ -313,6 +317,7 @@ export function PricingPage() {
           // Handle login modal if needed in the future
         }}
         selectedPlan={selectedPlan}
+        onPlanChange={handlePlanChange}
       />
     </div>
   );
