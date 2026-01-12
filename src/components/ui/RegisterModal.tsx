@@ -5,6 +5,7 @@ interface RegisterModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSwitchToLogin: () => void;
+  selectedPlan?: 'weekly' | 'monthly' | null;
 }
 
 const COUNTRIES = [
@@ -28,8 +29,13 @@ const COUNTRIES = [
   { code: 'EG', name: 'Egypt' },
 ];
 
-export function RegisterModal({ isOpen, onClose, onSwitchToLogin }: RegisterModalProps) {
+export function RegisterModal({ isOpen, onClose, onSwitchToLogin, selectedPlan }: RegisterModalProps) {
   const { register, error: authError } = useAuth();
+
+  const planDetails = {
+    weekly: { name: 'Weekly Pass', price: '$3.99/week' },
+    monthly: { name: 'Monthly Pro', price: '$9.99/month' }
+  };
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [country, setCountry] = useState('');
@@ -191,6 +197,19 @@ export function RegisterModal({ isOpen, onClose, onSwitchToLogin }: RegisterModa
           {/* Content */}
           <div className="px-4 pb-4 md:px-[60px] md:pb-[30px] pt-5 md:pt-[20px]">
             <form onSubmit={handleSubmit} className="flex flex-col gap-4 md:gap-5">
+
+              {/* Selected Plan Display */}
+              {selectedPlan && (
+                <div className="bg-[#0d1a67] text-white rounded-[12px] p-4 flex items-center justify-between">
+                  <div>
+                    <div className="text-[16px] font-semibold">{planDetails[selectedPlan].name}</div>
+                    <div className="text-[14px] opacity-90">{planDetails[selectedPlan].price}</div>
+                  </div>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </div>
+              )}
 
               {/* Form Fields */}
               <div className="flex flex-col gap-5">
