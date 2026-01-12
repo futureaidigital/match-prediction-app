@@ -143,12 +143,12 @@ export function RegisterModal({ isOpen, onClose, onSwitchToLogin }: RegisterModa
       {/* Modal */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
         <div
-          className="relative w-full max-w-[358px] md:max-w-[500px] bg-white rounded-[16px] md:rounded-[20px] border border-[#e1e4eb] shadow-[0_10px_30px_rgba(0,0,0,0.1)] my-4"
+          className="relative w-full max-w-[358px] md:max-w-[700px] md:max-h-[90vh] md:overflow-y-auto bg-white rounded-[16px] md:rounded-[20px] border border-[#e1e4eb] shadow-[0_10px_30px_rgba(0,0,0,0.1)] my-4"
           style={{ fontFamily: 'Montserrat, sans-serif' }}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header with Title, Back and Close - Aligned */}
-          <div className="relative flex items-center justify-center p-4 md:px-[60px] md:pt-[50px] md:pb-0">
+          <div className="relative flex items-center justify-center p-4 md:px-[60px] md:pt-[30px] md:pb-0">
             {/* Back Button - Absolute Left */}
             <button
               onClick={handleBack}
@@ -178,8 +178,8 @@ export function RegisterModal({ isOpen, onClose, onSwitchToLogin }: RegisterModa
           </div>
 
           {/* Content */}
-          <div className="px-4 pb-4 md:px-[60px] md:pb-[50px] pt-5 md:pt-[30px]">
-            <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          <div className="px-4 pb-4 md:px-[60px] md:pb-[30px] pt-5 md:pt-[20px]">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4 md:gap-5">
 
               {/* Form Fields */}
               <div className="flex flex-col gap-5">
