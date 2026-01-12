@@ -605,37 +605,61 @@ export function SmartComboPage() {
 
           {/* Footer CTA - Separate box below main card */}
           {!isPremium && (
-            <div
-              className="mt-4 md:mt-6 p-3 md:p-4 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-3 md:gap-0 relative overflow-hidden"
-              style={{ background: 'linear-gradient(to right, #091143, #11207f)' }}
-            >
-              {/* Abstract overlay on left side */}
-              <img
-                src="/cta-overlay.svg"
-                alt=""
-                className="absolute left-0 top-0 h-full opacity-50 pointer-events-none scale-x-[-1] hidden md:block"
-              />
-              {/* Abstract overlay on right side */}
-              <img
-                src="/cta-overlay.svg"
-                alt=""
-                className="absolute right-0 top-0 h-full opacity-50 pointer-events-none hidden md:block"
-              />
-              <div className="text-white relative z-10 text-center md:text-left">
-                <p className="text-base md:text-lg font-semibold">Full Combo Access</p>
-                <div className="flex items-center justify-center md:justify-start gap-2">
-                  <span className="text-2xl md:text-3xl font-bold">$9.99</span>
-                  <span className="text-white/60 line-through text-sm md:text-base">$19.99</span>
-                  <span className="bg-green-500 text-white text-xs md:text-sm font-bold px-2 py-0.5 md:py-1 rounded">50% OFF</span>
-                </div>
-              </div>
-              <button
-                onClick={() => navigate('/pricing')}
-                className="flex items-center gap-2 bg-white text-[#091143] font-semibold px-4 md:px-6 py-2.5 md:py-3 rounded-lg hover:bg-gray-100 transition-colors relative z-10 w-full md:w-auto justify-center text-sm md:text-base"
+            <div className="mt-4 md:mt-6 grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+              {/* Weekly Pass Option */}
+              <div
+                className="p-3 md:p-4 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-3 md:gap-4 relative overflow-hidden"
+                style={{ background: 'linear-gradient(to right, #091143, #11207f)' }}
               >
-                <img src="/icon-unlock.svg" alt="" className="w-4 h-4" />
-                Unlock Combo
-              </button>
+                {/* Abstract overlay */}
+                <img
+                  src="/cta-overlay.svg"
+                  alt=""
+                  className="absolute right-0 top-0 h-full opacity-50 pointer-events-none hidden md:block"
+                />
+                <div className="text-white relative z-10 text-center md:text-left flex-1">
+                  <p className="text-sm md:text-base font-semibold">Weekly Pass</p>
+                  <div className="flex items-center justify-center md:justify-start gap-2">
+                    <span className="text-xl md:text-2xl font-bold">$3.99</span>
+                    <span className="text-white/60 text-xs md:text-sm">/week</span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => navigate('/pricing')}
+                  className="flex items-center gap-2 bg-white text-[#091143] font-semibold px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors relative z-10 w-full md:w-auto justify-center text-sm"
+                >
+                  <img src="/icon-unlock.svg" alt="" className="w-4 h-4" />
+                  Get Weekly
+                </button>
+              </div>
+
+              {/* Monthly Pro Option */}
+              <div
+                className="p-3 md:p-4 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-3 md:gap-4 relative overflow-hidden"
+                style={{ background: 'linear-gradient(to right, #091143, #11207f)' }}
+              >
+                {/* Abstract overlay */}
+                <img
+                  src="/cta-overlay.svg"
+                  alt=""
+                  className="absolute right-0 top-0 h-full opacity-50 pointer-events-none hidden md:block"
+                />
+                <div className="text-white relative z-10 text-center md:text-left flex-1">
+                  <p className="text-sm md:text-base font-semibold">Monthly Pro</p>
+                  <div className="flex items-center justify-center md:justify-start gap-2">
+                    <span className="text-xl md:text-2xl font-bold">$9.99</span>
+                    <span className="text-white/60 line-through text-xs md:text-sm">$19.99</span>
+                    <span className="bg-green-500 text-white text-[10px] md:text-xs font-bold px-1.5 py-0.5 rounded">50% OFF</span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => navigate('/pricing')}
+                  className="flex items-center gap-2 bg-white text-[#091143] font-semibold px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors relative z-10 w-full md:w-auto justify-center text-sm"
+                >
+                  <img src="/icon-unlock.svg" alt="" className="w-4 h-4" />
+                  Get Monthly
+                </button>
+              </div>
             </div>
           )}
         </div>
