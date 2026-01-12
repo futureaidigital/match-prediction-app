@@ -190,6 +190,7 @@ export function PricingPage() {
                 <FeatureItem>Coverage across all leagues</FeatureItem>
                 <FeatureItem>All game predictions and analysis</FeatureItem>
                 <FeatureItem>Expert insights and stats</FeatureItem>
+                <FeatureItem>Real-time match updates</FeatureItem>
               </div>
 
               <button
