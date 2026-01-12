@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
+import { RegisterModal } from '@/components/ui/RegisterModal';
 import { api, SubscriptionPricingResponse } from '@/services/api';
 
 // Feature item component
@@ -51,6 +52,8 @@ export function PricingPage() {
   const [pricing, setPricing] = useState<SubscriptionPricingResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<'weekly' | 'monthly' | null>(null);
 
   useEffect(() => {
     const fetchPricing = async () => {
@@ -77,6 +80,21 @@ export function PricingPage() {
 
   const weeklyPrice = weeklyPlan ? formatPrice(weeklyPlan.price, weeklyPlan.currency) : '$3.99';
   const monthlyPrice = monthlyPlan ? formatPrice(monthlyPlan.price, monthlyPlan.currency) : '$9.99';
+
+  const handleWeeklyPlanClick = () => {
+    setSelectedPlan('weekly');
+    setIsRegisterModalOpen(true);
+  };
+
+  const handleMonthlyPlanClick = () => {
+    setSelectedPlan('monthly');
+    setIsRegisterModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsRegisterModalOpen(false);
+    setSelectedPlan(null);
+  };
 
   const faqs = [
     {
@@ -175,6 +193,7 @@ export function PricingPage() {
               </div>
 
               <button
+                onClick={handleWeeklyPlanClick}
                 className="w-full py-3 px-6 rounded-lg border-2 border-[#0d1a67] text-[#0d1a67] font-semibold hover:bg-[#0d1a67] hover:text-white transition-colors mt-8 disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={loading || !!error}
               >
@@ -222,6 +241,7 @@ export function PricingPage() {
               </div>
 
               <button
+                onClick={handleMonthlyPlanClick}
                 className="w-full py-3 px-6 rounded-lg bg-white text-[#0d1a67] font-semibold hover:bg-gray-100 transition-colors mt-8 disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={loading || !!error}
               >
@@ -282,6 +302,17 @@ export function PricingPage() {
       </main>
 
       <Footer />
+
+      {/* Register Modal */}
+      <RegisterModal
+        isOpen={isRegisterModalOpen}
+        onClose={handleCloseModal}
+        onSwitchToLogin={() => {
+          handleCloseModal();
+          // Handle login modal if needed in the future
+        }}
+        selectedPlan={selectedPlan}
+      />
     </div>
   );
 }
