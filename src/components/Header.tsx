@@ -64,9 +64,9 @@ export function Header({ onNavigate, currentPage = '' }: HeaderProps) {
       return;
     }
 
-    // Handle register specially - show modal instead of navigating
+    // Handle register specially - navigate to pricing page
     if (item.id === 'register') {
-      setShowRegisterModal(true);
+      navigate('/pricing');
       return;
     }
 
@@ -172,7 +172,7 @@ export function Header({ onNavigate, currentPage = '' }: HeaderProps) {
               <>
                 {/* Desktop: Register Button */}
                 <button
-                  onClick={() => setShowRegisterModal(true)}
+                  onClick={() => navigate('/pricing')}
                   className="hidden md:block px-5 py-2 border border-white text-white text-sm font-semibold rounded-lg hover:bg-white/10 transition-colors"
                 >
                   Register
