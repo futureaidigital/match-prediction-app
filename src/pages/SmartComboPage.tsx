@@ -14,6 +14,7 @@ export function SmartComboPage() {
   const { isAuthenticated, isLoading: isAuthLoading, subscriptionStatus, hasAccess } = useAuth();
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [expandedPredictions, setExpandedPredictions] = useState<Set<number>>(new Set());
 
   // Check premium status - use hasAccess() which checks both subscriptionStatus and demo_premium flag
   const isPremium = hasAccess();
@@ -65,6 +66,19 @@ export function SmartComboPage() {
     : 85;
 
   const isLoading = isAuthLoading || isLoadingCombo || isLoadingPredictions;
+
+  // Toggle prediction expansion
+  const togglePrediction = (predictionId: number) => {
+    setExpandedPredictions(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(predictionId)) {
+        newSet.delete(predictionId);
+      } else {
+        newSet.add(predictionId);
+      }
+      return newSet;
+    });
+  };
 
   // Refetch data when auth state changes
   useEffect(() => {
@@ -477,15 +491,18 @@ export function SmartComboPage() {
                             const preGamePercentage = Math.round(pred.pre_game_prediction || 0);
                             const category = pred.prediction_type?.includes('goal') ? 'Goals' : pred.prediction_type?.includes('card') ? 'Cards' : 'Match';
                             const predType = pred.prediction_type === 'player' ? 'Player' : 'Match';
+                            const isExpanded = expandedPredictions.has(pred.prediction_id);
+                            const reasons = pred.pre_game_prediction_reasons || [];
 
                             return (
                               <div
                                 key={pred.prediction_id}
-                                className={`bg-white border border-[#e1e4eb] rounded-[16px] p-[16px] shadow-[0_2px_15px_rgba(0,0,0,0.1)] flex items-center gap-[20px] ${isPredictionBlurred ? 'select-none pointer-events-none' : ''}`}
+                                className={`bg-white border border-[#e1e4eb] rounded-[16px] p-[16px] shadow-[0_2px_15px_rgba(0,0,0,0.1)] ${isPredictionBlurred ? 'select-none pointer-events-none' : ''}`}
                                 style={isPredictionBlurred ? { filter: 'blur(10px)' } : {}}
                               >
-                                {/* Main Content */}
-                                <div className="flex-1 flex flex-col gap-[14px]">
+                                <div className="flex items-center gap-[20px]">
+                                  {/* Main Content */}
+                                  <div className="flex-1 flex flex-col gap-[14px]">
                                   {/* Prediction Name - Figma: 18px Montserrat Medium #0a0a0a */}
                                   <span
                                     className="text-[14px] md:text-[18px] font-medium text-[#0a0a0a] leading-[135%]"
@@ -581,14 +598,43 @@ export function SmartComboPage() {
                                       </span>
                                     </div>
                                   </div>
+                                  </div>
+
+                                  {/* Down Arrow Icon - Figma: 24x24 */}
+                                  <button
+                                    onClick={() => togglePrediction(pred.prediction_id)}
+                                    className="text-[#7c8a9c] hover:text-[#0a0a0a] transition-all shrink-0"
+                                    style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                                  >
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                      <polyline points="6 9 12 15 18 9" />
+                                    </svg>
+                                  </button>
                                 </div>
 
-                                {/* Down Arrow Icon - Figma: 24x24 */}
-                                <button className="text-[#7c8a9c] hover:text-[#0a0a0a] transition-colors shrink-0">
-                                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <polyline points="6 9 12 15 18 9" />
-                                  </svg>
-                                </button>
+                                {/* Expanded Reasons Section */}
+                                {isExpanded && reasons.length > 0 && (
+                                  <div className="mt-4 pt-4 border-t border-[#e1e4eb]">
+                                    <h4
+                                      className="text-[14px] font-semibold text-[#0a0a0a] mb-3"
+                                      style={{ fontFamily: 'Montserrat, sans-serif' }}
+                                    >
+                                      Pre-game Prediction Reasons:
+                                    </h4>
+                                    <ul className="space-y-2">
+                                      {reasons.map((reason, reasonIdx) => (
+                                        <li
+                                          key={reasonIdx}
+                                          className="flex items-start gap-2 text-[13px] md:text-[14px] text-[#7c8a9c] leading-[150%]"
+                                          style={{ fontFamily: 'Montserrat, sans-serif' }}
+                                        >
+                                          <span className="text-[#27ae60] mt-1 shrink-0">•</span>
+                                          <span>{reason}</span>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
                               </div>
                             );
                           })}
