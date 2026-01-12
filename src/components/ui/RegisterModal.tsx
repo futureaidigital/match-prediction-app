@@ -158,9 +158,9 @@ export function RegisterModal({ isOpen, onClose, onSwitchToLogin, selectedPlan }
       />
 
       {/* Modal */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div
-          className="relative w-full max-w-[358px] md:max-w-[700px] md:max-h-[90vh] md:overflow-y-auto bg-white rounded-[16px] md:rounded-[20px] border border-[#e1e4eb] shadow-[0_10px_30px_rgba(0,0,0,0.1)] my-4"
+          className="relative w-full max-w-[358px] md:max-w-[700px] max-h-[90vh] overflow-y-auto bg-white rounded-[16px] md:rounded-[20px] border border-[#e1e4eb] shadow-[0_10px_30px_rgba(0,0,0,0.1)] my-4"
           style={{ fontFamily: 'Montserrat, sans-serif' }}
           onClick={(e) => e.stopPropagation()}
         >
