@@ -6,6 +6,7 @@ interface RegisterModalProps {
   onClose: () => void;
   onSwitchToLogin: () => void;
   selectedPlan?: 'weekly' | 'monthly' | null;
+  onPlanChange?: (plan: 'weekly' | 'monthly') => void;
 }
 
 const COUNTRIES = [
@@ -29,7 +30,7 @@ const COUNTRIES = [
   { code: 'EG', name: 'Egypt' },
 ];
 
-export function RegisterModal({ isOpen, onClose, onSwitchToLogin, selectedPlan }: RegisterModalProps) {
+export function RegisterModal({ isOpen, onClose, onSwitchToLogin, selectedPlan, onPlanChange }: RegisterModalProps) {
   const { register, error: authError } = useAuth();
 
   const planDetails = {
@@ -200,14 +201,27 @@ export function RegisterModal({ isOpen, onClose, onSwitchToLogin, selectedPlan }
 
               {/* Selected Plan Display */}
               {selectedPlan && (
-                <div className="bg-[#0d1a67] text-white rounded-[12px] p-4 flex items-center justify-between">
-                  <div>
-                    <div className="text-[16px] font-semibold">{planDetails[selectedPlan].name}</div>
-                    <div className="text-[14px] opacity-90">{planDetails[selectedPlan].price}</div>
+                <div>
+                  <div className="bg-[#0d1a67] text-white rounded-t-[12px] p-4 flex items-center justify-between">
+                    <div>
+                      <div className="text-[16px] font-semibold">{planDetails[selectedPlan].name}</div>
+                      <div className="text-[14px] opacity-90">{planDetails[selectedPlan].price}</div>
+                    </div>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
                   </div>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
+                  {selectedPlan === 'weekly' && (
+                    <div className="bg-[#f5f7fa] border border-t-0 border-[#0d1a67]/20 rounded-b-[12px] px-4 py-3 text-center">
+                      <button
+                        type="button"
+                        onClick={() => onPlanChange?.('monthly')}
+                        className="text-[#0d1a67] text-[12px] font-semibold hover:underline"
+                      >
+                        Upgrade to Monthly and save $48/year
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 
