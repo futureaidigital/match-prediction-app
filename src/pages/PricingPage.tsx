@@ -218,7 +218,7 @@ export function PricingPage() {
                 </div>
               </div>
 
-              <p className="text-white/70 text-xs md:text-sm mb-4 md:mb-5 min-h-[32px] md:min-h-[40px]">
+              <p className="text-white/70 text-xs md:text-sm mb-4 md:mb-6 min-h-[32px] md:min-h-[40px]">
                 The complete package for serious sports bettors who want an edge all month long.
               </p>
 
