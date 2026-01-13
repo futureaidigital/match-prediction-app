@@ -417,11 +417,11 @@ export function LeaguePage() {
         <div className="bg-white">
           <div className="max-w-[1400px] mx-auto px-4 md:px-6">
             <div className="flex items-center gap-4 py-4">
-              {/* Left Arrow */}
+              {/* Left Arrow - Hidden on mobile */}
               <button
                 onClick={() => scroll('left')}
                 disabled={!canScrollLeft}
-                className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 transition-all border ${
+                className={`hidden md:flex w-10 h-10 rounded-lg items-center justify-center shrink-0 transition-all border ${
                   canScrollLeft
                     ? 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
                     : 'bg-gray-100 border-gray-100 text-gray-300 cursor-not-allowed'
@@ -482,11 +482,11 @@ export function LeaguePage() {
                 )}
               </div>
 
-              {/* Right Arrow */}
+              {/* Right Arrow - Hidden on mobile */}
               <button
                 onClick={() => scroll('right')}
                 disabled={!canScrollRight}
-                className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 transition-all ${
+                className={`hidden md:flex w-10 h-10 rounded-lg items-center justify-center shrink-0 transition-all ${
                   canScrollRight
                     ? 'bg-[#0d1a67] text-white hover:bg-[#0a1452]'
                     : 'bg-gray-200 text-gray-400 cursor-not-allowed'
@@ -502,7 +502,7 @@ export function LeaguePage() {
 
         {/* League Content Area */}
         <div className="bg-white min-h-[calc(100vh-200px)]">
-          <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-6">
+          <div className="max-w-[1400px] mx-auto px-4 md:px-6 pb-6 md:py-6">
             {selectedLeague ? (
               <>
                 {/* League Header - Mobile */}
@@ -674,7 +674,7 @@ export function LeaguePage() {
                 </div>
 
                 {/* Matches Section */}
-                <div className="mt-6">
+                <div className="mt-4">
                   {/* Header with title and arrows (desktop only) */}
                   <div className="hidden md:flex items-center justify-between mb-4">
                     <h2 className="text-lg font-bold text-gray-900">Matches</h2>
@@ -751,7 +751,7 @@ export function LeaguePage() {
                 </div>
 
                 {/* Standings Section */}
-                <div className="mt-8">
+                <div className="mt-4">
                   {/* Standings Filter Tabs */}
                   <div className="flex gap-2 mb-4">
                     {(['all', 'home', 'away', 'form'] as const).map((filter) => (
