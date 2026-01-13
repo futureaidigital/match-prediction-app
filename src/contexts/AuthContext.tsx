@@ -120,6 +120,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     initializeAuth();
   }, []);
 
+  // Fetch subscription status when user is authenticated
+  useEffect(() => {
+    if (user && api.getToken()) {
+      fetchSubscriptionStatus();
+    }
+  }, [user]);
+
   // ==================== Helper Functions ====================
 
   const handleApiError = (err: unknown) => {
