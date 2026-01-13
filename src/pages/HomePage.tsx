@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import { MatchCard } from '@/components/MatchCard';
 import { MatchCardSkeleton } from '@/components/MatchCardSkeleton';
 import { Button } from '@/components/ui/button';
@@ -43,6 +44,7 @@ export function HomePage() {
     data: fixturesData,
     isLoading: isLoadingFixtures,
     error: fixturesError,
+    refetch: refetchFixtures,
   } = useFixtures({
     sort_by: 'kickoff_asc',
   });
@@ -51,6 +53,13 @@ export function HomePage() {
 
   // Check if user has premium access
   const isPremium = hasAccess();
+
+  // Refetch data when user authenticates
+  useEffect(() => {
+    if (isAuthenticated) {
+      refetchFixtures();
+    }
+  }, [isAuthenticated, refetchFixtures]);
 
   // Handle error from fixtures query
   const error = fixturesError
