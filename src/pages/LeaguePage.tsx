@@ -7,6 +7,7 @@ import { SmartCombo } from '@/components/SmartCombo';
 import { useLeagues, useLeaguePlayerRankings } from '@/hooks/useLeagues';
 import { useLeagueCurrent, useLeagueStandings, useLeagueFixtures } from '@/hooks/useLeagueStandings';
 import { LeagueStandingTeam, LeagueSeason, LeaguePlayerRanking } from '@/services/api';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Match card component for league fixtures
 function LeagueMatchCard({ fixture, leagueName }: { fixture: any; leagueName?: string }) {
@@ -220,6 +221,11 @@ function PlayerRankingCard({
 }
 
 export function LeaguePage() {
+  // Auth context
+  const { subscriptionStatus } = useAuth();
+  // The API returns has_subscription, not has_access - check both for compatibility
+  const isPremium = (subscriptionStatus as any)?.has_subscription || subscriptionStatus?.has_access || false;
+
   // League scroll refs and state
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -961,7 +967,7 @@ export function LeaguePage() {
 
                     {/* Right Column - Smart Combo */}
                     <div className="lg:w-[460px] shrink-0">
-                      <SmartCombo isPremium={false} />
+                      <SmartCombo isPremium={isPremium} />
                     </div>
                   </div>
                 </div>
