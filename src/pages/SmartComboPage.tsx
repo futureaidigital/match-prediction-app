@@ -497,12 +497,14 @@ export function SmartComboPage() {
                             return (
                               <div
                                 key={pred.prediction_id}
-                                className={`bg-white border border-[#e1e4eb] rounded-[16px] p-[16px] shadow-[0_2px_15px_rgba(0,0,0,0.1)] ${isPredictionBlurred ? 'select-none pointer-events-none' : ''}`}
-                                style={isPredictionBlurred ? { filter: 'blur(10px)' } : {}}
+                                className="bg-white border border-[#e1e4eb] rounded-[16px] p-[16px] shadow-[0_2px_15px_rgba(0,0,0,0.1)] relative"
                               >
                                 <div className="flex items-center gap-[20px]">
                                   {/* Main Content */}
-                                  <div className="flex-1 flex flex-col gap-[14px]">
+                                  <div
+                                    className={`flex-1 flex flex-col gap-[14px] ${isPredictionBlurred ? 'select-none pointer-events-none' : ''}`}
+                                    style={isPredictionBlurred ? { filter: 'blur(10px)' } : {}}
+                                  >
                                   {/* Prediction Name - Figma: 18px Montserrat Medium #0a0a0a */}
                                   <span
                                     className="text-[14px] md:text-[18px] font-medium text-[#0a0a0a] leading-[135%]"
@@ -603,7 +605,7 @@ export function SmartComboPage() {
                                   {/* Down Arrow Icon - Figma: 24x24 */}
                                   <button
                                     onClick={() => togglePrediction(pred.prediction_id)}
-                                    className="text-[#7c8a9c] hover:text-[#0a0a0a] transition-all shrink-0"
+                                    className="text-[#7c8a9c] hover:text-[#0a0a0a] transition-all shrink-0 relative z-10"
                                     style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
                                   >
                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -613,26 +615,37 @@ export function SmartComboPage() {
                                 </div>
 
                                 {/* Expanded Reasons Section */}
-                                {isExpanded && reasons.length > 0 && (
-                                  <div className="mt-4 pt-4 border-t border-[#e1e4eb]">
+                                {isExpanded && (
+                                  <div
+                                    className="mt-4 pt-4 border-t border-[#e1e4eb] animate-[slideDown_0.3s_ease-out]"
+                                    style={{
+                                      animation: 'slideDown 0.3s ease-out'
+                                    }}
+                                  >
                                     <h4
                                       className="text-[14px] font-semibold text-[#0a0a0a] mb-3"
                                       style={{ fontFamily: 'Montserrat, sans-serif' }}
                                     >
                                       Pre-game Prediction Reasons:
                                     </h4>
-                                    <ul className="space-y-2">
-                                      {reasons.map((reason, reasonIdx) => (
-                                        <li
-                                          key={reasonIdx}
-                                          className="flex items-start gap-2 text-[13px] md:text-[14px] text-[#7c8a9c] leading-[150%]"
-                                          style={{ fontFamily: 'Montserrat, sans-serif' }}
-                                        >
-                                          <span className="text-[#27ae60] mt-1 shrink-0">•</span>
-                                          <span>{reason}</span>
-                                        </li>
-                                      ))}
-                                    </ul>
+                                    {reasons.length > 0 ? (
+                                      <ul className="space-y-2">
+                                        {reasons.map((reason, reasonIdx) => (
+                                          <li
+                                            key={reasonIdx}
+                                            className="flex items-start gap-2 text-[13px] md:text-[14px] text-[#7c8a9c] leading-[150%]"
+                                            style={{ fontFamily: 'Montserrat, sans-serif' }}
+                                          >
+                                            <span className="text-[#27ae60] mt-1 shrink-0">•</span>
+                                            <span>{reason}</span>
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    ) : (
+                                      <p className="text-[13px] md:text-[14px] text-[#7c8a9c] italic">
+                                        No prediction reasons available at this time.
+                                      </p>
+                                    )}
                                   </div>
                                 )}
                               </div>
