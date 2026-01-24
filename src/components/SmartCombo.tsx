@@ -317,7 +317,7 @@ export function SmartCombo({ isPremium = false }: SmartComboProps) {
           </div>
 
           {/* Match Cards - Mobile: 1 card, Desktop: 2 cards */}
-          <div className="p-4 pt-0 space-y-4">
+          <div className="p-4 pt-4 space-y-4">
             {/* Mobile: show 1 card, Desktop: show 2 cards */}
             <div className="md:hidden">
               {matchCards.slice(0, 1).map((match) => (

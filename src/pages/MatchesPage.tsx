@@ -292,10 +292,10 @@ export function MatchesPage() {
     return `${year}-${month}-${day}`;
   };
 
-  // Step 1: Fetch fixture IDs for selected date/filters
+  // Fetch fixtures with filters - use return_all to get all fixtures in single request
   // When on "live" tab, fetch live matches; otherwise fetch by date
   // Filter panel match_type overrides tab selection when not 'all'
-  const initialParams = {
+  const fixtureParams = {
     ...(activeTab === 'live'
       ? { match_type: 'live' as const }
       : {
@@ -305,27 +305,13 @@ export function MatchesPage() {
         }),
     ...(filterLeagues.length > 0 && { leagues: filterLeagues }),
     sort_by: 'kickoff_asc' as const,
+    return_all: true, // Return all fixtures instead of just 6
   };
 
-  const { data: initialResponse, isLoading: isLoadingInitial, isFetched: isInitialFetched } = useFixtures(initialParams);
+  const { data: fixturesResponse, isLoading } = useFixtures(fixtureParams);
 
-  // Get all fixture IDs from initial response
-  const allFixtureIds = initialResponse?.data?.fixture_ids ?? [];
-
-  // Step 2: Fetch full fixture data for ALL fixture IDs (not just first 6)
-  // Only fetch if we have fixture IDs to fetch
-  const shouldFetchDetails = isInitialFetched && allFixtureIds.length > 0;
-
-  const { data: fixturesResponse, isLoading: isLoadingFixtures } = useFixtures(
-    shouldFetchDetails ? { fixture_ids: allFixtureIds, sort_by: 'kickoff_asc' } : undefined,
-    { enabled: shouldFetchDetails }
-  );
-
-  // Loading state: still loading initial, OR we have IDs and are loading details
-  const isLoading = isLoadingInitial || (shouldFetchDetails && isLoadingFixtures);
-
-  // Use fixtures from detail fetch if available, otherwise use fixtures from initial response
-  const fixtures = (shouldFetchDetails ? fixturesResponse?.data?.fixtures : initialResponse?.data?.fixtures) || [];
+  // Get fixtures directly from response (return_all gives us all fixture details)
+  const fixtures = fixturesResponse?.data?.fixtures || [];
 
   // Fetch league names and images to fill in missing data from fixtures
   const { getLeagueName, getLeagueImage } = useLeagueNames();
@@ -458,9 +444,6 @@ export function MatchesPage() {
                   }`}
                 >
                   Filter
-                  {hasActiveFilters && (
-                    <span className="w-2 h-2 bg-orange-500 rounded-full" />
-                  )}
                   <img
                     src="/arrow-down.svg"
                     alt="Arrow"
@@ -692,9 +675,6 @@ export function MatchesPage() {
                   }`}
                 >
                   Filter
-                  {hasActiveFilters && (
-                    <span className="w-2 h-2 bg-orange-500 rounded-full" />
-                  )}
                   <img
                     src="/arrow-down.svg"
                     alt="Arrow"

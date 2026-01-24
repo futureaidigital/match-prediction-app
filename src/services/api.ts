@@ -684,6 +684,7 @@ class ApiClient {
     date_to?: string;        // End date (ISO format: YYYY-MM-DD)
     season_id?: number;      // Season ID filter
     has_predictions?: boolean; // Filter fixtures with predictions
+    return_all?: boolean;    // Return all fixtures instead of default 6 (requires a filter)
   } = {}): Promise<ApiResponse<FixturesResponse>> {
     // Build query string with correct parameter names for backend
     const query = new URLSearchParams();
@@ -711,6 +712,9 @@ class ApiClient {
     }
     if (params.has_predictions !== undefined) {
       query.append('has_predictions', params.has_predictions.toString());
+    }
+    if (params.return_all) {
+      query.append('return_all', 'true');
     }
 
     const queryString = query.toString() ? `?${query.toString()}` : '';

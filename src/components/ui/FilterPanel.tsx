@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { useLeagues } from '@/hooks/useLeagues';
 
+export type SortOption = 'kickoff_asc' | 'kickoff_desc' | 'prediction_accuracy_desc';
+
 export interface FilterValues {
   leagues: number[];
-  matchStatus: 'all' | 'live' | 'upcoming' | 'finished';
+  sortBy: SortOption;
 }
 
 interface FilterPanelProps {
@@ -23,8 +25,8 @@ export function FilterPanel({ isOpen, onClose, onApply, initialFilters, classNam
 
   // Local state for UI
   const [selectedLeagues, setSelectedLeagues] = useState<number[]>(initialFilters?.leagues || []);
-  const [selectedStatus, setSelectedStatus] = useState<'all' | 'live' | 'upcoming' | 'finished'>(
-    initialFilters?.matchStatus || 'all'
+  const [selectedSort, setSelectedSort] = useState<SortOption>(
+    initialFilters?.sortBy || 'kickoff_asc'
   );
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -32,7 +34,7 @@ export function FilterPanel({ isOpen, onClose, onApply, initialFilters, classNam
   useEffect(() => {
     if (isOpen && initialFilters) {
       setSelectedLeagues(initialFilters.leagues);
-      setSelectedStatus(initialFilters.matchStatus);
+      setSelectedSort(initialFilters.sortBy);
     }
   }, [isOpen, initialFilters]);
 
@@ -51,11 +53,10 @@ export function FilterPanel({ isOpen, onClose, onApply, initialFilters, classNam
 
   if (!isOpen) return null;
 
-  const statuses: Array<{ value: 'all' | 'live' | 'upcoming' | 'finished'; label: string }> = [
-    { value: 'all', label: 'All' },
-    { value: 'live', label: 'Live' },
-    { value: 'upcoming', label: 'Upcoming' },
-    { value: 'finished', label: 'Finished' },
+  const sortOptions: Array<{ value: SortOption; label: string }> = [
+    { value: 'kickoff_asc', label: 'Kickoff Time' },
+    { value: 'kickoff_desc', label: 'Latest First' },
+    { value: 'prediction_accuracy_desc', label: 'Prediction Accuracy' },
   ];
 
   const toggleLeague = (leagueId: number) => {
@@ -70,7 +71,7 @@ export function FilterPanel({ isOpen, onClose, onApply, initialFilters, classNam
     if (onApply) {
       onApply({
         leagues: selectedLeagues,
-        matchStatus: selectedStatus,
+        sortBy: selectedSort,
       });
     }
     onClose();
@@ -78,7 +79,7 @@ export function FilterPanel({ isOpen, onClose, onApply, initialFilters, classNam
 
   const handleClear = () => {
     setSelectedLeagues([]);
-    setSelectedStatus('all');
+    setSelectedSort('kickoff_asc');
     setSearchQuery('');
   };
 
@@ -164,21 +165,21 @@ export function FilterPanel({ isOpen, onClose, onApply, initialFilters, classNam
           </div>
         </div>
 
-        {/* Match Status Section */}
+        {/* Sort By Section */}
         <div className="flex flex-col gap-3">
-          <span className="text-[#7c8a9c] text-[16px] font-normal leading-[24px]">Match Status</span>
+          <span className="text-[#7c8a9c] text-[16px] font-normal leading-[24px]">Sort By</span>
           <div className="flex flex-wrap gap-[10px]">
-            {statuses.map((status) => (
+            {sortOptions.map((option) => (
               <button
-                key={status.value}
-                onClick={() => setSelectedStatus(status.value)}
+                key={option.value}
+                onClick={() => setSelectedSort(option.value)}
                 className={`h-[40px] px-3 rounded-full text-[14px] leading-[150%] transition-colors ${
-                  selectedStatus === status.value
+                  selectedSort === option.value
                     ? 'bg-[#0d1a67] text-white font-medium'
                     : 'bg-[#f7f8fa] text-[#0a0a0a] border border-[#e1e4eb] font-normal hover:bg-gray-100'
                 }`}
               >
-                {status.label}
+                {option.label}
               </button>
             ))}
           </div>

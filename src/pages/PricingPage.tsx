@@ -207,51 +207,59 @@ export function PricingPage() {
             </div>
 
             {/* Monthly Pro Card */}
-            <div className={`bg-[#0d1a67] rounded-2xl p-5 md:p-8 text-white flex flex-col ${loading ? 'animate-pulse' : ''}`}>
-              <div className="flex items-center justify-between mb-3 md:mb-4 min-h-[32px] md:min-h-[40px]">
-                <div className="flex items-center gap-2 md:gap-3">
-                  <h2 className="text-xl md:text-2xl font-bold">Monthly Pro</h2>
-                  <span className="px-1.5 py-0.5 md:px-2 md:py-1 bg-white/20 rounded text-[10px] md:text-xs font-medium whitespace-nowrap">
-                    MOST POPULAR
-                  </span>
+            <div className={`bg-[#0d1a67] rounded-2xl p-5 md:p-8 text-white flex flex-col relative overflow-hidden ${loading ? 'animate-pulse' : ''}`}>
+              {/* Hexagon overlay */}
+              <img
+                src="/cta-overlay.svg"
+                alt=""
+                className="absolute right-0 top-0 h-full opacity-50 pointer-events-none"
+              />
+              <div className="relative z-10 flex flex-col flex-1">
+                <div className="flex items-center justify-between mb-3 md:mb-4 min-h-[32px] md:min-h-[40px]">
+                  <div className="flex items-center gap-2 md:gap-3">
+                    <h2 className="text-xl md:text-2xl font-bold">Monthly Pro</h2>
+                    <span className="px-1.5 py-0.5 md:px-2 md:py-1 bg-white/20 rounded text-[10px] md:text-xs font-medium whitespace-nowrap">
+                      MOST POPULAR
+                    </span>
+                  </div>
+                  <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/10 flex items-center justify-center shrink-0">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="md:w-5 md:h-5">
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                    </svg>
+                  </div>
                 </div>
-                <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/10 flex items-center justify-center shrink-0">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="md:w-5 md:h-5">
-                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                  </svg>
+
+                <p className="text-white/70 text-xs md:text-sm mb-4 md:mb-6 min-h-[32px] md:min-h-[40px]">
+                  The complete package for serious sports bettors who want an edge all month long.
+                </p>
+
+                <div className="mb-4 md:mb-6 pb-4 md:pb-6 border-b border-white/20">
+                  {loading ? (
+                    <div className="h-10 bg-white/20 rounded w-32" />
+                  ) : (
+                    <>
+                      <span className="text-3xl md:text-4xl font-bold">{monthlyPrice}</span>
+                      <span className="text-sm md:text-base text-white/70">/ month</span>
+                    </>
+                  )}
                 </div>
+
+                <div className="space-y-3 md:space-y-4 flex-1">
+                  <FeatureItem light>30 days full access to all predictions</FeatureItem>
+                  <FeatureItem light>Coverage across all leagues</FeatureItem>
+                  <FeatureItem light>All game predictions and analysis</FeatureItem>
+                  <FeatureItem light>Push notifications for new predictions</FeatureItem>
+                  <FeatureItem light>Early access to game analysis</FeatureItem>
+                </div>
+
+                <button
+                  onClick={handleMonthlyPlanClick}
+                  className="w-full py-2.5 md:py-3 px-4 md:px-6 rounded-lg bg-white text-[#0d1a67] text-sm md:text-base font-semibold hover:bg-gray-100 transition-colors mt-6 md:mt-8 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={loading || !!error}
+                >
+                  Get Monthly Pro
+                </button>
               </div>
-
-              <p className="text-white/70 text-xs md:text-sm mb-4 md:mb-6 min-h-[32px] md:min-h-[40px]">
-                The complete package for serious sports bettors who want an edge all month long.
-              </p>
-
-              <div className="mb-4 md:mb-6 pb-4 md:pb-6 border-b border-white/20">
-                {loading ? (
-                  <div className="h-10 bg-white/20 rounded w-32" />
-                ) : (
-                  <>
-                    <span className="text-3xl md:text-4xl font-bold">{monthlyPrice}</span>
-                    <span className="text-sm md:text-base text-white/70">/ month</span>
-                  </>
-                )}
-              </div>
-
-              <div className="space-y-3 md:space-y-4">
-                <FeatureItem light>30 days full access to all predictions</FeatureItem>
-                <FeatureItem light>Coverage across all leagues</FeatureItem>
-                <FeatureItem light>All game predictions and analysis</FeatureItem>
-                <FeatureItem light>Push notifications for new predictions</FeatureItem>
-                <FeatureItem light>Early access to game analysis</FeatureItem>
-              </div>
-
-              <button
-                onClick={handleMonthlyPlanClick}
-                className="w-full py-2.5 md:py-3 px-4 md:px-6 rounded-lg bg-white text-[#0d1a67] text-sm md:text-base font-semibold hover:bg-gray-100 transition-colors mt-6 md:mt-8 disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={loading || !!error}
-              >
-                Get Monthly Pro
-              </button>
             </div>
           </div>
 

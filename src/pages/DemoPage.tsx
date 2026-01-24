@@ -8,7 +8,7 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { ApiDebugInfo } from '@/components/ApiDebugInfo';
 import { Calendar } from '@/components/ui/Calendar';
-import { FilterPanel } from '@/components/ui/FilterPanel';
+import { FilterPanel, FilterValues, SortOption } from '@/components/ui/FilterPanel';
 import { useFixtures } from '@/hooks/useFixtures';
 import { useAuth } from '@/contexts/AuthContext';
 import { MatchCardSkeleton } from '@/components/ui/skeletons/MatchCardSkeleton';
@@ -23,58 +23,91 @@ export function DemoPage() {
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const itemsPerPage = DEFAULTS.ITEMS_PER_PAGE;
 
-  // First fetch to get all fixture_ids
-  const { data: initialResponse, isLoading: isLoadingInitial, error, refetch: refetchInitial } = useFixtures({
-    sort_by: 'kickoff_asc',
-  });
+  // Filter state
+  const [filterLeagues, setFilterLeagues] = useState<number[]>([]);
+  const [sortBy, setSortBy] = useState<SortOption>('kickoff_asc');
 
-  // Get all fixture IDs from initial response
-  const allFixtureIds = initialResponse?.data?.fixture_ids ?? [];
+  // Handler for filter apply
+  const handleFilterApply = (filters: FilterValues) => {
+    setFilterLeagues(filters.leagues);
+    setSortBy(filters.sortBy);
+    setCurrentPage(1); // Reset to first page when filters change
+  };
 
-  // Calculate which fixture IDs to fetch for current page
-  const pageFixtureIds = useMemo(() => {
-    if (allFixtureIds.length === 0) return [];
+  // Current filter values for passing to FilterPanel
+  const currentFilters: FilterValues = {
+    leagues: filterLeagues,
+    sortBy: sortBy,
+  };
+
+  // Check if any filters are active (leagues or date changed from today)
+  const isDateFiltered = selectedDate.toDateString() !== new Date().toDateString();
+  const hasActiveFilters = filterLeagues.length > 0 || isDateFiltered;
+
+  // Format date as YYYY-MM-DD for API
+  const formatDateForApi = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  // Build fixture params based on filters
+  const fixtureParams = useMemo(() => {
+    const params: any = {
+      sort_by: sortBy,
+    };
+
+    // Add date filter
+    if (isDateFiltered) {
+      params.date_from = formatDateForApi(selectedDate);
+      params.date_to = formatDateForApi(selectedDate);
+    }
+
+    // Add league filter
+    if (filterLeagues.length > 0) {
+      params.leagues = filterLeagues;
+    }
+
+    // Use return_all when filters are active to get all results
+    if (hasActiveFilters) {
+      params.return_all = true;
+    }
+
+    return params;
+  }, [selectedDate, filterLeagues, sortBy, hasActiveFilters, isDateFiltered]);
+
+  // Fetch fixtures with filters
+  const { data: fixturesResponse, isLoading: isLoadingFixtures, error, refetch: refetchFixtures } = useFixtures(fixtureParams);
+
+  // Get fixtures from response
+  const allFixtures = fixturesResponse?.data?.fixtures ?? [];
+
+  // Paginate fixtures client-side
+  const fixtures = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    return allFixtureIds.slice(startIndex, endIndex);
-  }, [allFixtureIds, currentPage, itemsPerPage]);
+    return allFixtures.slice(startIndex, endIndex);
+  }, [allFixtures, currentPage, itemsPerPage]);
 
-  // Fetch fixtures for current page by IDs
-  const { data: fixturesResponse, isLoading: isLoadingPage, refetch: refetchPage } = useFixtures(
-    {
-      fixture_ids: pageFixtureIds.length > 0 ? pageFixtureIds : undefined,
-      sort_by: 'kickoff_asc',
-    },
-    {
-      enabled: pageFixtureIds.length > 0 || currentPage === 1,
-    }
-  );
-
-  // Use initial response for page 1, fetched response for other pages
-  const fixtures = currentPage === 1 && initialResponse?.data?.fixtures
-    ? initialResponse.data.fixtures
-    : fixturesResponse?.data?.fixtures ?? [];
-
-  const isLoading = isLoadingInitial || (currentPage > 1 && isLoadingPage && pageFixtureIds.length > 0);
+  const isLoading = isLoadingFixtures;
 
   // Refetch fixtures when authentication state changes
   useEffect(() => {
     if (isAuthenticated) {
-      refetchInitial();
-      if (pageFixtureIds.length > 0) {
-        refetchPage();
-      }
+      refetchFixtures();
     }
-  }, [isAuthenticated, refetchInitial, refetchPage, pageFixtureIds.length]);
+  }, [isAuthenticated, refetchFixtures]);
 
   // Check if user is premium - use hasAccess() which checks both subscriptionStatus and demo_premium flag
   const isPremium = hasAccess();
 
-  // Calculate total pages from fixture_ids (minimum 10 for demo)
+  // Calculate total pages from all fixtures (minimum 10 for demo when no filters)
   const totalPages = useMemo(() => {
-    const totalCount = allFixtureIds.length > 0 ? allFixtureIds.length : fixtures.length;
-    return Math.max(Math.ceil(totalCount / itemsPerPage), 10);
-  }, [allFixtureIds, fixtures.length, itemsPerPage]);
+    const totalCount = allFixtures.length;
+    // When filters are active, show actual pages; otherwise show minimum 10 for demo
+    return hasActiveFilters ? Math.max(Math.ceil(totalCount / itemsPerPage), 1) : Math.max(Math.ceil(totalCount / itemsPerPage), 10);
+  }, [allFixtures.length, itemsPerPage, hasActiveFilters]);
 
   // Transform fixture data to match MatchCard interface
   const paginatedCards = useMemo(() => {
@@ -89,11 +122,19 @@ export function DemoPage() {
     }));
   }, [fixtures]);
 
-  // For empty state check
-  const hasNoMatches = !isLoading && paginatedCards.length === 0 && currentPage === 1;
+  // Track if we've ever loaded data (to distinguish initial load from filter changes)
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+
+  // Mark as loaded once we get data
+  useEffect(() => {
+    if (allFixtures.length > 0 && !hasLoadedOnce) {
+      setHasLoadedOnce(true);
+    }
+  }, [allFixtures.length, hasLoadedOnce]);
 
 
-  if (isLoadingInitial) {
+  // Only show full page skeleton on initial load, not when filters change
+  if (isLoading && !hasLoadedOnce) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
@@ -220,9 +261,9 @@ export function DemoPage() {
                 <h1 className="text-[18px] md:text-2xl font-bold text-gray-900">Featured Matches</h1>
                 <div className="text-gray-600">
                   <ApiDebugInfo
-                    endpoint="/api/v1/fixtures?limit=100&with_predictions=true"
-                    response={initialResponse?.data}
-                    isLoading={isLoadingInitial}
+                    endpoint="/api/v1/fixtures"
+                    response={fixturesResponse?.data}
+                    isLoading={isLoading}
                     error={error?.message}
                   />
                 </div>
@@ -231,13 +272,16 @@ export function DemoPage() {
                 {/* Calendar - display only, no effect on data */}
                 <Calendar
                   selectedDate={selectedDate}
-                  onDateSelect={setSelectedDate}
+                  onDateSelect={(date) => {
+                    setSelectedDate(date);
+                    setCurrentPage(1); // Reset to first page when date changes
+                  }}
                 />
                 {/* Filter Button */}
                 <button
                   onClick={() => setShowFilterPanel(!showFilterPanel)}
                   className={`w-[80px] h-[40px] rounded-lg transition-colors flex items-center justify-center gap-2 text-sm font-medium ${
-                    showFilterPanel
+                    showFilterPanel || hasActiveFilters
                       ? 'bg-[#0d1a67] text-white'
                       : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
                   }`}
@@ -246,32 +290,50 @@ export function DemoPage() {
                   <img
                     src="/arrow-down.svg"
                     alt="Arrow"
-                    className={`w-[15px] h-auto transition-transform ${showFilterPanel ? 'rotate-180 invert brightness-0' : ''}`}
-                    style={showFilterPanel ? { filter: 'invert(1)' } : {}}
+                    className={`w-[15px] h-auto transition-transform ${showFilterPanel ? 'rotate-180' : ''}`}
+                    style={showFilterPanel || hasActiveFilters ? { filter: 'invert(1)' } : {}}
                   />
                 </button>
                 {/* Filter Panel */}
                 <FilterPanel
                   isOpen={showFilterPanel}
                   onClose={() => setShowFilterPanel(false)}
+                  onApply={handleFilterApply}
+                  initialFilters={currentFilters}
                 />
               </div>
             </div>
 
             {/* Match Cards Grid - Desktop: 3 columns, Mobile: single column, both in off-white container */}
             <div className="bg-gray-100 rounded-2xl p-5 w-[358px] min-h-[622px] md:w-[960px] md:min-h-[1016px] mb-8 mx-auto md:mx-0">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5 place-items-center md:place-items-start">
-                {isLoadingPage && currentPage > 1 ? (
-                  // Show skeletons while loading new page
-                  <>
-                    {[1, 2, 3, 4, 5, 6].map((i) => (
-                      <div key={i} className={i > 2 ? 'hidden md:block' : ''}>
-                        <MatchCardSkeleton />
-                      </div>
-                    ))}
-                  </>
-                ) : (
-                  paginatedCards.map((match, index) => (
+              {isLoading ? (
+                // Show skeletons while loading
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5 place-items-center md:place-items-start">
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div key={i} className={i > 2 ? 'hidden md:block' : ''}>
+                      <MatchCardSkeleton />
+                    </div>
+                  ))}
+                </div>
+              ) : paginatedCards.length === 0 ? (
+                // Empty state - inside the grey container
+                <div className="flex flex-col items-center justify-center h-full min-h-[580px] md:min-h-[980px]">
+                  <img
+                    src="/404.svg"
+                    alt="No matches"
+                    className="w-32 h-32 mb-6 opacity-60"
+                  />
+                  <p className="text-gray-500 font-medium text-lg text-center">
+                    {error ? 'Unable to load fixtures' : 'No matches found for your filters'}
+                  </p>
+                  {hasActiveFilters && (
+                    <p className="text-gray-400 text-sm mt-2">Try adjusting your filters or selecting a different date</p>
+                  )}
+                </div>
+              ) : (
+                // Show match cards
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5 place-items-center md:place-items-start">
+                  {paginatedCards.map((match, index) => (
                     <div key={match.id} className={index >= 2 ? 'hidden md:block' : ''}>
                       <MatchCard
                         {...match}
@@ -279,24 +341,10 @@ export function DemoPage() {
                         blurAllPredictions={!isPremium && currentPage > 1}
                       />
                     </div>
-                  ))
-                )}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
-
-            {/* Empty State */}
-            {hasNoMatches && (
-              <div className="flex flex-col items-center justify-center min-h-[400px] bg-white rounded-xl border border-gray-200">
-                <img
-                  src="/404.svg"
-                  alt="No matches"
-                  className="w-32 h-32 mb-6 opacity-60"
-                />
-                <p className="text-gray-500 font-medium text-lg">
-                  {error ? 'Unable to load fixtures' : 'No matches available at the moment'}
-                </p>
-              </div>
-            )}
 
             {/* Mobile: View All Button */}
             <div className="md:hidden w-[358px] mx-auto">

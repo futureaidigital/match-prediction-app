@@ -255,7 +255,7 @@ export function MatchCard({
       </div>
 
       {/* Divider */}
-      <div className="h-px bg-gray-200 w-full md:-mx-2 md:w-auto mb-[12px] md:mb-3" />
+      <div className="h-px bg-gray-900/30 w-full md:-mx-2 md:w-auto mb-[12px] md:mb-3" />
 
       {/* Predictions Section */}
       {/* Mobile: Show only 1 prediction (unblurred for premium, unblurred for free on page 1) */}

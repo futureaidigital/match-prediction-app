@@ -150,11 +150,6 @@ export function Header({ onNavigate, currentPage = '' }: HeaderProps) {
 
           {/* Right Side Actions */}
           <div className="flex items-center gap-4">
-            {/* Search */}
-            <button className="w-10 h-10 flex items-center justify-center hover:opacity-80 transition-opacity">
-              <img src="/search.svg" alt="Search" className="w-10 h-10" />
-            </button>
-
             {isAuthenticated ? (
               <>
                 {/* Desktop: Logged in state */}
@@ -170,6 +165,14 @@ export function Header({ onNavigate, currentPage = '' }: HeaderProps) {
               </>
             ) : (
               <>
+                {/* Mobile: Login Button */}
+                <button
+                  onClick={() => setShowLoginModal(true)}
+                  className="md:hidden px-4 py-2 bg-white text-[#091143] text-sm font-semibold rounded-lg hover:bg-white/90 transition-colors"
+                >
+                  Login
+                </button>
+
                 {/* Desktop: Register Button */}
                 <button
                   onClick={() => navigate('/pricing')}
