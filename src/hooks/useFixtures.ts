@@ -12,6 +12,7 @@ export interface UseFixturesParams {
   date_to?: string;        // End date (ISO format: YYYY-MM-DD)
   season_id?: number;      // Season ID filter
   has_predictions?: boolean; // Filter fixtures with predictions
+  return_all?: boolean;    // Return all fixtures instead of default 6 (requires a filter like date, league, or sort)
 }
 
 export function useFixtures(

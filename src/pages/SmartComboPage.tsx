@@ -194,8 +194,8 @@ export function SmartComboPage() {
                   </div>
                 </div>
 
-                {/* Right Side - Stats Boxes (Desktop: 4 boxes in row, Mobile: 4 column grid) */}
-                <div className="grid grid-cols-4 gap-3 md:gap-5">
+                {/* Right Side - Stats Boxes (Desktop only) */}
+                <div className="hidden md:grid grid-cols-4 gap-5">
                   {/* Success Rate */}
                   <div
                     className="bg-[#0d1a67] rounded-[12px] p-[10px] flex flex-col items-center justify-center"
@@ -658,6 +658,74 @@ export function SmartComboPage() {
                 </div>
               )}
 
+              {/* Mobile Info Boxes - Bottom of content area */}
+              <div className="md:hidden grid grid-cols-4 gap-2 px-4 pb-4 pt-2">
+                {/* Success Rate */}
+                <div className="bg-[#0d1a67] rounded-[10px] p-2 flex flex-col items-center justify-center aspect-square">
+                  <img src="/icon-success.svg" alt="Success Rate" className="w-6 h-6 mb-1" />
+                  <p
+                    className="text-white font-semibold text-[13px] leading-[150%]"
+                    style={{ fontFamily: 'Montserrat, sans-serif' }}
+                  >
+                    {combo?.confidence ? Math.round(combo.confidence) : 87}%
+                  </p>
+                  <p
+                    className="text-[#a6aebb] text-[9px] font-medium text-center"
+                    style={{ fontFamily: 'Montserrat, sans-serif' }}
+                  >
+                    Success Rate
+                  </p>
+                </div>
+                {/* Proven Track Record */}
+                <div className="bg-[#0d1a67] rounded-[10px] p-2 flex flex-col items-center justify-center aspect-square">
+                  <img src="/icon-proven.svg" alt="Proven" className="w-6 h-6 mb-1" />
+                  <p
+                    className="text-white font-semibold text-[13px] leading-[150%]"
+                    style={{ fontFamily: 'Montserrat, sans-serif' }}
+                  >
+                    Proven
+                  </p>
+                  <p
+                    className="text-[#a6aebb] text-[9px] font-medium text-center"
+                    style={{ fontFamily: 'Montserrat, sans-serif' }}
+                  >
+                    Track Record
+                  </p>
+                </div>
+                {/* Expert Analysis */}
+                <div className="bg-[#0d1a67] rounded-[10px] p-2 flex flex-col items-center justify-center aspect-square">
+                  <img src="/icon-expert.svg" alt="Expert" className="w-6 h-6 mb-1" />
+                  <p
+                    className="text-white font-semibold text-[13px] leading-[150%]"
+                    style={{ fontFamily: 'Montserrat, sans-serif' }}
+                  >
+                    Expert
+                  </p>
+                  <p
+                    className="text-[#a6aebb] text-[9px] font-medium text-center"
+                    style={{ fontFamily: 'Montserrat, sans-serif' }}
+                  >
+                    Analysis
+                  </p>
+                </div>
+                {/* Global Coverage */}
+                <div className="bg-[#0d1a67] rounded-[10px] p-2 flex flex-col items-center justify-center aspect-square">
+                  <img src="/icon-global.svg" alt="Global" className="w-6 h-6 mb-1" />
+                  <p
+                    className="text-white font-semibold text-[13px] leading-[150%]"
+                    style={{ fontFamily: 'Montserrat, sans-serif' }}
+                  >
+                    Global
+                  </p>
+                  <p
+                    className="text-[#a6aebb] text-[9px] font-medium text-center"
+                    style={{ fontFamily: 'Montserrat, sans-serif' }}
+                  >
+                    Coverage
+                  </p>
+                </div>
+              </div>
+
             </div>
           </div>
           </div>
@@ -667,15 +735,8 @@ export function SmartComboPage() {
             <div className="mt-4 md:mt-6 grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
               {/* Weekly Pass Option */}
               <div
-                className="p-3 md:p-4 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-3 md:gap-4 relative overflow-hidden"
-                style={{ background: 'linear-gradient(to right, #091143, #11207f)' }}
+                className="p-3 md:p-4 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-3 md:gap-4 relative overflow-hidden bg-[#0d1a67]"
               >
-                {/* Abstract overlay */}
-                <img
-                  src="/cta-overlay.svg"
-                  alt=""
-                  className="absolute right-0 top-0 h-full opacity-50 pointer-events-none hidden md:block"
-                />
                 <div className="text-white relative z-10 text-center md:text-left flex-1">
                   <p className="text-sm md:text-base font-semibold">Weekly Pass</p>
                   <div className="flex items-center justify-center md:justify-start gap-2">
@@ -707,8 +768,7 @@ export function SmartComboPage() {
                   <p className="text-sm md:text-base font-semibold">Monthly Pro</p>
                   <div className="flex items-center justify-center md:justify-start gap-2">
                     <span className="text-xl md:text-2xl font-bold">$9.99</span>
-                    <span className="text-white/60 line-through text-xs md:text-sm">$19.99</span>
-                    <span className="bg-green-500 text-white text-[10px] md:text-xs font-bold px-1.5 py-0.5 rounded">50% OFF</span>
+                    <span className="text-white/60 text-xs md:text-sm">/month</span>
                   </div>
                 </div>
                 <button
