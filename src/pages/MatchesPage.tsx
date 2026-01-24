@@ -4,7 +4,7 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { MatchCard } from '@/components/MatchCard';
 import { Calendar } from '@/components/ui/Calendar';
-import { FilterPanel, FilterValues } from '@/components/ui/FilterPanel';
+import { FilterPanel, FilterValues, SortOption } from '@/components/ui/FilterPanel';
 import { useFixtures } from '@/hooks/useFixtures';
 import { useLeagueNames } from '@/hooks/useLeagues';
 
@@ -267,22 +267,22 @@ export function MatchesPage() {
 
   // Filter state
   const [filterLeagues, setFilterLeagues] = useState<number[]>([]);
-  const [filterMatchStatus, setFilterMatchStatus] = useState<'all' | 'live' | 'upcoming' | 'finished'>('all');
+  const [sortBy, setSortBy] = useState<SortOption>('kickoff_asc');
 
   // Handler for filter apply
   const handleFilterApply = (filters: FilterValues) => {
     setFilterLeagues(filters.leagues);
-    setFilterMatchStatus(filters.matchStatus);
+    setSortBy(filters.sortBy);
   };
 
   // Current filter values for passing to FilterPanel
   const currentFilters: FilterValues = {
     leagues: filterLeagues,
-    matchStatus: filterMatchStatus,
+    sortBy: sortBy,
   };
 
   // Check if any filters are active
-  const hasActiveFilters = filterLeagues.length > 0 || filterMatchStatus !== 'all';
+  const hasActiveFilters = filterLeagues.length > 0;
 
   // Format date as YYYY-MM-DD for API (using local date, not UTC)
   const formatDateForApi = (date: Date) => {
@@ -294,17 +294,15 @@ export function MatchesPage() {
 
   // Fetch fixtures with filters - use return_all to get all fixtures in single request
   // When on "live" tab, fetch live matches; otherwise fetch by date
-  // Filter panel match_type overrides tab selection when not 'all'
   const fixtureParams = {
     ...(activeTab === 'live'
       ? { match_type: 'live' as const }
       : {
           date_from: formatDateForApi(currentDate),
           date_to: formatDateForApi(currentDate),
-          ...(filterMatchStatus !== 'all' && { match_type: filterMatchStatus }),
         }),
     ...(filterLeagues.length > 0 && { leagues: filterLeagues }),
-    sort_by: 'kickoff_asc' as const,
+    sort_by: sortBy,
     return_all: true, // Return all fixtures instead of just 6
   };
 
