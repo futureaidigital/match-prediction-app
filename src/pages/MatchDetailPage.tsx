@@ -9,7 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 type TabType = 'predictions' | 'commentary' | 'stats' | 'lineups';
 
 // Prediction card component with expand/collapse - Figma specs: 358x350 expanded
-function PredictionCard({ prediction, index: _index, isLive: _isLive, isBlurred = false }: { prediction: any; index: number; isLive: boolean; isBlurred?: boolean }) {
+function PredictionCard({ prediction, index: _index, isLive: _isLive, isBlurred = false, isSelected = false, onClick, compact = false }: { prediction: any; index: number; isLive: boolean; isBlurred?: boolean; isSelected?: boolean; onClick?: () => void; compact?: boolean }) {
   const percentage = Math.round(prediction.prediction || prediction.pre_game_prediction || 0);
   const preGamePercentage = Math.round(prediction.pre_game_prediction || 0);
   const pctChange = prediction.pct_change_value || 0;
@@ -28,7 +28,8 @@ function PredictionCard({ prediction, index: _index, isLive: _isLive, isBlurred 
 
   return (
     <div
-      className={`rounded-[14px] md:rounded-[20px] p-3 md:p-5 flex flex-col gap-[10px] md:gap-5 bg-white w-full md:w-[calc(33.333%-14px)] md:max-w-[440px] ${isBlurred ? 'relative select-none pointer-events-none' : ''}`}
+      onClick={!isBlurred ? onClick : undefined}
+      className={`rounded-[14px] md:rounded-[20px] p-3 md:p-5 flex flex-col gap-[10px] md:gap-5 bg-white w-full ${compact ? 'md:w-[calc(50%-10px)]' : 'md:w-[calc(33.333%-14px)] md:max-w-[440px]'} ${isBlurred ? 'relative select-none pointer-events-none' : 'cursor-pointer'} ${isSelected ? 'ring-2 ring-[#0d1a67]' : ''}`}
       style={{
         boxShadow: '0 2px 15px rgba(0,0,0,0.1)',
         fontFamily: 'Montserrat, sans-serif',
@@ -531,12 +532,234 @@ function MobileBottomNav() {
   );
 }
 
+// AI Analysis panel - shown when a prediction card is clicked
+function AIAnalysisPanel({ prediction, fixture, statsData, onClose }: { prediction: any; fixture: any; statsData: any; onClose: () => void }) {
+  const percentage = Math.round(prediction.prediction || prediction.pre_game_prediction || 0);
+  const preGamePercentage = Math.round(prediction.pre_game_prediction || 0);
+  const confidence = percentage / 100;
+  const reasons = prediction.prediction_reasons || prediction.pre_game_prediction_reasons || [];
+  const isPlayer = prediction.prediction_type === 'player' || prediction.player_id;
+  const [formTab, setFormTab] = useState<'home' | 'away'>('home');
+
+  const getConfidence = (pct: number) => {
+    if (pct >= 70) return { label: 'HIGH', color: '#27ae60', bg: '#e6f4ec' };
+    if (pct >= 40) return { label: 'MEDIUM', color: '#f39c12', bg: '#fff9ec' };
+    return { label: 'LOW', color: '#e74c3c', bg: '#fdedec' };
+  };
+  const conf = getConfidence(percentage);
+
+  // Extract stats from statsData if available
+  const basicStats = statsData?.basic || {};
+  const homeBasic = basicStats.home || {};
+  const awayBasic = basicStats.away || {};
+
+  // Build stat rows for the table
+  const statColumns = [
+    { key: 'rating', label: 'RTG' },
+    { key: 'shots_on_target', label: 'SOT' },
+    { key: 'shots_total', label: 'SHOT' },
+    { key: 'offsides', label: 'OFF' },
+    { key: 'corners', label: 'CRE' },
+    { key: 'goals', label: 'GLS' },
+  ];
+
+  return (
+    <div
+      className="bg-white rounded-[20px] p-6 flex flex-col gap-6 w-full"
+      style={{ boxShadow: '0 2px 15px rgba(0,0,0,0.1)', fontFamily: 'Montserrat, sans-serif' }}
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <span
+            className="h-[22px] px-2 rounded text-xs font-bold uppercase leading-[20px] flex items-center"
+            style={{ backgroundColor: conf.bg, color: conf.color }}
+          >
+            {conf.label}
+          </span>
+          <h3 className="text-[20px] font-semibold text-[#0a0a0a] leading-[130%]">
+            {prediction.prediction_display_name || 'Prediction'}
+          </h3>
+        </div>
+        <button
+          onClick={onClose}
+          className="w-8 h-8 rounded-full bg-[#f7f8fa] flex items-center justify-center hover:bg-gray-200 transition-colors"
+        >
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M1 1L13 13M13 1L1 13" stroke="#7c8a9c" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+        </button>
+      </div>
+
+      {/* AI Analysis Section */}
+      <div className="flex flex-col gap-3">
+        <h4 className="text-[16px] font-semibold text-[#0a0a0a]">AI Analysis</h4>
+        <div className="rounded-[14px] bg-[#f7f8fa] p-4 flex flex-col gap-3">
+          {reasons.length > 0 ? (
+            reasons.map((reason: string, i: number) => (
+              <div key={i} className="flex items-start gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#0d1a67] mt-[7px] shrink-0" />
+                <p className="text-sm text-[#3a3f47] leading-[160%]">{reason}</p>
+              </div>
+            ))
+          ) : (
+            <p className="text-sm text-[#7c8a9c]">No analysis available for this prediction.</p>
+          )}
+        </div>
+      </div>
+
+      {/* Performance vs Similar Teams */}
+      <div className="flex flex-col gap-3">
+        <h4 className="text-[16px] font-semibold text-[#0a0a0a]">Performance vs Similar Teams</h4>
+        <div className="rounded-[14px] bg-[#f7f8fa] p-4 flex flex-col gap-4">
+          {/* Current prediction bar */}
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-[#7c8a9c]">Current Prediction</span>
+              <span className="text-xs font-semibold" style={{ color: conf.color }}>{percentage}%</span>
+            </div>
+            <div className="w-full h-2 rounded-full bg-[#e1e4eb]">
+              <div className="h-2 rounded-full transition-all" style={{ width: `${percentage}%`, backgroundColor: conf.color }} />
+            </div>
+          </div>
+          {/* Pre-game prediction bar */}
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-[#7c8a9c]">Pre-game Prediction</span>
+              <span className="text-xs font-semibold text-[#7c8a9c]">{preGamePercentage}%</span>
+            </div>
+            <div className="w-full h-2 rounded-full bg-[#e1e4eb]">
+              <div className="h-2 rounded-full bg-[#7c8a9c] transition-all" style={{ width: `${preGamePercentage}%` }} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Detailed Match Stats */}
+      {statsData && (
+        <div className="flex flex-col gap-3">
+          <h4 className="text-[16px] font-semibold text-[#0a0a0a]">Detailed Match Stats</h4>
+          <div className="rounded-[14px] bg-[#f7f8fa] overflow-hidden">
+            <table className="w-full text-center text-xs">
+              <thead>
+                <tr className="border-b border-[#e1e4eb]">
+                  <th className="py-3 px-2 text-[#7c8a9c] font-semibold">MATCH</th>
+                  {statColumns.map(col => (
+                    <th key={col.key} className="py-3 px-2 text-[#7c8a9c] font-semibold">{col.label}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b border-[#e1e4eb]">
+                  <td className="py-3 px-2 font-semibold text-[#0a0a0a]">{fixture?.home_team_abbreviation || 'HOME'}</td>
+                  {statColumns.map(col => (
+                    <td key={col.key} className="py-3 px-2 text-[#3a3f47]">
+                      {homeBasic[col.key] ?? '-'}
+                    </td>
+                  ))}
+                </tr>
+                <tr>
+                  <td className="py-3 px-2 font-semibold text-[#0a0a0a]">{fixture?.away_team_abbreviation || 'AWAY'}</td>
+                  {statColumns.map(col => (
+                    <td key={col.key} className="py-3 px-2 text-[#3a3f47]">
+                      {awayBasic[col.key] ?? '-'}
+                    </td>
+                  ))}
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Model Confidence */}
+      <div className="flex flex-col gap-3">
+        <h4 className="text-[16px] font-semibold text-[#0a0a0a]">Model Confidence</h4>
+        <div className="rounded-[14px] bg-[#f7f8fa] p-4 flex items-center gap-4">
+          <div className="relative w-[80px] h-[80px]">
+            <svg className="w-[80px] h-[80px] -rotate-90" viewBox="0 0 80 80">
+              <circle cx="40" cy="40" r="34" fill="none" stroke="#e1e4eb" strokeWidth="6" />
+              <circle
+                cx="40" cy="40" r="34" fill="none"
+                stroke={conf.color} strokeWidth="6"
+                strokeDasharray={`${confidence * 213.6} 213.6`}
+                strokeLinecap="round"
+              />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-[16px] font-bold text-[#0a0a0a]">{confidence.toFixed(2)}</span>
+            </div>
+          </div>
+          <div className="flex flex-col gap-1">
+            <span className="text-sm font-semibold text-[#0a0a0a]">{confidence.toFixed(2)}/1.0</span>
+            <span className="text-xs text-[#7c8a9c]">
+              {confidence >= 0.7 ? 'High confidence prediction' : confidence >= 0.4 ? 'Moderate confidence prediction' : 'Low confidence prediction'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Season Context */}
+      <div className="flex flex-col gap-3">
+        <h4 className="text-[16px] font-semibold text-[#0a0a0a]">Season Context</h4>
+        <div className="rounded-[14px] bg-[#f7f8fa] p-4 flex flex-col gap-3">
+          {/* Home/Away Form tabs */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => setFormTab('home')}
+              className={`h-[30px] px-3 rounded-lg text-xs font-medium transition-colors ${
+                formTab === 'home' ? 'bg-[#0d1a67] text-white' : 'bg-white text-[#7c8a9c]'
+              }`}
+            >
+              Home Form
+            </button>
+            <button
+              onClick={() => setFormTab('away')}
+              className={`h-[30px] px-3 rounded-lg text-xs font-medium transition-colors ${
+                formTab === 'away' ? 'bg-[#0d1a67] text-white' : 'bg-white text-[#7c8a9c]'
+              }`}
+            >
+              Away Form
+            </button>
+          </div>
+          <div className="flex flex-col gap-2">
+            {formTab === 'home' ? (
+              <>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-[#7c8a9c]">{isPlayer ? 'Player' : 'Match'} prediction accuracy</span>
+                  <span className="text-xs font-semibold text-[#0a0a0a]">{percentage}%</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-[#7c8a9c]">Pre-game baseline</span>
+                  <span className="text-xs font-semibold text-[#0a0a0a]">{preGamePercentage}%</span>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-[#7c8a9c]">{isPlayer ? 'Player' : 'Match'} prediction accuracy</span>
+                  <span className="text-xs font-semibold text-[#0a0a0a]">{preGamePercentage}%</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-[#7c8a9c]">Current live prediction</span>
+                  <span className="text-xs font-semibold text-[#0a0a0a]">{percentage}%</span>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function MatchDetailPage() {
   const { fixtureId } = useParams<{ fixtureId: string }>();
   const { isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('predictions');
   const [predictionCategory, setPredictionCategory] = useState<string>('all');
   const [commentaryFilter, setCommentaryFilter] = useState<'all' | 'goals' | 'cards' | 'important'>('all');
+  const [selectedPrediction, setSelectedPrediction] = useState<any>(null);
 
   // Fetch specific fixture by ID (backend returns fixture with predictions)
   const { data: fixturesResponse, isLoading: isLoadingFixtures } = useFixtures(
@@ -552,6 +775,23 @@ export function MatchDetailPage() {
 
   const fixture = fixtureData?.fixture;
   const predictions = fixtureData?.predictions || [];
+
+  // Filter predictions by category
+  const filteredPredictions = useMemo(() => {
+    if (predictionCategory === 'all') return predictions;
+    return predictions.filter((p: any) => {
+      const type = (p.prediction_type || '').toLowerCase();
+      const name = (p.prediction_display_name || '').toLowerCase();
+      switch (predictionCategory) {
+        case 'player': return type === 'player' || !!p.player_id;
+        case 'match': return type === 'fixture' || type === 'match';
+        case 'team': return type === 'team';
+        case 'cards': return name.includes('card') || name.includes('booking') || name.includes('yellow') || name.includes('red');
+        case 'shots': return name.includes('shot') || name.includes('target');
+        default: return true;
+      }
+    });
+  }, [predictions, predictionCategory]);
 
   // Fetch fixture statistics
   const { data: statsResponse, isLoading: isLoadingStats } = useFixtureStatistics(fixtureId || '');
@@ -685,7 +925,7 @@ export function MatchDetailPage() {
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => { setActiveTab(tab.id); setSelectedPrediction(null); }}
                   className={`flex-1 shrink-0 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
                     activeTab === tab.id
                       ? 'bg-[#0d1a67] text-white'
@@ -762,7 +1002,7 @@ export function MatchDetailPage() {
                   ].map((cat) => (
                     <button
                       key={cat.id}
-                      onClick={() => setPredictionCategory(cat.id)}
+                      onClick={() => { setPredictionCategory(cat.id); setSelectedPrediction(null); }}
                       className={`h-[38px] px-[10px] rounded-lg text-sm font-medium leading-[20px] transition-colors flex items-center justify-center ${
                         predictionCategory === cat.id
                           ? 'bg-[#0d1a67] text-white'
@@ -828,20 +1068,31 @@ export function MatchDetailPage() {
                       </div>
                     ))}
                   </div>
-                ) : predictions.length > 0 ? (
+                ) : filteredPredictions.length > 0 ? (
                   <>
                     <div className="flex flex-col gap-[20px]">
-                      {predictions.slice(0, 9).map((prediction: any, index: number) => (
+                      {filteredPredictions.slice(0, 9).map((prediction: any, index: number) => (
                         <PredictionCard
                           key={prediction.prediction_id || index}
                           prediction={prediction}
                           index={index}
                           isLive={fixture?.minutes_elapsed !== null && fixture?.minutes_elapsed !== undefined}
                           isBlurred={!isAuthenticated && index >= 6}
+                          isSelected={selectedPrediction?.prediction_id === prediction.prediction_id}
+                          onClick={() => setSelectedPrediction(selectedPrediction?.prediction_id === prediction.prediction_id ? null : prediction)}
                         />
                       ))}
                     </div>
-                    {!isAuthenticated && predictions.length > 6 && (
+                    {/* Mobile AI Analysis Panel */}
+                    {selectedPrediction && (
+                      <AIAnalysisPanel
+                        prediction={selectedPrediction}
+                        fixture={fixture}
+                        statsData={statsData}
+                        onClose={() => setSelectedPrediction(null)}
+                      />
+                    )}
+                    {!isAuthenticated && filteredPredictions.length > 6 && (
                       <button
                         onClick={() => window.location.href = '/login'}
                         className="w-full h-[38px] rounded-lg flex items-center justify-center gap-[10px] border border-[#d9d9d9] text-white text-[13px] font-medium"
@@ -867,8 +1118,9 @@ export function MatchDetailPage() {
                 )}
               </div>
 
-              {/* Desktop: cards in flex grid */}
-              <div className="hidden md:block">
+              {/* Desktop: cards in flex grid + AI Analysis panel */}
+              <div className="hidden md:flex gap-5">
+                <div className={`${selectedPrediction ? 'w-[55%]' : 'w-full'} transition-all duration-300`}>
                 {isLoadingFixtures ? (
                   <div className="flex flex-row flex-wrap items-start gap-[20px]">
                     {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -884,20 +1136,23 @@ export function MatchDetailPage() {
                       </div>
                     ))}
                   </div>
-                ) : predictions.length > 0 ? (
+                ) : filteredPredictions.length > 0 ? (
                   <>
                     <div className="flex flex-row flex-wrap items-start gap-[20px] min-h-[300px]">
-                      {predictions.slice(0, 9).map((prediction: any, index: number) => (
+                      {filteredPredictions.slice(0, 9).map((prediction: any, index: number) => (
                         <PredictionCard
                           key={prediction.prediction_id || index}
                           prediction={prediction}
                           index={index}
                           isLive={fixture?.minutes_elapsed !== null && fixture?.minutes_elapsed !== undefined}
                           isBlurred={!isAuthenticated && index >= 6}
+                          isSelected={selectedPrediction?.prediction_id === prediction.prediction_id}
+                          onClick={() => setSelectedPrediction(selectedPrediction?.prediction_id === prediction.prediction_id ? null : prediction)}
+                          compact={!!selectedPrediction}
                         />
                       ))}
                     </div>
-                    {!isAuthenticated && predictions.length > 6 && (
+                    {!isAuthenticated && filteredPredictions.length > 6 && (
                       <button
                         onClick={() => window.location.href = '/login'}
                         className="w-full h-[50px] mt-5 rounded-lg flex items-center justify-center gap-[10px] border border-[#d9d9d9] text-white text-sm font-medium"
@@ -919,6 +1174,18 @@ export function MatchDetailPage() {
                 ) : (
                   <div className="text-center py-12 text-gray-500">
                     No predictions available for this match
+                  </div>
+                )}
+                </div>
+                {/* Desktop AI Analysis Panel */}
+                {selectedPrediction && (
+                  <div className="w-[45%] sticky top-4 self-start">
+                    <AIAnalysisPanel
+                      prediction={selectedPrediction}
+                      fixture={fixture}
+                      statsData={statsData}
+                      onClose={() => setSelectedPrediction(null)}
+                    />
                   </div>
                 )}
               </div>
