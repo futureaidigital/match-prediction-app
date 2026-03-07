@@ -10,31 +10,28 @@ type TabType = 'predictions' | 'commentary' | 'stats' | 'lineups';
 
 // Prediction card component with expand/collapse - Figma specs: 358x350 expanded
 function PredictionCard({ prediction, index: _index, isLive: _isLive, isBlurred = false }: { prediction: any; index: number; isLive: boolean; isBlurred?: boolean }) {
-  // Only expand if explicitly marked as featured by the API
-  const isFeatured = prediction.is_featured === true;
-  const isExpanded = isFeatured;
-
   const percentage = Math.round(prediction.prediction || prediction.pre_game_prediction || 0);
   const preGamePercentage = Math.round(prediction.pre_game_prediction || 0);
   const pctChange = prediction.pct_change_value || 0;
   const isPlayer = prediction.prediction_type === 'player' || prediction.player_id;
 
-  // Mock insights for expanded view
-  const insights = [
-    prediction.prediction_display_name,
-    `${prediction.player_name || 'Player'} usually takes 5+ shots on target when playing against ${prediction.opponent_name || 'opponents'}`,
-    `In the past 10 sunny games, ${prediction.player_name || 'player'} has scored every single match!`,
-  ];
+  // Determine confidence level based on percentage
+  const getConfidence = (pct: number) => {
+    if (pct >= 70) return { label: 'HIGH', color: '#27ae60', bg: '#e6f4ec' };
+    if (pct >= 40) return { label: 'MED', color: '#f2994a', bg: '#fef4eb' };
+    return { label: 'LOW', color: '#eb5757', bg: '#fdeaea' };
+  };
+  const confidence = getConfidence(percentage);
+
+  // Progress bar color matches confidence
+  const barColor = confidence.color;
 
   return (
     <div
-      className={`overflow-hidden ${
-        isExpanded
-          ? 'rounded-[20px] px-2 pb-2'
-          : 'rounded-[14px] border border-[#e1e4eb] shadow-[0_1px_15px_rgba(0,0,0,0.1)]'
-      } ${isBlurred ? 'relative select-none pointer-events-none' : ''}`}
+      className={`rounded-[20px] p-5 flex flex-col gap-5 bg-white ${isBlurred ? 'relative select-none pointer-events-none' : ''}`}
       style={{
-        ...(isExpanded ? { background: 'linear-gradient(to bottom, #091143 0%, #172ba9 100%)' } : {}),
+        boxShadow: '0 2px 15px rgba(0,0,0,0.1)',
+        fontFamily: 'Montserrat, sans-serif',
         ...(isBlurred ? {
           filter: 'blur(3px)',
           WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%)',
@@ -42,100 +39,63 @@ function PredictionCard({ prediction, index: _index, isLive: _isLive, isBlurred 
         } : {})
       }}
     >
-      {/* Header */}
-      <div
-        className={`w-full flex items-center justify-between gap-2 ${
-          isExpanded ? 'px-[15px] py-4' : 'bg-white px-3 pt-[14px]'
-        }`}
-      >
-        <span
-          className={`font-semibold text-left leading-[135%] ${
-            isExpanded ? 'text-white text-[16px]' : 'text-[#0a0a0a] text-[16px]'
-          }`}
-          style={{ fontFamily: 'Montserrat, sans-serif' }}
-        >
-          {prediction.prediction_display_name || 'Prediction'}
-        </span>
-        <div className="flex items-center gap-[5px] shrink-0">
-          {/* Player or Matches badge - 74x28 */}
+      {/* Top section: badge + title + subtitle */}
+      <div className="flex flex-col gap-[7px]">
+        <div className="flex items-center gap-[7px]">
           <span
-            className="px-[10px] h-[28px] flex items-center justify-center text-[14px] font-medium rounded-full bg-[#e1e4eb] text-[#0d1a67]"
-            style={{ fontFamily: 'Montserrat, sans-serif' }}
+            className="h-[22px] px-2 rounded text-xs font-bold uppercase leading-[20px] flex items-center"
+            style={{ backgroundColor: confidence.bg, color: confidence.color }}
           >
-            {isPlayer ? 'Player' : 'Matches'}
+            {confidence.label}
           </span>
-          {/* Chevron icon - 24x24 expanded, 20x20 collapsed */}
-          <svg
-            className={`transition-transform ${isExpanded ? 'w-6 h-6 rotate-180 text-white' : 'w-5 h-5 text-[#7c8a9c]'}`}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
+        </div>
+        <div className="flex flex-col gap-[5px]">
+          <span className="text-[18px] font-semibold text-[#0a0a0a] leading-normal">
+            {prediction.prediction_display_name || 'Prediction'}
+          </span>
+          <span className="text-xs font-semibold text-[#7c8a9c] leading-[18px]">
+            {isPlayer ? 'Player' : 'Match'} Prediction
+          </span>
         </div>
       </div>
 
-      {/* Content - White background */}
-      <div className={`bg-white ${isExpanded ? 'rounded-[14px] px-4 py-5' : 'px-3 pt-[10px] pb-[14px]'}`}>
-        {/* Progress bar and percentages */}
-        <div className="mb-1">
-          <div className="flex items-center justify-between mb-1">
-            <span
-              className="text-[#27ae60] font-semibold text-[16px] leading-[150%]"
-              style={{ fontFamily: 'Montserrat, sans-serif' }}
-            >
-              {percentage}%
+      {/* Bottom section: gray container with percentage, bar, pre-game */}
+      <div className="rounded-[14px] bg-[#f7f8fa] p-[10px] flex flex-col gap-[14px]">
+        {/* Percentage row */}
+        <div className="flex items-center justify-between">
+          <span className="text-[18px] font-bold" style={{ color: barColor }}>
+            {percentage}%
+          </span>
+          <div className="flex items-center gap-[6px]">
+            <span className="text-sm font-medium text-[#7c8a9c] leading-[20px]">
+              {Math.abs(pctChange).toFixed(0)}% in last 13 min
             </span>
-            <span
-              className={`text-[12px] font-medium ${pctChange >= 0 ? 'text-[#27ae60]' : 'text-red-500'}`}
-              style={{ fontFamily: 'Montserrat, sans-serif' }}
-            >
-              {pctChange >= 0 ? '↑' : '↓'} {Math.abs(pctChange).toFixed(0)}% in the last 13 min
-            </span>
-          </div>
-          {/* Progress bar - 8px height, 10px radius */}
-          <div className="w-full bg-[#0a0a0a]/10 rounded-[10px] h-2">
-            <div
-              className="bg-[#27ae60] h-2 rounded-[100px] transition-all duration-300"
-              style={{ width: `${percentage}%` }}
-            />
           </div>
         </div>
 
-        {/* Pre-game prediction */}
-        <div className="flex items-center justify-between mt-1">
-          <span
-            className="text-[#7c8a9c] text-[12px] font-medium leading-[18px]"
-            style={{ fontFamily: 'Montserrat, sans-serif' }}
-          >
-            Pre-game Prediction:
-          </span>
-          <span
-            className="text-[#27ae60] text-[14px] font-semibold leading-[150%]"
-            style={{ fontFamily: 'Montserrat, sans-serif' }}
-          >
-            {preGamePercentage}%
-          </span>
+        {/* Progress bar */}
+        <div className="w-full h-[6px] rounded-full bg-[#e1e4eb]">
+          <div
+            className="h-[6px] rounded-full transition-all duration-300"
+            style={{ width: `${percentage}%`, backgroundColor: barColor }}
+          />
         </div>
 
-        {/* Insights - Only show when expanded */}
-        {isExpanded && (
-          <div className="space-y-[10px] mt-5 pt-5 border-t border-[#e1e4eb]">
-            {insights.map((insight, idx) => (
-              <div key={idx} className="flex items-start gap-[6px]">
-                <img src="/Vector.svg" alt="" className="w-3 h-3 mt-1 shrink-0" />
-                <span
-                  className="text-[#0a0a0a] text-[14px] font-medium leading-[150%]"
-                  style={{ fontFamily: 'Montserrat, sans-serif' }}
-                >
-                  {insight}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
+        {/* Pre-game prediction row */}
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium text-[#7c8a9c] leading-[20px]">
+            Pre-game Prediction {preGamePercentage}%
+          </span>
+          <span
+            className="h-[22px] px-2 rounded text-sm font-semibold leading-[20px] flex items-center"
+            style={{
+              backgroundColor: pctChange >= 0 ? '#e6f4ec' : '#fdeaea',
+              color: pctChange >= 0 ? '#27ae60' : '#eb5757',
+            }}
+          >
+            {pctChange >= 0 ? '+' : ''}{Math.abs(pctChange).toFixed(0)}%
+          </span>
+        </div>
       </div>
     </div>
   );
