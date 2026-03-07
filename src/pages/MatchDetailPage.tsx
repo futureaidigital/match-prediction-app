@@ -734,7 +734,7 @@ export function MatchDetailPage() {
                 >
                   {predictions.length} Predictions Available
                 </h2>
-                {fixture?.minutes_elapsed != null && (
+                {fixture?.is_live && (
                   <div
                     className="flex items-center gap-[5px] pl-2 pr-4 py-3 rounded-lg border border-[#d9d9d9]"
                     style={{
@@ -786,7 +786,7 @@ export function MatchDetailPage() {
               {/* Mobile: #f7f8fa container with header + cards */}
               <div className="md:hidden rounded-[10px] bg-[#f7f8fa] p-[10px] flex flex-col gap-[15px]">
                 {/* Mobile live badge */}
-                {fixture?.minutes_elapsed != null && (
+                {fixture?.is_live && (
                   <div
                     className="flex items-center gap-[6px] px-[6px] py-[6px] rounded-[6px]"
                     style={{
