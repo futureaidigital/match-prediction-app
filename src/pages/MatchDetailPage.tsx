@@ -765,6 +765,29 @@ export function MatchDetailPage() {
           {/* Predictions Tab */}
           {activeTab === 'predictions' && (
             <div className="space-y-4">
+              {/* Header row: count + live badge */}
+              <div className="flex items-center justify-between">
+                <h2
+                  className="text-[22px] font-semibold text-[#0a0a0a] leading-[130%]"
+                  style={{ fontFamily: 'Montserrat, sans-serif' }}
+                >
+                  {predictions.length} Predictions Available
+                </h2>
+                {fixture?.minutes_elapsed != null && (
+                  <div
+                    className="flex items-center gap-[5px] px-4 pr-4 pl-2 py-3 rounded-lg border border-[#d9d9d9]"
+                    style={{
+                      backgroundColor: '#27ae60',
+                      boxShadow: '0 7px 4px -3px rgba(0,0,0,0.05)',
+                      fontFamily: 'Montserrat, sans-serif',
+                    }}
+                  >
+                    <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                    <span className="text-white text-sm font-medium">Predictions Updating in Real-Time</span>
+                  </div>
+                )}
+              </div>
+
               {isLoadingFixtures ? (
                 // Loading skeleton
                 [1, 2, 3, 4].map((i) => (
