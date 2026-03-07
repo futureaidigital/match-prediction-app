@@ -785,23 +785,32 @@ export function MatchDetailPage() {
 
               {isLoadingFixtures ? (
                 // Loading skeleton
-                [1, 2, 3, 4].map((i) => (
-                  <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 animate-pulse">
-                    <div className="h-5 bg-gray-200 rounded w-3/4 mb-4" />
-                    <div className="h-4 bg-gray-200 rounded w-1/2 mb-2" />
-                    <div className="h-2 bg-gray-200 rounded w-full" />
-                  </div>
-                ))
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div key={i} className="bg-white rounded-[20px] p-5 animate-pulse" style={{ boxShadow: '0 2px 15px rgba(0,0,0,0.1)' }}>
+                      <div className="h-5 bg-gray-200 rounded w-1/4 mb-3" />
+                      <div className="h-5 bg-gray-200 rounded w-3/4 mb-2" />
+                      <div className="h-4 bg-gray-200 rounded w-1/3 mb-5" />
+                      <div className="rounded-[14px] bg-[#f7f8fa] p-[10px]">
+                        <div className="h-5 bg-gray-200 rounded w-1/4 mb-3" />
+                        <div className="h-[6px] bg-gray-200 rounded-full w-full mb-3" />
+                        <div className="h-4 bg-gray-200 rounded w-1/2" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
               ) : predictions.length > 0 ? (
-                predictions.map((prediction: any, index: number) => (
-                  <PredictionCard
-                    key={prediction.prediction_id || index}
-                    prediction={prediction}
-                    index={index}
-                    isLive={fixture?.minutes_elapsed !== null && fixture?.minutes_elapsed !== undefined}
-                    isBlurred={!isAuthenticated && index >= 1}
-                  />
-                ))
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                  {predictions.map((prediction: any, index: number) => (
+                    <PredictionCard
+                      key={prediction.prediction_id || index}
+                      prediction={prediction}
+                      index={index}
+                      isLive={fixture?.minutes_elapsed !== null && fixture?.minutes_elapsed !== undefined}
+                      isBlurred={!isAuthenticated && index >= 1}
+                    />
+                  ))}
+                </div>
               ) : (
                 <div className="text-center py-12 text-gray-500">
                   No predictions available for this match
