@@ -818,11 +818,7 @@ export function MatchDetailPage() {
                   className="h-[38px] px-4 py-3 rounded-lg bg-[#0d1a67] text-white text-sm font-medium transition-colors flex items-center gap-[10px]"
                   style={{ fontFamily: 'Montserrat, sans-serif' }}
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="4" y1="6" x2="20" y2="6" />
-                    <line x1="8" y1="12" x2="20" y2="12" />
-                    <line x1="12" y1="18" x2="20" y2="18" />
-                  </svg>
+                  <img src="/filter.svg" alt="" width="16" height="16" />
                   Filters
                 </button>
               </div>
