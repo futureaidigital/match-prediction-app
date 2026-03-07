@@ -720,12 +720,12 @@ export function MatchDetailPage() {
         <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-4 md:py-6">
           {/* Tabs */}
           <div className="flex items-center justify-between mb-4 md:mb-6 gap-2">
-            <div className="bg-gray-100 rounded-xl p-1 flex items-center overflow-x-auto scrollbar-hide flex-1 md:flex-none">
+            <div className="bg-[#f7f8fa] rounded-[10px] p-1.5 flex items-center flex-1">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`px-4 md:px-5 py-2.5 md:py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap flex-1 md:flex-none ${
+                  className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
                     activeTab === tab.id
                       ? 'bg-[#0d1a67] text-white'
                       : 'text-gray-500 hover:text-gray-700'
