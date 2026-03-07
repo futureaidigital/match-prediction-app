@@ -575,6 +575,7 @@ export function MatchDetailPage() {
   const { fixtureId } = useParams<{ fixtureId: string }>();
   const { isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('predictions');
+  const [predictionCategory, setPredictionCategory] = useState<string>('all');
   const [commentaryFilter, setCommentaryFilter] = useState<'all' | 'goals' | 'cards' | 'important'>('all');
 
   // Fetch specific fixture by ID (backend returns fixture with predictions)
@@ -786,6 +787,44 @@ export function MatchDetailPage() {
                     <span className="text-white text-sm font-medium">Predictions Updating in Real-Time</span>
                   </div>
                 )}
+              </div>
+
+              {/* Sub-filter bar: category pills + Filters button */}
+              <div className="flex items-center justify-between gap-[10px]">
+                <div className="flex items-center gap-[10px]">
+                  {[
+                    { id: 'all', label: 'All Predictions' },
+                    { id: 'player', label: 'Player' },
+                    { id: 'match', label: 'Match' },
+                    { id: 'team', label: 'Team' },
+                    { id: 'cards', label: 'Cards' },
+                    { id: 'shots', label: 'Shots' },
+                  ].map((cat) => (
+                    <button
+                      key={cat.id}
+                      onClick={() => setPredictionCategory(cat.id)}
+                      className={`h-[38px] px-[10px] rounded-lg text-sm font-medium leading-[20px] transition-colors flex items-center justify-center ${
+                        predictionCategory === cat.id
+                          ? 'bg-[#0d1a67] text-white'
+                          : 'bg-white text-[#7c8a9c]'
+                      }`}
+                      style={{ fontFamily: 'Montserrat, sans-serif' }}
+                    >
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  className="h-[38px] px-4 py-3 rounded-lg bg-[#0d1a67] text-white text-sm font-medium transition-colors flex items-center gap-[10px]"
+                  style={{ fontFamily: 'Montserrat, sans-serif' }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="4" y1="6" x2="20" y2="6" />
+                    <line x1="8" y1="12" x2="20" y2="12" />
+                    <line x1="12" y1="18" x2="20" y2="18" />
+                  </svg>
+                  Filters
+                </button>
               </div>
 
               {isLoadingFixtures ? (
