@@ -539,6 +539,7 @@ function AIAnalysisPanel({ prediction, fixture, statsData, onClose }: { predicti
   const confidence = percentage / 100;
   const reasons = prediction.prediction_reasons || prediction.pre_game_prediction_reasons || [];
   const isPlayer = prediction.prediction_type === 'player' || prediction.player_id;
+  const pctChange = prediction.pct_change_value || 0;
   const [formTab, setFormTab] = useState<'home' | 'away'>('home');
 
   const getConfidence = (pct: number) => {
@@ -553,7 +554,6 @@ function AIAnalysisPanel({ prediction, fixture, statsData, onClose }: { predicti
   const homeBasic = basicStats.home || {};
   const awayBasic = basicStats.away || {};
 
-  // Build stat rows for the table
   const statColumns = [
     { key: 'rating', label: 'RTG' },
     { key: 'shots_on_target', label: 'SOT' },
@@ -563,189 +563,211 @@ function AIAnalysisPanel({ prediction, fixture, statsData, onClose }: { predicti
     { key: 'goals', label: 'GLS' },
   ];
 
+  const predictionName = prediction.prediction_display_name || 'Prediction';
+
   return (
     <div
-      className="bg-white rounded-[20px] p-6 flex flex-col gap-6 w-full"
-      style={{ boxShadow: '0 2px 15px rgba(0,0,0,0.1)', fontFamily: 'Montserrat, sans-serif' }}
+      className="bg-white rounded-t-[20px] md:rounded-[20px] p-4 flex flex-col gap-4 w-full"
+      style={{ fontFamily: 'Montserrat, sans-serif' }}
     >
-      {/* Header */}
+      {/* Header: "Details" + close X */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <span
-            className="h-[22px] px-2 rounded text-xs font-bold uppercase leading-[20px] flex items-center"
-            style={{ backgroundColor: conf.bg, color: conf.color }}
-          >
-            {conf.label}
-          </span>
-          <h3 className="text-[20px] font-semibold text-[#0a0a0a] leading-[130%]">
-            {prediction.prediction_display_name || 'Prediction'}
-          </h3>
-        </div>
+        <h3 className="text-[18px] font-semibold text-[#0a0a0a] leading-[130%]">
+          Details
+        </h3>
         <button
           onClick={onClose}
-          className="w-8 h-8 rounded-full bg-[#f7f8fa] flex items-center justify-center hover:bg-gray-200 transition-colors"
+          className="w-6 h-6 flex items-center justify-center"
         >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <path d="M1 1L13 13M13 1L1 13" stroke="#7c8a9c" strokeWidth="2" strokeLinecap="round" />
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+            <path d="M1 1L12 12M12 1L1 12" stroke="#0a0a0a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
       </div>
 
-      {/* AI Analysis Section */}
-      <div className="flex flex-col gap-3">
-        <h4 className="text-[16px] font-semibold text-[#0a0a0a]">AI Analysis</h4>
-        <div className="rounded-[14px] bg-[#f7f8fa] p-4 flex flex-col gap-3">
-          {reasons.length > 0 ? (
-            reasons.map((reason: string, i: number) => (
-              <div key={i} className="flex items-start gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#0d1a67] mt-[7px] shrink-0" />
-                <p className="text-sm text-[#3a3f47] leading-[160%]">{reason}</p>
-              </div>
-            ))
-          ) : (
-            <p className="text-sm text-[#7c8a9c]">No analysis available for this prediction.</p>
-          )}
-        </div>
-      </div>
-
-      {/* Performance vs Similar Teams */}
-      <div className="flex flex-col gap-3">
-        <h4 className="text-[16px] font-semibold text-[#0a0a0a]">Performance vs Similar Teams</h4>
-        <div className="rounded-[14px] bg-[#f7f8fa] p-4 flex flex-col gap-4">
-          {/* Current prediction bar */}
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-[#7c8a9c]">Current Prediction</span>
-              <span className="text-xs font-semibold" style={{ color: conf.color }}>{percentage}%</span>
-            </div>
-            <div className="w-full h-2 rounded-full bg-[#e1e4eb]">
-              <div className="h-2 rounded-full transition-all" style={{ width: `${percentage}%`, backgroundColor: conf.color }} />
-            </div>
-          </div>
-          {/* Pre-game prediction bar */}
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-[#7c8a9c]">Pre-game Prediction</span>
-              <span className="text-xs font-semibold text-[#7c8a9c]">{preGamePercentage}%</span>
-            </div>
-            <div className="w-full h-2 rounded-full bg-[#e1e4eb]">
-              <div className="h-2 rounded-full bg-[#7c8a9c] transition-all" style={{ width: `${preGamePercentage}%` }} />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Detailed Match Stats */}
-      {statsData && (
-        <div className="flex flex-col gap-3">
-          <h4 className="text-[16px] font-semibold text-[#0a0a0a]">Detailed Match Stats</h4>
-          <div className="rounded-[14px] bg-[#f7f8fa] overflow-hidden">
-            <table className="w-full text-center text-xs">
-              <thead>
-                <tr className="border-b border-[#e1e4eb]">
-                  <th className="py-3 px-2 text-[#7c8a9c] font-semibold">MATCH</th>
-                  {statColumns.map(col => (
-                    <th key={col.key} className="py-3 px-2 text-[#7c8a9c] font-semibold">{col.label}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="border-b border-[#e1e4eb]">
-                  <td className="py-3 px-2 font-semibold text-[#0a0a0a]">{fixture?.home_team_abbreviation || 'HOME'}</td>
-                  {statColumns.map(col => (
-                    <td key={col.key} className="py-3 px-2 text-[#3a3f47]">
-                      {homeBasic[col.key] ?? '-'}
-                    </td>
-                  ))}
-                </tr>
-                <tr>
-                  <td className="py-3 px-2 font-semibold text-[#0a0a0a]">{fixture?.away_team_abbreviation || 'AWAY'}</td>
-                  {statColumns.map(col => (
-                    <td key={col.key} className="py-3 px-2 text-[#3a3f47]">
-                      {awayBasic[col.key] ?? '-'}
-                    </td>
-                  ))}
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Model Confidence */}
-      <div className="flex flex-col gap-3">
-        <h4 className="text-[16px] font-semibold text-[#0a0a0a]">Model Confidence</h4>
-        <div className="rounded-[14px] bg-[#f7f8fa] p-4 flex items-center gap-4">
-          <div className="relative w-[80px] h-[80px]">
-            <svg className="w-[80px] h-[80px] -rotate-90" viewBox="0 0 80 80">
-              <circle cx="40" cy="40" r="34" fill="none" stroke="#e1e4eb" strokeWidth="6" />
-              <circle
-                cx="40" cy="40" r="34" fill="none"
-                stroke={conf.color} strokeWidth="6"
-                strokeDasharray={`${confidence * 213.6} 213.6`}
-                strokeLinecap="round"
-              />
-            </svg>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-[16px] font-bold text-[#0a0a0a]">{confidence.toFixed(2)}</span>
-            </div>
-          </div>
-          <div className="flex flex-col gap-1">
-            <span className="text-sm font-semibold text-[#0a0a0a]">{confidence.toFixed(2)}/1.0</span>
-            <span className="text-xs text-[#7c8a9c]">
-              {confidence >= 0.7 ? 'High confidence prediction' : confidence >= 0.4 ? 'Moderate confidence prediction' : 'Low confidence prediction'}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Season Context */}
-      <div className="flex flex-col gap-3">
-        <h4 className="text-[16px] font-semibold text-[#0a0a0a]">Season Context</h4>
-        <div className="rounded-[14px] bg-[#f7f8fa] p-4 flex flex-col gap-3">
-          {/* Home/Away Form tabs */}
-          <div className="flex gap-2">
-            <button
-              onClick={() => setFormTab('home')}
-              className={`h-[30px] px-3 rounded-lg text-xs font-medium transition-colors ${
-                formTab === 'home' ? 'bg-[#0d1a67] text-white' : 'bg-white text-[#7c8a9c]'
-              }`}
-            >
-              Home Form
-            </button>
-            <button
-              onClick={() => setFormTab('away')}
-              className={`h-[30px] px-3 rounded-lg text-xs font-medium transition-colors ${
-                formTab === 'away' ? 'bg-[#0d1a67] text-white' : 'bg-white text-[#7c8a9c]'
-              }`}
-            >
-              Away Form
-            </button>
-          </div>
-          <div className="flex flex-col gap-2">
-            {formTab === 'home' ? (
-              <>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-[#7c8a9c]">{isPlayer ? 'Player' : 'Match'} prediction accuracy</span>
-                  <span className="text-xs font-semibold text-[#0a0a0a]">{percentage}%</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-[#7c8a9c]">Pre-game baseline</span>
-                  <span className="text-xs font-semibold text-[#0a0a0a]">{preGamePercentage}%</span>
-                </div>
-              </>
+      {/* Inner #f7f8fa container */}
+      <div className="rounded-[14px] bg-[#f7f8fa] p-[14px] flex flex-col gap-[14px]">
+        {/* AI Analysis Section */}
+        <div className="flex flex-col gap-2">
+          <h4 className="text-[16px] font-semibold text-[#0a0a0a] leading-[150%]">AI Analysis</h4>
+          <div className="rounded-lg bg-white border border-[#e1e4eb] p-[10px]">
+            {reasons.length > 0 ? (
+              <p className="text-xs font-medium text-[#7c8a9c] leading-[140%]">
+                {reasons.join(' ')}
+              </p>
             ) : (
-              <>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-[#7c8a9c]">{isPlayer ? 'Player' : 'Match'} prediction accuracy</span>
-                  <span className="text-xs font-semibold text-[#0a0a0a]">{preGamePercentage}%</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-[#7c8a9c]">Current live prediction</span>
-                  <span className="text-xs font-semibold text-[#0a0a0a]">{percentage}%</span>
-                </div>
-              </>
+              <p className="text-xs font-medium text-[#7c8a9c] leading-[140%]">No analysis available for this prediction.</p>
             )}
+          </div>
+        </div>
+
+        {/* Performance vs. Similar Teams */}
+        <div className="flex flex-col gap-[10px]">
+          <div className="flex flex-col gap-1">
+            <h4 className="text-[16px] font-semibold text-[#0a0a0a] leading-[150%]">Performance vs. Similar Teams</h4>
+            <p className="text-xs font-medium text-[#7c8a9c] leading-[140%]">
+              Comparing {predictionName} performance
+            </p>
+          </div>
+          <div className="rounded-lg bg-white p-2 flex flex-col gap-[10px]">
+            {/* Comparison bars */}
+            <div className="flex flex-col gap-2">
+              {/* Current prediction bar */}
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-xs font-medium text-[#7c8a9c] shrink-0 w-20">Current</span>
+                <div className="flex-1 h-[6px] rounded-full bg-[#e1e4eb]">
+                  <div className="h-[6px] rounded-full transition-all" style={{ width: `${percentage}%`, backgroundColor: conf.color }} />
+                </div>
+                <span className="text-xs font-semibold w-10 text-right" style={{ color: conf.color }}>{percentage}%</span>
+              </div>
+              {/* Pre-game bar */}
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-xs font-medium text-[#7c8a9c] shrink-0 w-20">Pre-game</span>
+                <div className="flex-1 h-[6px] rounded-full bg-[#e1e4eb]">
+                  <div className="h-[6px] rounded-full bg-[#7c8a9c] transition-all" style={{ width: `${preGamePercentage}%` }} />
+                </div>
+                <span className="text-xs font-semibold text-[#7c8a9c] w-10 text-right">{preGamePercentage}%</span>
+              </div>
+            </div>
+            {/* Insight badge */}
+            {pctChange !== 0 && (
+              <div className="rounded px-2 py-1 flex items-center gap-2" style={{ backgroundColor: pctChange > 0 ? '#e6f4ec' : '#fdedec' }}>
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                  <path d={pctChange > 0 ? "M9 3L15 9L13.5 10.5L10 7V15H8V7L4.5 10.5L3 9L9 3Z" : "M9 15L3 9L4.5 7.5L8 11V3H10V11L13.5 7.5L15 9L9 15Z"} fill={pctChange > 0 ? '#27ae60' : '#e74c3c'} />
+                </svg>
+                <span className="text-xs font-semibold" style={{ color: pctChange > 0 ? '#27ae60' : '#e74c3c' }}>
+                  {Math.abs(pctChange).toFixed(0)}% Performance {pctChange > 0 ? 'Increase' : 'Decrease'}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div className="w-full h-px bg-[#e1e4eb]" />
+
+        {/* Detailed Match Stats */}
+        <div className="flex flex-col gap-[10px]">
+          <div className="flex flex-col gap-1">
+            <h4 className="text-[16px] font-semibold text-[#0a0a0a] leading-[150%]">Detailed Match Stats</h4>
+            <p className="text-xs font-medium text-[#7c8a9c] leading-[140%]">Last 5 matches</p>
+          </div>
+          <div className="flex flex-col gap-0">
+            {/* Table header */}
+            <div className="flex items-center rounded-[6px] bg-white px-2 h-[29px]">
+              <span className="text-xs font-semibold text-[#7c8a9c] w-[50px]">MATCH</span>
+              <div className="flex-1 flex items-center justify-between">
+                {statColumns.map(col => (
+                  <span key={col.key} className="text-xs font-semibold text-[#7c8a9c] w-[40px] text-center">{col.label}</span>
+                ))}
+              </div>
+            </div>
+            {/* Home team row */}
+            <div className="flex items-center px-2 h-[40px] border-b border-[#f0f1f3]">
+              <span className="text-xs font-semibold text-[#0a0a0a] w-[50px]">{fixture?.home_team_abbreviation || 'HOME'}</span>
+              <div className="flex-1 flex items-center justify-between">
+                {statColumns.map(col => (
+                  <span key={col.key} className="text-xs font-medium text-[#3a3f47] w-[40px] text-center">
+                    {homeBasic[col.key] ?? '-'}
+                  </span>
+                ))}
+              </div>
+            </div>
+            {/* Away team row */}
+            <div className="flex items-center px-2 h-[40px] border-b border-[#f0f1f3]">
+              <span className="text-xs font-semibold text-[#0a0a0a] w-[50px]">{fixture?.away_team_abbreviation || 'AWAY'}</span>
+              <div className="flex-1 flex items-center justify-between">
+                {statColumns.map(col => (
+                  <span key={col.key} className="text-xs font-medium text-[#3a3f47] w-[40px] text-center">
+                    {awayBasic[col.key] ?? '-'}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div className="w-full h-px bg-[#e1e4eb]" />
+
+        {/* Model Confidence */}
+        <div className="flex flex-col gap-[10px]">
+          <h4 className="text-[16px] font-semibold text-[#0a0a0a] leading-[150%]">Model Confidence</h4>
+          <div className="rounded-lg bg-white p-3 flex items-center gap-4">
+            <div className="relative w-[70px] h-[70px]">
+              <svg className="w-[70px] h-[70px] -rotate-90" viewBox="0 0 70 70">
+                <circle cx="35" cy="35" r="30" fill="none" stroke="#e1e4eb" strokeWidth="5" />
+                <circle
+                  cx="35" cy="35" r="30" fill="none"
+                  stroke={conf.color} strokeWidth="5"
+                  strokeDasharray={`${confidence * 188.5} 188.5`}
+                  strokeLinecap="round"
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-[14px] font-bold text-[#0a0a0a]">{confidence.toFixed(2)}</span>
+              </div>
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-sm font-semibold text-[#0a0a0a]">{confidence.toFixed(2)}/1.0</span>
+              <span className="text-xs font-medium text-[#7c8a9c] leading-[140%]">
+                {confidence >= 0.7 ? 'High confidence prediction' : confidence >= 0.4 ? 'Moderate confidence prediction' : 'Low confidence prediction'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div className="w-full h-px bg-[#e1e4eb]" />
+
+        {/* Season Context */}
+        <div className="flex flex-col gap-[10px]">
+          <h4 className="text-[16px] font-semibold text-[#0a0a0a] leading-[150%]">Season Context</h4>
+          <div className="rounded-lg bg-white p-3 flex flex-col gap-3">
+            {/* Home/Away Form tabs */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setFormTab('home')}
+                className={`h-[28px] px-3 rounded-md text-xs font-semibold transition-colors ${
+                  formTab === 'home' ? 'bg-[#0d1a67] text-white' : 'bg-[#f7f8fa] text-[#7c8a9c]'
+                }`}
+              >
+                Home Form
+              </button>
+              <button
+                onClick={() => setFormTab('away')}
+                className={`h-[28px] px-3 rounded-md text-xs font-semibold transition-colors ${
+                  formTab === 'away' ? 'bg-[#0d1a67] text-white' : 'bg-[#f7f8fa] text-[#7c8a9c]'
+                }`}
+              >
+                Away Form
+              </button>
+            </div>
+            <div className="flex flex-col gap-2">
+              {formTab === 'home' ? (
+                <>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-[#7c8a9c]">{isPlayer ? 'Player' : 'Match'} prediction</span>
+                    <span className="text-xs font-semibold text-[#0a0a0a]">{percentage}%</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-[#7c8a9c]">Pre-game baseline</span>
+                    <span className="text-xs font-semibold text-[#0a0a0a]">{preGamePercentage}%</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-[#7c8a9c]">{isPlayer ? 'Player' : 'Match'} prediction</span>
+                    <span className="text-xs font-semibold text-[#0a0a0a]">{preGamePercentage}%</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-[#7c8a9c]">Current live prediction</span>
+                    <span className="text-xs font-semibold text-[#0a0a0a]">{percentage}%</span>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
