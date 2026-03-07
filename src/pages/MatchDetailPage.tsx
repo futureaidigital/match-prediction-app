@@ -834,7 +834,7 @@ export function MatchDetailPage() {
                 </div>
               ) : predictions.length > 0 ? (
                 <>
-                  <div className="flex flex-col md:flex-row md:flex-wrap gap-[20px] min-h-[300px]">
+                  <div className="flex flex-col md:flex-row md:flex-wrap md:items-start gap-[20px] min-h-[300px]">
                     {predictions.slice(0, 9).map((prediction: any, index: number) => (
                       <PredictionCard
                         key={prediction.prediction_id || index}
