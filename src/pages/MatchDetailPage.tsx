@@ -28,7 +28,7 @@ function PredictionCard({ prediction, index: _index, isLive: _isLive, isBlurred 
 
   return (
     <div
-      className={`rounded-[14px] md:rounded-[20px] p-3 md:p-5 flex flex-col gap-[10px] md:gap-5 bg-white ${isBlurred ? 'relative select-none pointer-events-none' : ''}`}
+      className={`rounded-[14px] md:rounded-[20px] p-3 md:p-5 flex flex-col gap-[10px] md:gap-5 bg-white w-full md:w-[calc(33.333%-14px)] md:max-w-[440px] ${isBlurred ? 'relative select-none pointer-events-none' : ''}`}
       style={{
         boxShadow: '0 2px 15px rgba(0,0,0,0.1)',
         fontFamily: 'Montserrat, sans-serif',
@@ -834,7 +834,7 @@ export function MatchDetailPage() {
                 </div>
               ) : predictions.length > 0 ? (
                 <>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-[20px] min-h-[300px]">
+                  <div className="flex flex-col md:flex-row md:flex-wrap gap-[20px] min-h-[300px]">
                     {predictions.slice(0, 9).map((prediction: any, index: number) => (
                       <PredictionCard
                         key={prediction.prediction_id || index}
