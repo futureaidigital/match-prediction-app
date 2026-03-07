@@ -668,10 +668,10 @@ export function MatchDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header currentPage="matches" />
 
-      <main className="pb-32 md:pb-0">
+      <main className="pb-32 md:pb-0 flex-1">
         {/* Match Banner - Using reusable component */}
         <div className="max-w-[1400px] mx-auto px-4 md:px-6 pt-6">
           <MatchBanner fixture={fixture} predictions={[]} showPredictions={false} variant="compact" />
@@ -800,17 +800,39 @@ export function MatchDetailPage() {
                   ))}
                 </div>
               ) : predictions.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                  {predictions.slice(0, 9).map((prediction: any, index: number) => (
-                    <PredictionCard
-                      key={prediction.prediction_id || index}
-                      prediction={prediction}
-                      index={index}
-                      isLive={fixture?.minutes_elapsed !== null && fixture?.minutes_elapsed !== undefined}
-                      isBlurred={!isAuthenticated && index >= 6}
-                    />
-                  ))}
-                </div>
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5 min-h-[300px]">
+                    {predictions.slice(0, 9).map((prediction: any, index: number) => (
+                      <PredictionCard
+                        key={prediction.prediction_id || index}
+                        prediction={prediction}
+                        index={index}
+                        isLive={fixture?.minutes_elapsed !== null && fixture?.minutes_elapsed !== undefined}
+                        isBlurred={!isAuthenticated && index >= 6}
+                      />
+                    ))}
+                  </div>
+
+                  {/* See All Predictions CTA - shown for unauthenticated users */}
+                  {!isAuthenticated && predictions.length > 6 && (
+                    <button
+                      onClick={() => window.location.href = '/login'}
+                      className="w-full h-[50px] rounded-lg flex items-center justify-center gap-[10px] border border-[#d9d9d9] text-white text-sm font-medium"
+                      style={{
+                        backgroundColor: '#0d1a67',
+                        boxShadow: '0 7px 4px -3px rgba(0,0,0,0.05)',
+                        fontFamily: 'Montserrat, sans-serif',
+                      }}
+                    >
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                        <path d="M6 10V8C6 4.69 7 2 12 2C17 2 18 4.69 18 8V10" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M12 18.5C13.1046 18.5 14 17.6046 14 16.5C14 15.3954 13.1046 14.5 12 14.5C10.8954 14.5 10 15.3954 10 16.5C10 17.6046 10.8954 18.5 12 18.5Z" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M17 22H7C3 22 2 21 2 17V15C2 11 3 10 7 10H17C21 10 22 11 22 15V17C22 21 21 22 17 22Z" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      See All Predictions
+                    </button>
+                  )}
+                </>
               ) : (
                 <div className="text-center py-12 text-gray-500">
                   No predictions available for this match
