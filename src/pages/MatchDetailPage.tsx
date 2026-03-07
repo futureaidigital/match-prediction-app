@@ -801,13 +801,13 @@ export function MatchDetailPage() {
                 </div>
               ) : predictions.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                  {predictions.map((prediction: any, index: number) => (
+                  {predictions.slice(0, 9).map((prediction: any, index: number) => (
                     <PredictionCard
                       key={prediction.prediction_id || index}
                       prediction={prediction}
                       index={index}
                       isLive={fixture?.minutes_elapsed !== null && fixture?.minutes_elapsed !== undefined}
-                      isBlurred={!isAuthenticated && index >= 1}
+                      isBlurred={!isAuthenticated && index >= 6}
                     />
                   ))}
                 </div>
@@ -1149,8 +1149,8 @@ export function MatchDetailPage() {
             </div>
           )}
 
-          {/* Weather Section */}
-          <div className="mt-6 md:mt-8">
+          {/* Weather Section - hidden for now */}
+          <div className="mt-6 md:mt-8 hidden">
             {/* Header */}
             <div className="flex items-start justify-between mb-3 md:mb-4">
               <div>
