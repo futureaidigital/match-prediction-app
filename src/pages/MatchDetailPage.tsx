@@ -18,8 +18,8 @@ function PredictionCard({ prediction, index: _index, isLive: _isLive, isBlurred 
   // Determine confidence level based on percentage
   const getConfidence = (pct: number) => {
     if (pct >= 70) return { label: 'HIGH', color: '#27ae60', bg: '#e6f4ec' };
-    if (pct >= 40) return { label: 'MED', color: '#f2994a', bg: '#fef4eb' };
-    return { label: 'LOW', color: '#eb5757', bg: '#fdeaea' };
+    if (pct >= 40) return { label: 'MEDIUM', color: '#f39c12', bg: '#fff9ec' };
+    return { label: 'LOW', color: '#e74c3c', bg: '#fdedec' };
   };
   const confidence = getConfidence(percentage);
 
@@ -763,25 +763,6 @@ export function MatchDetailPage() {
                 )}
               </div>
 
-              {/* Mobile: Predictions count + Filters in #f7f8fa container */}
-              <div className="md:hidden rounded-[10px] bg-[#f7f8fa] p-[10px] flex flex-col gap-[15px]">
-                <div className="flex items-center justify-between">
-                  <span
-                    className="text-sm font-semibold text-[#0a0a0a] leading-[150%]"
-                    style={{ fontFamily: 'Montserrat, sans-serif' }}
-                  >
-                    {predictions.length} Predictions Available
-                  </span>
-                  <button
-                    className="h-[38px] px-2 py-[7px] rounded-lg bg-[#0d1a67] text-white text-[13px] font-medium transition-colors flex items-center gap-[10px]"
-                    style={{ fontFamily: 'Montserrat, sans-serif' }}
-                  >
-                    <img src="/filter.svg" alt="" width="16" height="16" />
-                    Filters
-                  </button>
-                </div>
-              </div>
-
               {/* Desktop: Sub-filter bar: category pills + Filters button */}
               <div className="hidden md:flex items-center justify-between gap-[10px]">
                 <div className="flex items-center gap-[10px]">
@@ -816,61 +797,132 @@ export function MatchDetailPage() {
                 </button>
               </div>
 
-              {isLoadingFixtures ? (
-                // Loading skeleton
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-[20px]">
-                  {[1, 2, 3, 4, 5, 6].map((i) => (
-                    <div key={i} className="bg-white rounded-[14px] md:rounded-[20px] p-3 md:p-5 animate-pulse" style={{ boxShadow: '0 2px 15px rgba(0,0,0,0.1)' }}>
-                      <div className="h-5 bg-gray-200 rounded w-1/4 mb-3" />
-                      <div className="h-5 bg-gray-200 rounded w-3/4 mb-2" />
-                      <div className="h-4 bg-gray-200 rounded w-1/3 mb-5" />
-                      <div className="rounded-[10px] md:rounded-[14px] bg-[#f7f8fa] p-2 md:p-[10px]">
-                        <div className="h-5 bg-gray-200 rounded w-1/4 mb-3" />
-                        <div className="h-2 md:h-[6px] bg-gray-200 rounded-[10px] md:rounded-full w-full mb-3" />
-                        <div className="h-4 bg-gray-200 rounded w-1/2" />
-                      </div>
-                    </div>
-                  ))}
+              {/* Mobile: #f7f8fa container with header + cards */}
+              <div className="md:hidden rounded-[10px] bg-[#f7f8fa] p-[10px] flex flex-col gap-[15px]">
+                <div className="flex items-center justify-between">
+                  <span
+                    className="text-sm font-semibold text-[#0a0a0a] leading-[150%]"
+                    style={{ fontFamily: 'Montserrat, sans-serif' }}
+                  >
+                    {predictions.length} Predictions Available
+                  </span>
+                  <button
+                    className="h-[38px] px-2 py-[7px] rounded-lg bg-[#0d1a67] text-white text-[13px] font-medium transition-colors flex items-center gap-[10px]"
+                    style={{ fontFamily: 'Montserrat, sans-serif' }}
+                  >
+                    <img src="/filter.svg" alt="" width="16" height="16" />
+                    Filters
+                  </button>
                 </div>
-              ) : predictions.length > 0 ? (
-                <>
-                  <div className="flex flex-col md:flex-row md:flex-wrap md:items-start gap-[20px] min-h-[300px]">
-                    {predictions.slice(0, 9).map((prediction: any, index: number) => (
-                      <PredictionCard
-                        key={prediction.prediction_id || index}
-                        prediction={prediction}
-                        index={index}
-                        isLive={fixture?.minutes_elapsed !== null && fixture?.minutes_elapsed !== undefined}
-                        isBlurred={!isAuthenticated && index >= 6}
-                      />
+                {isLoadingFixtures ? (
+                  <div className="flex flex-col gap-[20px]">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="bg-white rounded-[14px] p-3 animate-pulse" style={{ boxShadow: '0 2px 15px rgba(0,0,0,0.1)' }}>
+                        <div className="h-5 bg-gray-200 rounded w-1/4 mb-3" />
+                        <div className="h-5 bg-gray-200 rounded w-3/4 mb-2" />
+                        <div className="h-4 bg-gray-200 rounded w-1/3 mb-5" />
+                        <div className="rounded-[10px] bg-[#f7f8fa] p-2">
+                          <div className="h-5 bg-gray-200 rounded w-1/4 mb-3" />
+                          <div className="h-2 bg-gray-200 rounded-[10px] w-full mb-3" />
+                          <div className="h-4 bg-gray-200 rounded w-1/2" />
+                        </div>
+                      </div>
                     ))}
                   </div>
+                ) : predictions.length > 0 ? (
+                  <>
+                    <div className="flex flex-col gap-[20px]">
+                      {predictions.slice(0, 9).map((prediction: any, index: number) => (
+                        <PredictionCard
+                          key={prediction.prediction_id || index}
+                          prediction={prediction}
+                          index={index}
+                          isLive={fixture?.minutes_elapsed !== null && fixture?.minutes_elapsed !== undefined}
+                          isBlurred={!isAuthenticated && index >= 6}
+                        />
+                      ))}
+                    </div>
+                    {!isAuthenticated && predictions.length > 6 && (
+                      <button
+                        onClick={() => window.location.href = '/login'}
+                        className="w-full h-[38px] rounded-lg flex items-center justify-center gap-[10px] border border-[#d9d9d9] text-white text-[13px] font-medium"
+                        style={{
+                          backgroundColor: '#0d1a67',
+                          boxShadow: '0 7px 4px -3px rgba(0,0,0,0.05)',
+                          fontFamily: 'Montserrat, sans-serif',
+                        }}
+                      >
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                          <path d="M6 10V8C6 4.69 7 2 12 2C17 2 18 4.69 18 8V10" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M12 18.5C13.1046 18.5 14 17.6046 14 16.5C14 15.3954 13.1046 14.5 12 14.5C10.8954 14.5 10 15.3954 10 16.5C10 17.6046 10.8954 18.5 12 18.5Z" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M17 22H7C3 22 2 21 2 17V15C2 11 3 10 7 10H17C21 10 22 11 22 15V17C22 21 21 22 17 22Z" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        See All Predictions
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-center py-12 text-gray-500">
+                    No predictions available for this match
+                  </div>
+                )}
+              </div>
 
-                  {/* See All Predictions CTA - shown for unauthenticated users */}
-                  {!isAuthenticated && predictions.length > 6 && (
-                    <button
-                      onClick={() => window.location.href = '/login'}
-                      className="w-full h-[38px] md:h-[50px] rounded-lg flex items-center justify-center gap-[10px] border border-[#d9d9d9] text-white text-[13px] md:text-sm font-medium"
-                      style={{
-                        backgroundColor: '#0d1a67',
-                        boxShadow: '0 7px 4px -3px rgba(0,0,0,0.05)',
-                        fontFamily: 'Montserrat, sans-serif',
-                      }}
-                    >
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                        <path d="M6 10V8C6 4.69 7 2 12 2C17 2 18 4.69 18 8V10" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M12 18.5C13.1046 18.5 14 17.6046 14 16.5C14 15.3954 13.1046 14.5 12 14.5C10.8954 14.5 10 15.3954 10 16.5C10 17.6046 10.8954 18.5 12 18.5Z" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M17 22H7C3 22 2 21 2 17V15C2 11 3 10 7 10H17C21 10 22 11 22 15V17C22 21 21 22 17 22Z" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                      See All Predictions
-                    </button>
-                  )}
-                </>
-              ) : (
-                <div className="text-center py-12 text-gray-500">
-                  No predictions available for this match
-                </div>
-              )}
+              {/* Desktop: cards in flex grid */}
+              <div className="hidden md:block">
+                {isLoadingFixtures ? (
+                  <div className="flex flex-row flex-wrap items-start gap-[20px]">
+                    {[1, 2, 3, 4, 5, 6].map((i) => (
+                      <div key={i} className="bg-white rounded-[20px] p-5 animate-pulse w-[calc(33.333%-14px)] max-w-[440px]" style={{ boxShadow: '0 2px 15px rgba(0,0,0,0.1)' }}>
+                        <div className="h-5 bg-gray-200 rounded w-1/4 mb-3" />
+                        <div className="h-5 bg-gray-200 rounded w-3/4 mb-2" />
+                        <div className="h-4 bg-gray-200 rounded w-1/3 mb-5" />
+                        <div className="rounded-[14px] bg-[#f7f8fa] p-[10px]">
+                          <div className="h-5 bg-gray-200 rounded w-1/4 mb-3" />
+                          <div className="h-[6px] bg-gray-200 rounded-full w-full mb-3" />
+                          <div className="h-4 bg-gray-200 rounded w-1/2" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : predictions.length > 0 ? (
+                  <>
+                    <div className="flex flex-row flex-wrap items-start gap-[20px] min-h-[300px]">
+                      {predictions.slice(0, 9).map((prediction: any, index: number) => (
+                        <PredictionCard
+                          key={prediction.prediction_id || index}
+                          prediction={prediction}
+                          index={index}
+                          isLive={fixture?.minutes_elapsed !== null && fixture?.minutes_elapsed !== undefined}
+                          isBlurred={!isAuthenticated && index >= 6}
+                        />
+                      ))}
+                    </div>
+                    {!isAuthenticated && predictions.length > 6 && (
+                      <button
+                        onClick={() => window.location.href = '/login'}
+                        className="w-full h-[50px] mt-5 rounded-lg flex items-center justify-center gap-[10px] border border-[#d9d9d9] text-white text-sm font-medium"
+                        style={{
+                          backgroundColor: '#0d1a67',
+                          boxShadow: '0 7px 4px -3px rgba(0,0,0,0.05)',
+                          fontFamily: 'Montserrat, sans-serif',
+                        }}
+                      >
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                          <path d="M6 10V8C6 4.69 7 2 12 2C17 2 18 4.69 18 8V10" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M12 18.5C13.1046 18.5 14 17.6046 14 16.5C14 15.3954 13.1046 14.5 12 14.5C10.8954 14.5 10 15.3954 10 16.5C10 17.6046 10.8954 18.5 12 18.5Z" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M17 22H7C3 22 2 21 2 17V15C2 11 3 10 7 10H17C21 10 22 11 22 15V17C22 21 21 22 17 22Z" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        See All Predictions
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-center py-12 text-gray-500">
+                    No predictions available for this match
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
