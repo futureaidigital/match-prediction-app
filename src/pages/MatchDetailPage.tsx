@@ -726,20 +726,6 @@ export function MatchDetailPage() {
           {/* Predictions Tab */}
           {activeTab === 'predictions' && (
             <div className="space-y-4">
-              {/* Mobile: Live badge full width */}
-              {fixture?.minutes_elapsed != null && (
-                <div
-                  className="md:hidden flex items-center gap-[6px] px-[6px] py-[6px] rounded-[6px]"
-                  style={{
-                    backgroundColor: '#27ae60',
-                    fontFamily: 'Montserrat, sans-serif',
-                  }}
-                >
-                  <span className="w-[6px] h-[6px] rounded-full bg-white animate-pulse" />
-                  <span className="text-white text-[13px] font-medium leading-[150%]">Predictions updating in real-time</span>
-                </div>
-              )}
-
               {/* Desktop: Header row: count + live badge */}
               <div className="hidden md:flex items-center justify-between">
                 <h2
@@ -799,6 +785,19 @@ export function MatchDetailPage() {
 
               {/* Mobile: #f7f8fa container with header + cards */}
               <div className="md:hidden rounded-[10px] bg-[#f7f8fa] p-[10px] flex flex-col gap-[15px]">
+                {/* Mobile live badge */}
+                {fixture?.minutes_elapsed != null && (
+                  <div
+                    className="flex items-center gap-[6px] px-[6px] py-[6px] rounded-[6px]"
+                    style={{
+                      backgroundColor: '#27ae60',
+                      fontFamily: 'Montserrat, sans-serif',
+                    }}
+                  >
+                    <span className="w-[6px] h-[6px] rounded-full bg-white animate-pulse" />
+                    <span className="text-white text-[13px] font-medium leading-[150%]">Predictions updating in real-time</span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between">
                   <span
                     className="text-sm font-semibold text-[#0a0a0a] leading-[150%]"
