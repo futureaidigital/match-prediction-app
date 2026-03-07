@@ -28,7 +28,7 @@ function PredictionCard({ prediction, index: _index, isLive: _isLive, isBlurred 
 
   return (
     <div
-      className={`rounded-[20px] p-5 flex flex-col gap-5 bg-white ${isBlurred ? 'relative select-none pointer-events-none' : ''}`}
+      className={`rounded-[14px] md:rounded-[20px] p-3 md:p-5 flex flex-col gap-[10px] md:gap-5 bg-white ${isBlurred ? 'relative select-none pointer-events-none' : ''}`}
       style={{
         boxShadow: '0 2px 15px rgba(0,0,0,0.1)',
         fontFamily: 'Montserrat, sans-serif',
@@ -40,7 +40,7 @@ function PredictionCard({ prediction, index: _index, isLive: _isLive, isBlurred 
       }}
     >
       {/* Top section: badge + title + subtitle */}
-      <div className="flex flex-col gap-[7px]">
+      <div className="flex flex-col gap-[6px] md:gap-[7px]">
         <div className="flex items-center gap-[7px]">
           <span
             className="h-[22px] px-2 rounded text-xs font-bold uppercase leading-[20px] flex items-center"
@@ -50,17 +50,17 @@ function PredictionCard({ prediction, index: _index, isLive: _isLive, isBlurred 
           </span>
         </div>
         <div className="flex flex-col gap-[5px]">
-          <span className="text-[18px] font-semibold text-[#0a0a0a] leading-normal">
+          <span className="text-[16px] md:text-[18px] font-semibold text-[#0a0a0a] leading-[135%] md:leading-normal">
             {prediction.prediction_display_name || 'Prediction'}
           </span>
-          <span className="text-xs font-semibold text-[#7c8a9c] leading-[18px]">
+          <span className="text-xs font-medium md:font-semibold text-[#7c8a9c] leading-[140%] md:leading-[18px]">
             {isPlayer ? 'Player' : 'Match'} Prediction
           </span>
         </div>
       </div>
 
       {/* Bottom section: gray container with percentage, bar, pre-game */}
-      <div className="rounded-[14px] bg-[#f7f8fa] p-[10px] flex flex-col gap-[14px]">
+      <div className="rounded-[10px] md:rounded-[14px] bg-[#f7f8fa] p-2 md:p-[10px] flex flex-col gap-[14px]">
         {/* Percentage row */}
         <div className="flex items-center justify-between">
           <span className="text-[18px] font-bold" style={{ color: barColor }}>
@@ -74,9 +74,9 @@ function PredictionCard({ prediction, index: _index, isLive: _isLive, isBlurred 
         </div>
 
         {/* Progress bar */}
-        <div className="w-full h-[6px] rounded-full bg-[#e1e4eb]">
+        <div className="w-full h-2 md:h-[6px] rounded-[10px] md:rounded-full bg-[#e1e4eb]">
           <div
-            className="h-[6px] rounded-full transition-all duration-300"
+            className="h-2 md:h-[6px] rounded-[10px] md:rounded-full transition-all duration-300"
             style={{ width: `${percentage}%`, backgroundColor: barColor }}
           />
         </div>
@@ -726,8 +726,22 @@ export function MatchDetailPage() {
           {/* Predictions Tab */}
           {activeTab === 'predictions' && (
             <div className="space-y-4">
-              {/* Header row: count + live badge */}
-              <div className="flex items-center justify-between">
+              {/* Mobile: Live badge full width */}
+              {fixture?.minutes_elapsed != null && (
+                <div
+                  className="md:hidden flex items-center gap-[6px] px-[6px] py-[6px] rounded-[6px]"
+                  style={{
+                    backgroundColor: '#27ae60',
+                    fontFamily: 'Montserrat, sans-serif',
+                  }}
+                >
+                  <span className="w-[6px] h-[6px] rounded-full bg-white animate-pulse" />
+                  <span className="text-white text-[13px] font-medium leading-[150%]">Predictions updating in real-time</span>
+                </div>
+              )}
+
+              {/* Desktop: Header row: count + live badge */}
+              <div className="hidden md:flex items-center justify-between">
                 <h2
                   className="text-[22px] font-semibold text-[#0a0a0a] leading-[130%]"
                   style={{ fontFamily: 'Montserrat, sans-serif' }}
@@ -736,7 +750,7 @@ export function MatchDetailPage() {
                 </h2>
                 {fixture?.minutes_elapsed != null && (
                   <div
-                    className="flex items-center gap-[5px] px-4 pr-4 pl-2 py-3 rounded-lg border border-[#d9d9d9]"
+                    className="flex items-center gap-[5px] pl-2 pr-4 py-3 rounded-lg border border-[#d9d9d9]"
                     style={{
                       backgroundColor: '#27ae60',
                       boxShadow: '0 7px 4px -3px rgba(0,0,0,0.05)',
@@ -749,8 +763,27 @@ export function MatchDetailPage() {
                 )}
               </div>
 
-              {/* Sub-filter bar: category pills + Filters button */}
-              <div className="flex items-center justify-between gap-[10px]">
+              {/* Mobile: Predictions count + Filters in #f7f8fa container */}
+              <div className="md:hidden rounded-[10px] bg-[#f7f8fa] p-[10px] flex flex-col gap-[15px]">
+                <div className="flex items-center justify-between">
+                  <span
+                    className="text-sm font-semibold text-[#0a0a0a] leading-[150%]"
+                    style={{ fontFamily: 'Montserrat, sans-serif' }}
+                  >
+                    {predictions.length} Predictions Available
+                  </span>
+                  <button
+                    className="h-[38px] px-2 py-[7px] rounded-lg bg-[#0d1a67] text-white text-[13px] font-medium transition-colors flex items-center gap-[10px]"
+                    style={{ fontFamily: 'Montserrat, sans-serif' }}
+                  >
+                    <img src="/filter.svg" alt="" width="16" height="16" />
+                    Filters
+                  </button>
+                </div>
+              </div>
+
+              {/* Desktop: Sub-filter bar: category pills + Filters button */}
+              <div className="hidden md:flex items-center justify-between gap-[10px]">
                 <div className="flex items-center gap-[10px]">
                   {[
                     { id: 'all', label: 'All Predictions' },
@@ -785,15 +818,15 @@ export function MatchDetailPage() {
 
               {isLoadingFixtures ? (
                 // Loading skeleton
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-[20px]">
                   {[1, 2, 3, 4, 5, 6].map((i) => (
-                    <div key={i} className="bg-white rounded-[20px] p-5 animate-pulse" style={{ boxShadow: '0 2px 15px rgba(0,0,0,0.1)' }}>
+                    <div key={i} className="bg-white rounded-[14px] md:rounded-[20px] p-3 md:p-5 animate-pulse" style={{ boxShadow: '0 2px 15px rgba(0,0,0,0.1)' }}>
                       <div className="h-5 bg-gray-200 rounded w-1/4 mb-3" />
                       <div className="h-5 bg-gray-200 rounded w-3/4 mb-2" />
                       <div className="h-4 bg-gray-200 rounded w-1/3 mb-5" />
-                      <div className="rounded-[14px] bg-[#f7f8fa] p-[10px]">
+                      <div className="rounded-[10px] md:rounded-[14px] bg-[#f7f8fa] p-2 md:p-[10px]">
                         <div className="h-5 bg-gray-200 rounded w-1/4 mb-3" />
-                        <div className="h-[6px] bg-gray-200 rounded-full w-full mb-3" />
+                        <div className="h-2 md:h-[6px] bg-gray-200 rounded-[10px] md:rounded-full w-full mb-3" />
                         <div className="h-4 bg-gray-200 rounded w-1/2" />
                       </div>
                     </div>
@@ -801,7 +834,7 @@ export function MatchDetailPage() {
                 </div>
               ) : predictions.length > 0 ? (
                 <>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5 min-h-[300px]">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-[20px] min-h-[300px]">
                     {predictions.slice(0, 9).map((prediction: any, index: number) => (
                       <PredictionCard
                         key={prediction.prediction_id || index}
@@ -817,7 +850,7 @@ export function MatchDetailPage() {
                   {!isAuthenticated && predictions.length > 6 && (
                     <button
                       onClick={() => window.location.href = '/login'}
-                      className="w-full h-[50px] rounded-lg flex items-center justify-center gap-[10px] border border-[#d9d9d9] text-white text-sm font-medium"
+                      className="w-full h-[38px] md:h-[50px] rounded-lg flex items-center justify-center gap-[10px] border border-[#d9d9d9] text-white text-[13px] md:text-sm font-medium"
                       style={{
                         backgroundColor: '#0d1a67',
                         boxShadow: '0 7px 4px -3px rgba(0,0,0,0.05)',
