@@ -10,21 +10,38 @@ type TabType = 'predictions' | 'commentary' | 'stats' | 'lineups';
 
 // Prediction card component with expand/collapse - Figma specs: 358x350 expanded
 function PredictionCard({ prediction, index: _index, isLive: _isLive, isBlurred = false, isSelected = false, onClick, compact = false }: { prediction: any; index: number; isLive: boolean; isBlurred?: boolean; isSelected?: boolean; onClick?: () => void; compact?: boolean }) {
-  const percentage = Math.round(prediction.prediction || prediction.pre_game_prediction || 0);
-  const preGamePercentage = Math.round(prediction.pre_game_prediction || 0);
-  const pctChange = prediction.pct_change_value || 0;
-  const isPlayer = prediction.prediction_type === 'player' || prediction.player_id;
+  const rawValue = prediction.value ?? prediction.prediction ?? prediction.pre_game_value ?? prediction.pre_game_prediction ?? 0;
+  const percentage = rawValue > 1 ? Math.round(rawValue) : Math.round(rawValue * 100);
+  const rawPreGame = prediction.pre_game_value ?? prediction.pre_game_prediction ?? 0;
+  const preGamePercentage = rawPreGame > 1 ? Math.round(rawPreGame) : Math.round(rawPreGame * 100);
+  const pctChange = prediction.pct_change_value ?? 0;
+  const interval = prediction.pct_change_interval ?? null;
 
-  // Determine confidence level based on percentage
-  const getConfidence = (pct: number) => {
-    if (pct >= 70) return { label: 'HIGH', color: '#27ae60', bg: '#e6f4ec' };
-    if (pct >= 40) return { label: 'MEDIUM', color: '#f39c12', bg: '#fff9ec' };
+  // Use API confidence if available, else derive from percentage
+  const getConfidence = () => {
+    const cat = (prediction.model_confidence_category || '').toLowerCase();
+    if (cat === 'high') return { label: 'HIGH', color: '#27ae60', bg: '#e6f4ec' };
+    if (cat === 'medium') return { label: 'MEDIUM', color: '#f39c12', bg: '#fff9ec' };
+    if (cat === 'low') return { label: 'LOW', color: '#e74c3c', bg: '#fdedec' };
+    // Fallback: derive from percentage
+    if (percentage >= 70) return { label: 'HIGH', color: '#27ae60', bg: '#e6f4ec' };
+    if (percentage >= 40) return { label: 'MEDIUM', color: '#f39c12', bg: '#fff9ec' };
     return { label: 'LOW', color: '#e74c3c', bg: '#fdedec' };
   };
-  const confidence = getConfidence(percentage);
+  const confidence = getConfidence();
 
-  // Progress bar color matches confidence
-  const barColor = confidence.color;
+  // Map prediction_type to category label
+  const getCategoryLabel = () => {
+    const type = (prediction.prediction_type || '').toLowerCase();
+    if (type.includes('goal') || type.includes('scorer')) return 'Player Prediction';
+    if (type.includes('booked') || type.includes('card')) return 'Cards Prediction';
+    if (type.includes('shot')) return 'Shots Prediction';
+    if (type.includes('corner')) return 'Match Prediction';
+    if (type.includes('player')) return 'Player Prediction';
+    return 'Match Prediction';
+  };
+
+  const title = prediction.title || prediction.prediction_display_name || 'Prediction';
 
   return (
     <div
@@ -42,43 +59,52 @@ function PredictionCard({ prediction, index: _index, isLive: _isLive, isBlurred 
     >
       {/* Top section: badge + title + subtitle */}
       <div className="flex flex-col gap-[6px] md:gap-[7px]">
-        <div className="flex items-center gap-[7px]">
-          <span
-            className="h-[22px] px-2 rounded text-xs font-bold uppercase leading-[20px] flex items-center"
-            style={{ backgroundColor: confidence.bg, color: confidence.color }}
-          >
-            {confidence.label}
-          </span>
-        </div>
+        <span
+          className="h-[22px] px-2 rounded text-xs font-bold uppercase leading-[20px] inline-flex items-center w-fit"
+          style={{ backgroundColor: confidence.bg, color: confidence.color }}
+        >
+          {confidence.label}
+        </span>
         <div className="flex flex-col gap-[5px]">
           <span className="text-[16px] md:text-[18px] font-semibold text-[#0a0a0a] leading-[135%] md:leading-normal">
-            {prediction.prediction_display_name || 'Prediction'}
+            {title}
           </span>
           <span className="text-xs font-medium md:font-semibold text-[#7c8a9c] leading-[140%] md:leading-[18px]">
-            {isPlayer ? 'Player' : 'Match'} Prediction
+            {getCategoryLabel()}
           </span>
         </div>
       </div>
 
       {/* Bottom section: gray container with percentage, bar, pre-game */}
       <div className="rounded-[10px] md:rounded-[14px] bg-[#f7f8fa] p-2 md:p-[10px] flex flex-col gap-[14px]">
-        {/* Percentage row */}
+        {/* Percentage + trend row */}
         <div className="flex items-center justify-between">
-          <span className="text-[18px] font-bold" style={{ color: barColor }}>
+          <span className="text-[18px] font-bold" style={{ color: confidence.color }}>
             {percentage}%
           </span>
-          <div className="flex items-center gap-[6px]">
-            <span className="text-sm font-medium text-[#7c8a9c] leading-[20px]">
-              {Math.abs(pctChange).toFixed(0)}% in last 13 min
-            </span>
-          </div>
+          {pctChange !== 0 && interval != null && (
+            <div className="flex items-center gap-[4px]">
+              {pctChange > 0 ? (
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M2 10L7 4L12 10" stroke="#27ae60" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              ) : (
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M2 4L7 10L12 4" stroke="#e74c3c" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              )}
+              <span className="text-sm font-medium text-[#7c8a9c] leading-[20px]">
+                {Math.abs(pctChange).toFixed(0)}% in last {interval} min
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Progress bar */}
         <div className="w-full h-2 md:h-[6px] rounded-[10px] md:rounded-full bg-[#e1e4eb]">
           <div
             className="h-2 md:h-[6px] rounded-[10px] md:rounded-full transition-all duration-300"
-            style={{ width: `${percentage}%`, backgroundColor: barColor }}
+            style={{ width: `${percentage}%`, backgroundColor: confidence.color }}
           />
         </div>
 
@@ -87,15 +113,17 @@ function PredictionCard({ prediction, index: _index, isLive: _isLive, isBlurred 
           <span className="text-sm font-medium text-[#7c8a9c] leading-[20px]">
             Pre-game Prediction {preGamePercentage}%
           </span>
-          <span
-            className="h-[22px] px-2 rounded text-sm font-semibold leading-[20px] flex items-center"
-            style={{
-              backgroundColor: pctChange >= 0 ? '#e6f4ec' : '#fdeaea',
-              color: pctChange >= 0 ? '#27ae60' : '#eb5757',
-            }}
-          >
-            {pctChange >= 0 ? '+' : ''}{Math.abs(pctChange).toFixed(0)}%
-          </span>
+          {pctChange !== 0 && (
+            <span
+              className="h-[22px] px-2 rounded text-sm font-semibold leading-[20px] flex items-center"
+              style={{
+                backgroundColor: pctChange > 0 ? '#e6f4ec' : '#fdeaea',
+                color: pctChange > 0 ? '#27ae60' : '#eb5757',
+              }}
+            >
+              {pctChange > 0 ? '+' : ''}{pctChange.toFixed(0)}%
+            </span>
+          )}
         </div>
       </div>
     </div>
@@ -803,13 +831,14 @@ export function MatchDetailPage() {
     if (predictionCategory === 'all') return predictions;
     return predictions.filter((p: any) => {
       const type = (p.prediction_type || '').toLowerCase();
-      const name = (p.prediction_display_name || '').toLowerCase();
+      const title = (p.title || p.prediction_display_name || '').toLowerCase();
       switch (predictionCategory) {
-        case 'player': return type === 'player' || !!p.player_id;
-        case 'match': return type === 'fixture' || type === 'match';
-        case 'team': return type === 'team';
-        case 'cards': return name.includes('card') || name.includes('booking') || name.includes('yellow') || name.includes('red');
-        case 'shots': return name.includes('shot') || name.includes('target');
+        case 'player': return type === 'anytime_goalscorer' || type === 'player_to_be_booked' || type.includes('player') || type.includes('scorer');
+        case 'match': return type === 'both_teams_to_score' || type === 'total_goals' || type.includes('match');
+        case 'team': return type.includes('team');
+        case 'cards': return type === 'player_to_be_booked' || type.includes('card') || title.includes('card') || title.includes('booking') || title.includes('yellow');
+        case 'shots': return type === 'shots_on_target' || type.includes('shot') || title.includes('shot');
+        case 'corners': return type === 'total_corners' || type.includes('corner') || title.includes('corner');
         default: return true;
       }
     });
@@ -1018,9 +1047,9 @@ export function MatchDetailPage() {
                     { id: 'all', label: 'All Predictions' },
                     { id: 'player', label: 'Player' },
                     { id: 'match', label: 'Match' },
-                    { id: 'team', label: 'Team' },
                     { id: 'cards', label: 'Cards' },
                     { id: 'shots', label: 'Shots' },
+                    { id: 'corners', label: 'Corners' },
                   ].map((cat) => (
                     <button
                       key={cat.id}
