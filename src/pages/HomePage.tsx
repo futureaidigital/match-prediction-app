@@ -99,7 +99,7 @@ export function HomePage() {
         logo: fixture.away_team_image_path
       },
       status,
-      score: (fixture.home_team_score !== undefined && fixture.away_team_score !== undefined) ? {
+      score: (fixture.home_team_score != null && fixture.away_team_score != null) ? {
         home: fixture.home_team_score,
         away: fixture.away_team_score
       } : undefined,

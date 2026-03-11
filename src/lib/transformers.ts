@@ -86,7 +86,7 @@ export function fixtureToMatchCard(fixtureItem: FixtureWithPredictions): MatchCa
       logo: fixture.away_team_image_path,
     },
     score:
-      fixture.home_team_score !== undefined && fixture.away_team_score !== undefined
+      fixture.home_team_score != null && fixture.away_team_score != null
         ? {
             home: fixture.home_team_score,
             away: fixture.away_team_score,
