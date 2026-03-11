@@ -83,16 +83,19 @@ function PredictionCard({ prediction, index: _index, isLive: _isLive, isBlurred 
             {percentage}%
           </span>
           {pctChange !== 0 && interval != null && (
-            <div className="flex items-center gap-[4px]">
-              {pctChange > 0 ? (
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                  <path d="M2 10L7 4L12 10" stroke="#27ae60" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              ) : (
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                  <path d="M2 4L7 10L12 4" stroke="#e74c3c" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              )}
+            <div className="flex items-center gap-[6px]">
+              <img
+                src="/trend.svg"
+                width="20"
+                height="12"
+                alt=""
+                style={{
+                  filter: pctChange > 0
+                    ? 'brightness(0) saturate(100%) invert(52%) sepia(79%) saturate(409%) hue-rotate(95deg) brightness(93%) contrast(91%)'
+                    : 'brightness(0) saturate(100%) invert(33%) sepia(84%) saturate(1200%) hue-rotate(329deg) brightness(97%) contrast(95%)',
+                  transform: pctChange > 0 ? 'none' : 'scaleY(-1)',
+                }}
+              />
               <span className="text-sm font-medium text-[#7c8a9c] leading-[20px]">
                 {Math.abs(pctChange).toFixed(0)}% in last {interval} min
               </span>
