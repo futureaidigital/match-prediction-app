@@ -5,6 +5,7 @@ import { Footer } from '@/components/Footer';
 import { MatchBanner } from '@/components/MatchBanner';
 import { useFixtures, useFixtureStatistics, useFixtureCommentary } from '@/hooks/useFixtures';
 import { useFixturePredictions } from '@/hooks/usePredictions';
+import { useMultiplePlayerDetails } from '@/hooks/usePlayers';
 import { useAuth } from '@/contexts/AuthContext';
 
 type TabType = 'predictions' | 'commentary' | 'stats' | 'lineups';
@@ -795,6 +796,8 @@ export function MatchDetailPage() {
   const [predictionCategory, setPredictionCategory] = useState<string>('all');
   const [commentaryFilter, setCommentaryFilter] = useState<'all' | 'goals' | 'cards' | 'important'>('all');
   const [selectedPrediction, setSelectedPrediction] = useState<any>(null);
+  const [playerStatsTab, setPlayerStatsTab] = useState<'summary' | 'attacking' | 'passing' | 'defensive' | 'discipline'>('summary');
+  const [expandedStatCards, setExpandedStatCards] = useState<Set<string>>(new Set());
 
   // Fetch specific fixture by ID (backend returns fixture with predictions)
   const { data: fixturesResponse, isLoading: isLoadingFixtures } = useFixtures(
@@ -817,6 +820,17 @@ export function MatchDetailPage() {
     { enabled: !!fixtureId }
   );
   const fullPredictions: any[] = (fullPredictionsResponse?.data as any)?.predictions || (fullPredictionsResponse?.data as any) || [];
+
+  // Extract unique player IDs from player predictions for the Player Stats section
+  const featuredPlayerIds = useMemo(() => {
+    const ids = new Set<number>();
+    fullPredictions.forEach((p: any) => {
+      if (p.player_id && typeof p.player_id === 'number') ids.add(p.player_id);
+    });
+    return Array.from(ids).slice(0, 12);
+  }, [fullPredictions]);
+
+  const playerDetailsResults = useMultiplePlayerDetails(featuredPlayerIds);
 
   // When a prediction is selected, enrich it with detail from full predictions
   const selectedPredictionWithDetail = useMemo(() => {
@@ -1323,119 +1337,304 @@ export function MatchDetailPage() {
             </div>
           )}
           {activeTab === 'stats' && (
-            <div className="bg-gray-100 rounded-xl md:rounded-2xl p-3 md:p-4">
-              {/* Teams Header */}
-              <div className="flex items-center justify-between mb-3 md:mb-4 px-1 md:px-2">
-                <div className="flex items-center gap-2 md:gap-3">
-                  {fixture?.home_team_image_path ? (
-                    <img src={fixture.home_team_image_path} alt={fixture.home_team_name} className="w-8 h-8 md:w-10 md:h-10 object-contain" />
-                  ) : (
-                    <div className="w-8 h-8 md:w-10 md:h-10 bg-gray-200 rounded-full" />
-                  )}
-                  <span className="font-bold text-gray-900 text-xs md:text-base">
-                    {fixture?.home_team_short_code || fixture?.home_team_name?.slice(0, 3).toUpperCase() || 'HOM'}
-                  </span>
+            <div className="space-y-6">
+              {/* ── Match Info Card ── */}
+              <div className="bg-white rounded-[10px] shadow-[0_0_20px_0_rgba(0,0,0,0.10)] p-4 md:p-6">
+                {/* Team header */}
+                <div className="flex items-center justify-between px-5 mb-4">
+                  <div className="flex items-center gap-3">
+                    {fixture?.home_team_image_path
+                      ? <img src={fixture.home_team_image_path} alt={fixture.home_team_name} className="w-8 h-8 object-contain" />
+                      : <div className="w-8 h-8 bg-[#f7f8fa] rounded-full" />}
+                    <span className="font-semibold text-[#0a0a0a] text-sm">
+                      {fixture?.home_team_short_code || fixture?.home_team_name?.slice(0, 3).toUpperCase() || 'HOM'}
+                    </span>
+                  </div>
+                  <span className="text-[#7c8a9c] text-sm font-semibold">VS</span>
+                  <div className="flex items-center gap-3">
+                    <span className="font-semibold text-[#0a0a0a] text-sm">
+                      {fixture?.away_team_short_code || fixture?.away_team_name?.slice(0, 3).toUpperCase() || 'AWY'}
+                    </span>
+                    {fixture?.away_team_image_path
+                      ? <img src={fixture.away_team_image_path} alt={fixture.away_team_name} className="w-8 h-8 object-contain rounded-full" />
+                      : <div className="w-8 h-8 bg-[#f7f8fa] rounded-full" />}
+                  </div>
                 </div>
-                <span className="text-gray-400 text-xs md:text-sm">vs</span>
-                <div className="flex items-center gap-2 md:gap-3">
-                  <span className="font-bold text-gray-900 text-xs md:text-base">
-                    {fixture?.away_team_short_code || fixture?.away_team_name?.slice(0, 3).toUpperCase() || 'AWY'}
-                  </span>
-                  {fixture?.away_team_image_path ? (
-                    <img src={fixture.away_team_image_path} alt={fixture.away_team_name} className="w-8 h-8 md:w-10 md:h-10 object-contain" />
-                  ) : (
-                    <div className="w-8 h-8 md:w-10 md:h-10 bg-gray-200 rounded-full" />
-                  )}
+                {/* Stat bars */}
+                {isLoadingStats ? (
+                  <div className="bg-[#f7f8fa] rounded-[15px] p-4 space-y-3 animate-pulse">
+                    {[1,2,3,4,5].map(i => (
+                      <div key={i} className="flex items-center gap-4 py-2">
+                        <div className="w-8 h-3 bg-gray-200 rounded" />
+                        <div className="flex-1 h-1.5 bg-gray-200 rounded-full" />
+                        <div className="w-8 h-3 bg-gray-200 rounded" />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="bg-[#f7f8fa] rounded-[15px] overflow-hidden">
+                    {[
+                      { label: 'Ball possession', home: statsData?.basic?.home_possession ?? null, away: statsData?.basic?.away_possession ?? null, isPct: true },
+                      { label: 'Total shots', home: statsData?.basic?.home_total_shots ?? null, away: statsData?.basic?.away_total_shots ?? null },
+                      { label: 'Corner kicks', home: statsData?.basic?.home_corner_kicks ?? null, away: statsData?.basic?.away_corner_kicks ?? null },
+                      { label: 'Fouls', home: statsData?.basic?.home_fouls ?? null, away: statsData?.basic?.away_fouls ?? null },
+                      { label: 'Passes completed', home: statsData?.basic?.home_passes_total ?? statsData?.basic?.home_pass_accuracy ?? null, away: statsData?.basic?.away_passes_total ?? statsData?.basic?.away_pass_accuracy ?? null },
+                    ].map((s, i, arr) => (
+                      <div key={s.label}>
+                        <div className="px-4">
+                          <StatBar label={s.label} homeValue={s.home ?? 0} awayValue={s.away ?? 0} isPercentage={s.isPct} />
+                        </div>
+                        {i < arr.length - 1 && <div className="h-px bg-[#e1e4eb] mx-4" />}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* ── Team Performance Comparison ── */}
+              <div>
+                <h2 className="text-[18px] font-semibold text-[#0a0a0a] mb-4">Team Performance Comparison</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {[
+                    {
+                      id: 'xg',
+                      title: 'Expected Goals (xG)',
+                      rows: [
+                        { label: 'Expected Goals (xG)', home: statsData?.advanced?.home_xg ?? statsData?.advanced?.xg_home, away: statsData?.advanced?.away_xg ?? statsData?.advanced?.xg_away },
+                        { label: 'xG Open Play', home: statsData?.advanced?.home_xg_open_play ?? statsData?.advanced?.xg_open_play_home, away: statsData?.advanced?.away_xg_open_play ?? statsData?.advanced?.xg_open_play_away },
+                        { label: 'xG Set Play', home: statsData?.advanced?.home_xg_set_play ?? statsData?.advanced?.xg_set_play_home, away: statsData?.advanced?.away_xg_set_play ?? statsData?.advanced?.xg_set_play_away },
+                        { label: 'Non-penalty xG', home: statsData?.advanced?.home_np_xg, away: statsData?.advanced?.away_np_xg },
+                        { label: 'xG on target (xGOT)', home: statsData?.advanced?.home_xgot, away: statsData?.advanced?.away_xgot },
+                      ],
+                    },
+                    {
+                      id: 'shots',
+                      title: 'Shots',
+                      rows: [
+                        { label: 'Total Shots', home: statsData?.basic?.home_total_shots, away: statsData?.basic?.away_total_shots },
+                        { label: 'Shots off Target', home: statsData?.advanced?.home_shots_off_target ?? statsData?.basic?.home_shots_off_target, away: statsData?.advanced?.away_shots_off_target ?? statsData?.basic?.away_shots_off_target },
+                        { label: 'Shots on Target', home: statsData?.basic?.home_shots_on_target, away: statsData?.basic?.away_shots_on_target },
+                        { label: 'Blocked Shots', home: statsData?.advanced?.home_blocked_shots, away: statsData?.advanced?.away_blocked_shots },
+                        { label: 'Hit woodwork', home: statsData?.advanced?.home_hit_woodwork, away: statsData?.advanced?.away_hit_woodwork },
+                      ],
+                    },
+                    {
+                      id: 'duels',
+                      title: 'Duels',
+                      rows: [
+                        { label: 'Total Duels', home: statsData?.advanced?.home_duels_total, away: statsData?.advanced?.away_duels_total },
+                        { label: 'Duels Won', home: statsData?.advanced?.home_duels_won, away: statsData?.advanced?.away_duels_won },
+                        { label: 'Ground Duels Won', home: statsData?.advanced?.home_ground_duels_won, away: statsData?.advanced?.away_ground_duels_won },
+                        { label: 'Aerial Duels Won', home: statsData?.advanced?.home_aerial_duels_won, away: statsData?.advanced?.away_aerial_duels_won },
+                        { label: 'Successful dribbles', home: statsData?.advanced?.home_dribbles_won, away: statsData?.advanced?.away_dribbles_won },
+                      ],
+                    },
+                    {
+                      id: 'defence',
+                      title: 'Defence',
+                      rows: [
+                        { label: 'Tackles', home: statsData?.advanced?.home_tackles, away: statsData?.advanced?.away_tackles },
+                        { label: 'Interceptions', home: statsData?.advanced?.home_interceptions, away: statsData?.advanced?.away_interceptions },
+                        { label: 'Keeper Saves', home: statsData?.advanced?.home_keeper_saves ?? statsData?.basic?.home_shots_on_target, away: statsData?.advanced?.away_keeper_saves ?? statsData?.basic?.away_shots_on_target },
+                        { label: 'Clearances', home: statsData?.advanced?.home_clearances, away: statsData?.advanced?.away_clearances },
+                        { label: 'Errors', home: statsData?.advanced?.home_errors, away: statsData?.advanced?.away_errors },
+                      ],
+                    },
+                    {
+                      id: 'passes',
+                      title: 'Passes',
+                      rows: [
+                        { label: 'Total Passes', home: statsData?.advanced?.home_passes_total ?? statsData?.basic?.home_passes_total, away: statsData?.advanced?.away_passes_total ?? statsData?.basic?.away_passes_total },
+                        { label: 'Accurate Passes', home: statsData?.advanced?.home_accurate_passes, away: statsData?.advanced?.away_accurate_passes },
+                        { label: 'Own Half', home: statsData?.advanced?.home_passes_own_half, away: statsData?.advanced?.away_passes_own_half },
+                        { label: 'Opposition Half', home: statsData?.advanced?.home_passes_opp_half, away: statsData?.advanced?.away_passes_opp_half },
+                        { label: 'Accurate long Balls', home: statsData?.advanced?.home_accurate_long_balls, away: statsData?.advanced?.away_accurate_long_balls },
+                      ],
+                    },
+                  ].map((card) => {
+                    const isExpanded = expandedStatCards.has(card.id);
+                    const visibleRows = isExpanded ? card.rows : card.rows.slice(0, 5);
+                    const hasData = card.rows.some(r => r.home != null || r.away != null);
+                    return (
+                      <div key={card.id} className="bg-white rounded-[15px] shadow-[0_0_15px_0_rgba(0,0,0,0.10)] p-4">
+                        <h3 className="text-[16px] font-semibold text-[#0a0a0a] mb-3">{card.title}</h3>
+                        {!hasData && isLoadingStats ? (
+                          <div className="space-y-3 animate-pulse">
+                            {[1,2,3,4,5].map(i => (
+                              <div key={i} className="flex items-center gap-3">
+                                <div className="w-8 h-3 bg-gray-100 rounded" />
+                                <div className="flex-1 h-3 bg-gray-100 rounded" />
+                                <div className="w-8 h-3 bg-gray-100 rounded" />
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <>
+                            {visibleRows.map((row, i) => {
+                              const h = row.home ?? 0;
+                              const a = row.away ?? 0;
+                              const total = h + a;
+                              const homePct = total > 0 ? (h / total) * 100 : 50;
+                              const awayPct = total > 0 ? (a / total) * 100 : 50;
+                              const homeWin = h > a;
+                              const awayWin = a > h;
+                              return (
+                                <div key={i} className={i > 0 ? 'mt-3 pt-3 border-t border-[#e1e4eb]' : ''}>
+                                  <div className="flex items-center justify-between mb-1">
+                                    <span className={`text-sm font-semibold ${homeWin ? 'text-[#0d1a67]' : 'text-[#0a0a0a]'}`}>{row.home ?? '—'}</span>
+                                    <span className="text-xs text-[#7c8a9c] font-medium">{row.label}</span>
+                                    <span className={`text-sm font-semibold ${awayWin ? 'text-[#0d1a67]' : 'text-[#0a0a0a]'}`}>{row.away ?? '—'}</span>
+                                  </div>
+                                  <div className="flex h-1.5 gap-0.5">
+                                    <div className="flex-1 bg-[#e1e4eb] rounded-full overflow-hidden flex justify-end">
+                                      <div className="h-full rounded-full bg-[#0d1a67] transition-all" style={{ width: `${homePct}%` }} />
+                                    </div>
+                                    <div className="flex-1 bg-[#e1e4eb] rounded-full overflow-hidden flex justify-start">
+                                      <div className="h-full rounded-full bg-[#ccd3fc] transition-all" style={{ width: `${awayPct}%` }} />
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                            <p className="text-xs text-[#7c8a9c] text-center mt-3">5 out of {card.rows.length}</p>
+                            <button
+                              onClick={() => setExpandedStatCards(prev => {
+                                const next = new Set(prev);
+                                if (next.has(card.id)) next.delete(card.id); else next.add(card.id);
+                                return next;
+                              })}
+                              className="mt-3 w-full h-10 bg-[#0d1a67] text-white text-sm font-semibold rounded-lg hover:bg-[#0d1a67]/90 transition-colors"
+                            >
+                              {isExpanded ? 'Show Less' : 'See More'}
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
-              {/* Stats Bars */}
-              {isLoadingStats ? (
-                <div className="bg-white rounded-xl p-6 space-y-4 animate-pulse">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <div key={i} className="py-4">
-                      <div className="h-4 bg-gray-200 rounded w-32 mx-auto mb-3" />
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-4 bg-gray-200 rounded" />
-                        <div className="flex-1 h-2 bg-gray-200 rounded-full" />
-                        <div className="w-12 h-4 bg-gray-200 rounded" />
-                      </div>
+              {/* ── Player Stats ── */}
+              {featuredPlayerIds.length > 0 && (
+                <div>
+                  <h2 className="text-[18px] font-semibold text-[#0a0a0a] mb-4">Player stats</h2>
+                  <div className="bg-white rounded-[15px] shadow-[0_0_15px_0_rgba(0,0,0,0.10)] overflow-hidden">
+                    {/* Tab bar */}
+                    <div className="flex gap-2 p-3 border-b border-[#e1e4eb] overflow-x-auto scrollbar-hide">
+                      {(['summary','attacking','passing','defensive','discipline'] as const).map(tab => (
+                        <button
+                          key={tab}
+                          onClick={() => setPlayerStatsTab(tab)}
+                          className={`flex-shrink-0 h-10 px-4 rounded-lg text-sm font-semibold capitalize transition-colors border ${
+                            playerStatsTab === tab
+                              ? 'bg-[#0d1a67] text-white border-[#0d1a67]'
+                              : 'bg-white text-[#7c8a9c] border-[#e1e4eb] hover:border-[#0d1a67] hover:text-[#0d1a67]'
+                          }`}
+                        >
+                          {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                        </button>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="bg-white rounded-lg md:rounded-xl overflow-hidden">
-                  {!statsData && (
-                    <div className="mx-3 md:mx-4 mt-3 md:mt-4 px-2 md:px-3 py-1.5 md:py-2 bg-amber-50 border border-amber-200 rounded-lg">
-                      <p className="text-amber-700 text-xs md:text-sm text-center">
-                        Using placeholder data - live stats will appear during the match
-                      </p>
+                    {/* Table header */}
+                    <div className="flex items-center px-4 py-2 border-b border-[#e1e4eb] text-xs text-[#7c8a9c] font-medium">
+                      <div className="flex-1">Players</div>
+                      {playerStatsTab === 'summary' && <>
+                        <div className="w-14 text-center">Rating</div>
+                        <div className="w-12 text-center">Min</div>
+                        <div className="w-12 text-center">Goal</div>
+                        <div className="w-14 text-center">Assists</div>
+                        <div className="w-12 text-center">xG</div>
+                        <div className="w-12 text-center">xA</div>
+                      </>}
+                      {playerStatsTab === 'attacking' && <>
+                        <div className="w-14 text-center">Goals</div>
+                        <div className="w-14 text-center">Assists</div>
+                        <div className="w-14 text-center">Shots</div>
+                        <div className="w-14 text-center">On Tgt</div>
+                        <div className="w-14 text-center">Key Pass</div>
+                      </>}
+                      {playerStatsTab === 'passing' && <>
+                        <div className="w-14 text-center">Passes</div>
+                        <div className="w-14 text-center">Acc.</div>
+                        <div className="w-16 text-center">Acc %</div>
+                        <div className="w-14 text-center">Key</div>
+                      </>}
+                      {playerStatsTab === 'defensive' && <>
+                        <div className="w-14 text-center">Tackles</div>
+                        <div className="w-16 text-center">Intercept</div>
+                        <div className="w-14 text-center">Duels</div>
+                        <div className="w-14 text-center">Won</div>
+                        <div className="w-14 text-center">Clear</div>
+                      </>}
+                      {playerStatsTab === 'discipline' && <>
+                        <div className="w-14 text-center">Fouls</div>
+                        <div className="w-14 text-center">Yellow</div>
+                        <div className="w-14 text-center">Red</div>
+                        <div className="w-16 text-center">F.Drawn</div>
+                      </>}
                     </div>
-                  )}
-                  <div className="px-3 md:px-6">
-                    <StatBar
-                      label="Ball possession"
-                      homeValue={statsData?.basic?.home_possession ?? 60}
-                      awayValue={statsData?.basic?.away_possession ?? 40}
-                      isPercentage
-                    />
-                  </div>
-                  <div className="h-px bg-gray-200" />
-                  <div className="px-3 md:px-6">
-                    <StatBar
-                      label="Total shots"
-                      homeValue={statsData?.basic?.home_total_shots ?? 12}
-                      awayValue={statsData?.basic?.away_total_shots ?? 8}
-                    />
-                  </div>
-                  <div className="h-px bg-gray-200" />
-                  <div className="px-3 md:px-6">
-                    <StatBar
-                      label="Shots on target"
-                      homeValue={statsData?.basic?.home_shots_on_target ?? 5}
-                      awayValue={statsData?.basic?.away_shots_on_target ?? 3}
-                    />
-                  </div>
-                  <div className="h-px bg-gray-200" />
-                  <div className="px-3 md:px-6">
-                    <StatBar
-                      label="Corner kicks"
-                      homeValue={statsData?.basic?.home_corner_kicks ?? 6}
-                      awayValue={statsData?.basic?.away_corner_kicks ?? 4}
-                    />
-                  </div>
-                  <div className="h-px bg-gray-200" />
-                  <div className="px-3 md:px-6">
-                    <StatBar
-                      label="Fouls"
-                      homeValue={statsData?.basic?.home_fouls ?? 10}
-                      awayValue={statsData?.basic?.away_fouls ?? 12}
-                    />
-                  </div>
-                  <div className="h-px bg-gray-200" />
-                  <div className="px-3 md:px-6">
-                    <StatBar
-                      label="Yellow cards"
-                      homeValue={statsData?.basic?.home_yellow_cards ?? 2}
-                      awayValue={statsData?.basic?.away_yellow_cards ?? 3}
-                    />
-                  </div>
-                  <div className="h-px bg-gray-200" />
-                  <div className="px-3 md:px-6">
-                    <StatBar
-                      label="Red cards"
-                      homeValue={statsData?.basic?.home_red_cards ?? 0}
-                      awayValue={statsData?.basic?.away_red_cards ?? 0}
-                    />
-                  </div>
-                  <div className="h-px bg-gray-200" />
-                  <div className="px-3 md:px-6">
-                    <StatBar
-                      label="Pass accuracy"
-                      homeValue={statsData?.basic?.home_pass_accuracy ?? 78}
-                      awayValue={statsData?.basic?.away_pass_accuracy ?? 72}
-                      isPercentage
-                    />
+                    {/* Player rows */}
+                    {playerDetailsResults.map((result, idx) => {
+                      const player = (result.data?.data as any);
+                      const name = player?.display_name || player?.common_name || player?.player_name || `Player ${featuredPlayerIds[idx]}`;
+                      const position = player?.position || player?.position_name || 'Player';
+                      const imgUrl = player?.image_path || player?.player_image_url;
+                      // Get prediction data for this player
+                      const playerPreds = fullPredictions.filter((p: any) => p.player_id === featuredPlayerIds[idx]);
+                      const avgPred = playerPreds.length > 0 ? playerPreds.reduce((s: number, p: any) => s + (p.prediction ?? 0), 0) / playerPreds.length : null;
+                      const ratingNum = avgPred != null ? (avgPred > 1 ? avgPred : avgPred * 10).toFixed(1) : null;
+                      const ratingColor = ratingNum == null ? '#7c8a9c' : parseFloat(ratingNum) >= 7 ? '#27ae60' : parseFloat(ratingNum) >= 5 ? '#f39c12' : '#e74c3c';
+
+                      return (
+                        <div key={featuredPlayerIds[idx]} className={`flex items-center px-4 py-3 ${idx < playerDetailsResults.length - 1 ? 'border-b border-[#e1e4eb]' : ''}`}>
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            {imgUrl
+                              ? <img src={imgUrl} alt={name} className="w-9 h-9 rounded-full object-cover flex-shrink-0 bg-[#f7f8fa]" />
+                              : <div className="w-9 h-9 rounded-full bg-[#f7f8fa] flex-shrink-0 flex items-center justify-center text-xs font-bold text-[#7c8a9c]">{name.slice(0,2).toUpperCase()}</div>
+                            }
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-[#0a0a0a] truncate">{name}</p>
+                              <p className="text-xs text-[#7c8a9c]">{position}</p>
+                            </div>
+                          </div>
+                          {playerStatsTab === 'summary' && <>
+                            <div className="w-14 text-center text-sm font-semibold" style={{ color: ratingColor }}>{ratingNum ?? '—'}</div>
+                            <div className="w-12 text-center text-sm text-[#0a0a0a]">—</div>
+                            <div className="w-12 text-center text-sm text-[#0a0a0a]">—</div>
+                            <div className="w-14 text-center text-sm text-[#0a0a0a]">—</div>
+                            <div className="w-12 text-center text-sm text-[#0a0a0a]">—</div>
+                            <div className="w-12 text-center text-sm text-[#0a0a0a]">—</div>
+                          </>}
+                          {playerStatsTab === 'attacking' && <>
+                            <div className="w-14 text-center text-sm text-[#0a0a0a]">—</div>
+                            <div className="w-14 text-center text-sm text-[#0a0a0a]">—</div>
+                            <div className="w-14 text-center text-sm text-[#0a0a0a]">—</div>
+                            <div className="w-14 text-center text-sm text-[#0a0a0a]">—</div>
+                            <div className="w-14 text-center text-sm text-[#0a0a0a]">—</div>
+                          </>}
+                          {playerStatsTab === 'passing' && <>
+                            <div className="w-14 text-center text-sm text-[#0a0a0a]">—</div>
+                            <div className="w-14 text-center text-sm text-[#0a0a0a]">—</div>
+                            <div className="w-16 text-center text-sm text-[#0a0a0a]">—</div>
+                            <div className="w-14 text-center text-sm text-[#0a0a0a]">—</div>
+                          </>}
+                          {playerStatsTab === 'defensive' && <>
+                            <div className="w-14 text-center text-sm text-[#0a0a0a]">—</div>
+                            <div className="w-16 text-center text-sm text-[#0a0a0a]">—</div>
+                            <div className="w-14 text-center text-sm text-[#0a0a0a]">—</div>
+                            <div className="w-14 text-center text-sm text-[#0a0a0a]">—</div>
+                            <div className="w-14 text-center text-sm text-[#0a0a0a]">—</div>
+                          </>}
+                          {playerStatsTab === 'discipline' && <>
+                            <div className="w-14 text-center text-sm text-[#0a0a0a]">—</div>
+                            <div className="w-14 text-center text-sm text-[#0a0a0a]">—</div>
+                            <div className="w-14 text-center text-sm text-[#0a0a0a]">—</div>
+                            <div className="w-16 text-center text-sm text-[#0a0a0a]">—</div>
+                          </>}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
