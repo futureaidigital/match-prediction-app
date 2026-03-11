@@ -4,6 +4,7 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { MatchBanner } from '@/components/MatchBanner';
 import { useFixtures, useFixtureStatistics, useFixtureCommentary } from '@/hooks/useFixtures';
+import { useFixturePredictions } from '@/hooks/usePredictions';
 import { useAuth } from '@/contexts/AuthContext';
 
 type TabType = 'predictions' | 'commentary' | 'stats' | 'lineups';
@@ -566,52 +567,57 @@ function MobileBottomNav() {
 }
 
 // AI Analysis panel - shown when a prediction card is clicked
-function AIAnalysisPanel({ prediction, fixture, statsData, onClose }: { prediction: any; fixture: any; statsData: any; onClose: () => void }) {
-  const percentage = Math.round(prediction.prediction || prediction.pre_game_prediction || 0);
-  const preGamePercentage = Math.round(prediction.pre_game_prediction || 0);
-  const confidence = percentage / 100;
-  const reasons = prediction.prediction_reasons || prediction.pre_game_prediction_reasons || [];
-  const isPlayer = prediction.prediction_type === 'player' || prediction.player_id;
-  const pctChange = prediction.pct_change_value || 0;
+function AIAnalysisPanel({ prediction, fixture: _fixture, statsData: _statsData, onClose }: { prediction: any; fixture: any; statsData: any; onClose: () => void }) {
   const [formTab, setFormTab] = useState<'home' | 'away'>('home');
 
-  const getConfidence = (pct: number) => {
-    if (pct >= 70) return { label: 'HIGH', color: '#27ae60', bg: '#e6f4ec' };
-    if (pct >= 40) return { label: 'MEDIUM', color: '#f39c12', bg: '#fff9ec' };
-    return { label: 'LOW', color: '#e74c3c', bg: '#fdedec' };
+  // Real data from prediction.detail (from /fixtures/{id}/predictions endpoint)
+  const detail = prediction.detail || null;
+  const aiAnalysis: string = detail?.ai_analysis || '';
+  const matchHistory: any[] = detail?.match_history || [];
+  const modelConfidence = detail?.model_confidence || null;
+  const seasonContext = detail?.season_context || null;
+  const homeForm = seasonContext?.home_form || null;
+  const awayForm = seasonContext?.away_form || null;
+  const activeForm = formTab === 'home' ? homeForm : awayForm;
+
+  const rawValue = prediction.value ?? prediction.prediction ?? prediction.pre_game_value ?? prediction.pre_game_prediction ?? 0;
+  const percentage = rawValue > 1 ? Math.round(rawValue) : Math.round(rawValue * 100);
+  const rawPreGame = prediction.pre_game_value ?? prediction.pre_game_prediction ?? 0;
+  const preGamePercentage = rawPreGame > 1 ? Math.round(rawPreGame) : Math.round(rawPreGame * 100);
+  const pctChange = prediction.pct_change_value ?? 0;
+
+  const getConfidence = () => {
+    const cat = (prediction.model_confidence_category || modelConfidence?.category || '').toLowerCase();
+    if (cat === 'high') return { label: 'High Confidence', color: '#27ae60', bg: '#e6f4ec' };
+    if (cat === 'medium') return { label: 'Medium Confidence', color: '#f39c12', bg: '#fff9ec' };
+    if (cat === 'low') return { label: 'Low Confidence', color: '#e74c3c', bg: '#fdedec' };
+    if (percentage >= 70) return { label: 'High Confidence', color: '#27ae60', bg: '#e6f4ec' };
+    if (percentage >= 40) return { label: 'Medium Confidence', color: '#f39c12', bg: '#fff9ec' };
+    return { label: 'Low Confidence', color: '#e74c3c', bg: '#fdedec' };
   };
-  const conf = getConfidence(percentage);
+  const conf = getConfidence();
+  const modelScore = modelConfidence?.score ?? (percentage / 100);
 
-  // Extract stats from statsData if available
-  const basicStats = statsData?.basic || {};
-  const homeBasic = basicStats.home || {};
-  const awayBasic = basicStats.away || {};
+  const title = prediction.title || prediction.prediction_display_name || 'Prediction';
 
-  const statColumns = [
+  const statCols = [
     { key: 'rating', label: 'RTG' },
     { key: 'shots_on_target', label: 'SOT' },
-    { key: 'shots_total', label: 'SHOT' },
-    { key: 'offsides', label: 'OFF' },
-    { key: 'corners', label: 'CRE' },
+    { key: 'total_shots', label: 'SHOT' },
+    { key: 'shots_off_target', label: 'OFF' },
+    { key: 'chances_created', label: 'CRE' },
     { key: 'goals', label: 'GLS' },
   ];
 
-  const predictionName = prediction.prediction_display_name || 'Prediction';
-
   return (
     <div
-      className="bg-white rounded-t-[20px] md:rounded-[20px] p-4 flex flex-col gap-4 w-full"
+      className="bg-white rounded-t-[20px] md:rounded-[10px] p-4 md:p-6 flex flex-col gap-4 md:gap-4 w-full overflow-y-auto max-h-[90vh] md:max-h-none"
       style={{ fontFamily: 'Montserrat, sans-serif' }}
     >
       {/* Header: "Details" + close X */}
       <div className="flex items-center justify-between">
-        <h3 className="text-[18px] font-semibold text-[#0a0a0a] leading-[130%]">
-          Details
-        </h3>
-        <button
-          onClick={onClose}
-          className="w-6 h-6 flex items-center justify-center"
-        >
+        <h3 className="text-[18px] font-semibold text-[#0a0a0a]">Details</h3>
+        <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f7f8fa]">
           <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
             <path d="M1 1L12 12M12 1L1 12" stroke="#0a0a0a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
@@ -619,57 +625,52 @@ function AIAnalysisPanel({ prediction, fixture, statsData, onClose }: { predicti
       </div>
 
       {/* Inner #f7f8fa container */}
-      <div className="rounded-[14px] bg-[#f7f8fa] p-[14px] flex flex-col gap-[14px]">
-        {/* AI Analysis Section */}
-        <div className="flex flex-col gap-2">
-          <h4 className="text-[16px] font-semibold text-[#0a0a0a] leading-[150%]">AI Analysis</h4>
-          <div className="rounded-lg bg-white border border-[#e1e4eb] p-[10px]">
-            {reasons.length > 0 ? (
-              <p className="text-xs font-medium text-[#7c8a9c] leading-[140%]">
-                {reasons.join(' ')}
-              </p>
-            ) : (
-              <p className="text-xs font-medium text-[#7c8a9c] leading-[140%]">No analysis available for this prediction.</p>
-            )}
+      <div className="rounded-[16px] bg-[#f7f8fa] p-4 flex flex-col gap-6">
+
+        {/* 1. AI Analysis */}
+        <div className="flex flex-col gap-[15px]">
+          <span className="text-[14px] font-semibold text-[#7c8a9c] uppercase tracking-wide">AI Analysis</span>
+          <div className="rounded-[20px] bg-white border border-[#e1e4eb] p-4">
+            <p className="text-sm font-medium text-[#7c8a9c] leading-[1.6]">
+              {aiAnalysis || 'No analysis available for this prediction.'}
+            </p>
           </div>
         </div>
 
-        {/* Performance vs. Similar Teams */}
-        <div className="flex flex-col gap-[10px]">
+        {/* 2. Performance vs. Similar Teams */}
+        <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-1">
-            <h4 className="text-[16px] font-semibold text-[#0a0a0a] leading-[150%]">Performance vs. Similar Teams</h4>
-            <p className="text-xs font-medium text-[#7c8a9c] leading-[140%]">
-              Comparing {predictionName} performance
-            </p>
+            <h4 className="text-[16px] font-semibold text-[#0a0a0a]">Performance vs. Similar Teams</h4>
+            <p className="text-xs font-medium text-[#7c8a9c]">Comparing {title} performance</p>
           </div>
-          <div className="rounded-lg bg-white p-2 flex flex-col gap-[10px]">
-            {/* Comparison bars */}
-            <div className="flex flex-col gap-2">
-              {/* Current prediction bar */}
-              <div className="flex items-center justify-between gap-4">
-                <span className="text-xs font-medium text-[#7c8a9c] shrink-0 w-20">Current</span>
-                <div className="flex-1 h-[6px] rounded-full bg-[#e1e4eb]">
-                  <div className="h-[6px] rounded-full transition-all" style={{ width: `${percentage}%`, backgroundColor: conf.color }} />
-                </div>
-                <span className="text-xs font-semibold w-10 text-right" style={{ color: conf.color }}>{percentage}%</span>
+          <div className="rounded-[8px] bg-white p-4 flex flex-col gap-4">
+            {/* Current prediction bar */}
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-[#7c8a9c] w-24 shrink-0">Current</span>
+              <div className="flex-1 h-[6px] rounded-full bg-[#e1e4eb]">
+                <div className="h-[6px] rounded-full transition-all" style={{ width: `${percentage}%`, backgroundColor: conf.color }} />
               </div>
-              {/* Pre-game bar */}
-              <div className="flex items-center justify-between gap-4">
-                <span className="text-xs font-medium text-[#7c8a9c] shrink-0 w-20">Pre-game</span>
-                <div className="flex-1 h-[6px] rounded-full bg-[#e1e4eb]">
-                  <div className="h-[6px] rounded-full bg-[#7c8a9c] transition-all" style={{ width: `${preGamePercentage}%` }} />
-                </div>
-                <span className="text-xs font-semibold text-[#7c8a9c] w-10 text-right">{preGamePercentage}%</span>
+              <span className="text-sm font-semibold w-10 text-right" style={{ color: conf.color }}>{percentage}%</span>
+            </div>
+            {/* Pre-game bar */}
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-[#7c8a9c] w-24 shrink-0">Pre-game</span>
+              <div className="flex-1 h-[6px] rounded-full bg-[#e1e4eb]">
+                <div className="h-[6px] rounded-full bg-[#7c8a9c] transition-all" style={{ width: `${preGamePercentage}%` }} />
               </div>
+              <span className="text-sm font-semibold text-[#7c8a9c] w-10 text-right">{preGamePercentage}%</span>
             </div>
             {/* Insight badge */}
             {pctChange !== 0 && (
-              <div className="rounded px-2 py-1 flex items-center gap-2" style={{ backgroundColor: pctChange > 0 ? '#e6f4ec' : '#fdedec' }}>
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                  <path d={pctChange > 0 ? "M9 3L15 9L13.5 10.5L10 7V15H8V7L4.5 10.5L3 9L9 3Z" : "M9 15L3 9L4.5 7.5L8 11V3H10V11L13.5 7.5L15 9L9 15Z"} fill={pctChange > 0 ? '#27ae60' : '#e74c3c'} />
-                </svg>
-                <span className="text-xs font-semibold" style={{ color: pctChange > 0 ? '#27ae60' : '#e74c3c' }}>
-                  {Math.abs(pctChange).toFixed(0)}% Performance {pctChange > 0 ? 'Increase' : 'Decrease'}
+              <div className="rounded-lg px-3 py-2 flex items-center gap-2" style={{ backgroundColor: pctChange > 0 ? '#e6f4ec' : '#fdedec' }}>
+                <img src="/trend.svg" width="16" height="10" alt="" style={{
+                  filter: pctChange > 0
+                    ? 'brightness(0) saturate(100%) invert(52%) sepia(79%) saturate(409%) hue-rotate(95deg) brightness(93%) contrast(91%)'
+                    : 'brightness(0) saturate(100%) invert(33%) sepia(84%) saturate(1200%) hue-rotate(329deg) brightness(97%) contrast(95%)',
+                  transform: pctChange > 0 ? 'none' : 'scaleY(-1)',
+                }} />
+                <span className="text-sm font-semibold" style={{ color: pctChange > 0 ? '#27ae60' : '#e74c3c' }}>
+                  {Math.abs(pctChange).toFixed(0)}% Performance {pctChange > 0 ? 'Increase' : 'Decrease'} vs Similar Matches
                 </span>
               </div>
             )}
@@ -679,130 +680,109 @@ function AIAnalysisPanel({ prediction, fixture, statsData, onClose }: { predicti
         {/* Divider */}
         <div className="w-full h-px bg-[#e1e4eb]" />
 
-        {/* Detailed Match Stats */}
-        <div className="flex flex-col gap-[10px]">
+        {/* 3. Detailed Match Stats */}
+        <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-1">
-            <h4 className="text-[16px] font-semibold text-[#0a0a0a] leading-[150%]">Detailed Match Stats</h4>
-            <p className="text-xs font-medium text-[#7c8a9c] leading-[140%]">Last 5 matches</p>
+            <h4 className="text-[16px] font-semibold text-[#0a0a0a]">Detailed Match Stats</h4>
+            <p className="text-xs font-medium text-[#7c8a9c]">Last 5 matches</p>
           </div>
-          <div className="flex flex-col gap-0">
+          <div className="bg-white rounded-[8px] overflow-hidden">
             {/* Table header */}
-            <div className="flex items-center rounded-[6px] bg-white px-2 h-[29px]">
-              <span className="text-xs font-semibold text-[#7c8a9c] w-[50px]">MATCH</span>
-              <div className="flex-1 flex items-center justify-between">
-                {statColumns.map(col => (
-                  <span key={col.key} className="text-xs font-semibold text-[#7c8a9c] w-[40px] text-center">{col.label}</span>
-                ))}
-              </div>
+            <div className="flex items-center px-4 h-[40px] bg-[#f7f8fa]">
+              <span className="text-xs font-semibold text-[#7c8a9c] flex-1">MATCH</span>
+              {statCols.map(col => (
+                <span key={col.key} className="text-xs font-semibold text-[#7c8a9c] w-10 text-center">{col.label}</span>
+              ))}
             </div>
-            {/* Home team row */}
-            <div className="flex items-center px-2 h-[40px] border-b border-[#f0f1f3]">
-              <span className="text-xs font-semibold text-[#0a0a0a] w-[50px]">{fixture?.home_team_abbreviation || 'HOME'}</span>
-              <div className="flex-1 flex items-center justify-between">
-                {statColumns.map(col => (
-                  <span key={col.key} className="text-xs font-medium text-[#3a3f47] w-[40px] text-center">
-                    {homeBasic[col.key] ?? '-'}
-                  </span>
-                ))}
-              </div>
-            </div>
-            {/* Away team row */}
-            <div className="flex items-center px-2 h-[40px] border-b border-[#f0f1f3]">
-              <span className="text-xs font-semibold text-[#0a0a0a] w-[50px]">{fixture?.away_team_abbreviation || 'AWAY'}</span>
-              <div className="flex-1 flex items-center justify-between">
-                {statColumns.map(col => (
-                  <span key={col.key} className="text-xs font-medium text-[#3a3f47] w-[40px] text-center">
-                    {awayBasic[col.key] ?? '-'}
-                  </span>
-                ))}
-              </div>
-            </div>
+            {matchHistory.length > 0 ? matchHistory.slice(0, 5).map((match: any, i: number) => {
+              const date = match.starting_at ? new Date(match.starting_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '';
+              const oppName = match.away_team_name || match.home_team_name || '';
+              const shortOpp = oppName.length > 12 ? oppName.slice(0, 10) + '…' : oppName;
+              return (
+                <div key={i} className={`flex items-center px-4 h-[48px] ${i < matchHistory.slice(0,5).length - 1 ? 'border-b border-[#f0f1f3]' : ''}`}>
+                  <div className="flex-1 flex flex-col">
+                    <span className="text-xs font-semibold text-[#0a0a0a] leading-tight">Vs {shortOpp}</span>
+                    <span className="text-[10px] font-medium text-[#7c8a9c]">{date}</span>
+                  </div>
+                  {statCols.map(col => (
+                    <span key={col.key} className="text-xs font-medium text-[#3a3f47] w-10 text-center">
+                      {match[col.key] != null ? match[col.key] : '-'}
+                    </span>
+                  ))}
+                </div>
+              );
+            }) : (
+              <div className="px-4 py-6 text-xs text-[#7c8a9c] text-center">No match history available</div>
+            )}
           </div>
         </div>
 
         {/* Divider */}
         <div className="w-full h-px bg-[#e1e4eb]" />
 
-        {/* Model Confidence */}
-        <div className="flex flex-col gap-[10px]">
-          <h4 className="text-[16px] font-semibold text-[#0a0a0a] leading-[150%]">Model Confidence</h4>
-          <div className="rounded-lg bg-white p-3 flex items-center gap-4">
-            <div className="relative w-[70px] h-[70px]">
-              <svg className="w-[70px] h-[70px] -rotate-90" viewBox="0 0 70 70">
-                <circle cx="35" cy="35" r="30" fill="none" stroke="#e1e4eb" strokeWidth="5" />
-                <circle
-                  cx="35" cy="35" r="30" fill="none"
-                  stroke={conf.color} strokeWidth="5"
-                  strokeDasharray={`${confidence * 188.5} 188.5`}
-                  strokeLinecap="round"
-                />
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-[14px] font-bold text-[#0a0a0a]">{confidence.toFixed(2)}</span>
+        {/* 4. Model Confidence */}
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <h4 className="text-[16px] font-semibold text-[#0a0a0a]">Model confidence</h4>
+            <p className="text-xs font-semibold text-[#7c8a9c]">Based on 15+ factors</p>
+          </div>
+          <div className="rounded-[8px] bg-white p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-baseline gap-1">
+                <span className="text-[32px] font-bold leading-none" style={{ color: conf.color }}>{modelScore.toFixed(2)}</span>
+                <span className="text-sm font-medium text-[#7c8a9c]">/ 1.0</span>
+              </div>
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ backgroundColor: conf.bg }}>
+                <img src="/trend.svg" width="14" height="9" alt="" style={{
+                  filter: conf.color === '#27ae60'
+                    ? 'brightness(0) saturate(100%) invert(52%) sepia(79%) saturate(409%) hue-rotate(95deg) brightness(93%) contrast(91%)'
+                    : conf.color === '#f39c12'
+                    ? 'brightness(0) saturate(100%) invert(63%) sepia(91%) saturate(489%) hue-rotate(1deg) brightness(101%) contrast(95%)'
+                    : 'brightness(0) saturate(100%) invert(33%) sepia(84%) saturate(1200%) hue-rotate(329deg) brightness(97%) contrast(95%)',
+                  transform: modelScore < 0.5 ? 'scaleY(-1)' : 'none',
+                }} />
+                <span className="text-sm font-semibold" style={{ color: conf.color }}>{conf.label}</span>
               </div>
             </div>
-            <div className="flex flex-col gap-1">
-              <span className="text-sm font-semibold text-[#0a0a0a]">{confidence.toFixed(2)}/1.0</span>
-              <span className="text-xs font-medium text-[#7c8a9c] leading-[140%]">
-                {confidence >= 0.7 ? 'High confidence prediction' : confidence >= 0.4 ? 'Moderate confidence prediction' : 'Low confidence prediction'}
-              </span>
-            </div>
           </div>
         </div>
 
-        {/* Divider */}
-        <div className="w-full h-px bg-[#e1e4eb]" />
-
-        {/* Season Context */}
-        <div className="flex flex-col gap-[10px]">
-          <h4 className="text-[16px] font-semibold text-[#0a0a0a] leading-[150%]">Season Context</h4>
-          <div className="rounded-lg bg-white p-3 flex flex-col gap-3">
-            {/* Home/Away Form tabs */}
-            <div className="flex gap-2">
-              <button
-                onClick={() => setFormTab('home')}
-                className={`h-[28px] px-3 rounded-md text-xs font-semibold transition-colors ${
-                  formTab === 'home' ? 'bg-[#0d1a67] text-white' : 'bg-[#f7f8fa] text-[#7c8a9c]'
-                }`}
-              >
-                Home Form
-              </button>
-              <button
-                onClick={() => setFormTab('away')}
-                className={`h-[28px] px-3 rounded-md text-xs font-semibold transition-colors ${
-                  formTab === 'away' ? 'bg-[#0d1a67] text-white' : 'bg-[#f7f8fa] text-[#7c8a9c]'
-                }`}
-              >
-                Away Form
-              </button>
+        {/* 5. Season Context */}
+        {seasonContext && (
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <h4 className="text-[16px] font-semibold text-[#0a0a0a]">Season Context</h4>
+              <div className="flex gap-1">
+                <button onClick={() => setFormTab('home')}
+                  className={`h-[32px] px-4 rounded-lg text-sm font-semibold transition-colors ${formTab === 'home' ? 'bg-[#0d1a67] text-white' : 'text-[#7c8a9c]'}`}>
+                  Home Form
+                </button>
+                <button onClick={() => setFormTab('away')}
+                  className={`h-[32px] px-4 rounded-lg text-sm font-semibold transition-colors ${formTab === 'away' ? 'bg-[#0d1a67] text-white' : 'text-[#7c8a9c]'}`}>
+                  Away Form
+                </button>
+              </div>
             </div>
-            <div className="flex flex-col gap-2">
-              {formTab === 'home' ? (
-                <>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-[#7c8a9c]">{isPlayer ? 'Player' : 'Match'} prediction</span>
-                    <span className="text-xs font-semibold text-[#0a0a0a]">{percentage}%</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-[#7c8a9c]">Pre-game baseline</span>
-                    <span className="text-xs font-semibold text-[#0a0a0a]">{preGamePercentage}%</span>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-[#7c8a9c]">{isPlayer ? 'Player' : 'Match'} prediction</span>
-                    <span className="text-xs font-semibold text-[#0a0a0a]">{preGamePercentage}%</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-[#7c8a9c]">Current live prediction</span>
-                    <span className="text-xs font-semibold text-[#0a0a0a]">{percentage}%</span>
-                  </div>
-                </>
-              )}
-            </div>
+            {activeForm && (
+              <div className="rounded-[14px] bg-white border border-[#e1e4eb] p-4 flex items-center justify-around">
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-[28px] font-bold text-[#0d1a67]">{activeForm.total_matches ?? '-'}</span>
+                  <span className="text-xs font-semibold text-[#7c8a9c]">Matches</span>
+                </div>
+                <div className="w-px h-10 bg-[#e1e4eb]" />
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-[28px] font-bold" style={{ color: conf.color }}>{activeForm.average_shots_on_target?.toFixed(1) ?? '-'}</span>
+                  <span className="text-xs font-semibold text-[#7c8a9c]">Avg SOT</span>
+                </div>
+                <div className="w-px h-10 bg-[#e1e4eb]" />
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-[28px] font-bold text-[#0d1a67]">{activeForm.average_rating?.toFixed(1) ?? '-'}</span>
+                  <span className="text-xs font-semibold text-[#7c8a9c]">Avg Rating</span>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
@@ -830,6 +810,25 @@ export function MatchDetailPage() {
 
   const fixture = fixtureData?.fixture;
   const predictions = fixtureData?.predictions || [];
+
+  // Fetch full predictions (with detail) for the AI Analysis panel
+  const { data: fullPredictionsResponse } = useFixturePredictions(
+    { fixture_id: fixtureId ? parseInt(fixtureId, 10) : undefined, limit: 130 },
+    { enabled: !!fixtureId }
+  );
+  const fullPredictions: any[] = (fullPredictionsResponse?.data as any)?.predictions || (fullPredictionsResponse?.data as any) || [];
+
+  // When a prediction is selected, enrich it with detail from full predictions
+  const selectedPredictionWithDetail = useMemo(() => {
+    if (!selectedPrediction) return null;
+    const full = fullPredictions.find(
+      (p: any) => p.prediction_type === selectedPrediction.prediction_type &&
+        (p.title || '') === (selectedPrediction.prediction_display_name || selectedPrediction.title || '')
+    ) || fullPredictions.find(
+      (p: any) => p.prediction_type === selectedPrediction.prediction_type && p.detail != null
+    );
+    return full ? { ...selectedPrediction, ...full } : selectedPrediction;
+  }, [selectedPrediction, fullPredictions]);
 
   // Filter predictions by category
   const filteredPredictions = useMemo(() => {
@@ -1141,7 +1140,7 @@ export function MatchDetailPage() {
                     {/* Mobile AI Analysis Panel */}
                     {selectedPrediction && (
                       <AIAnalysisPanel
-                        prediction={selectedPrediction}
+                        prediction={selectedPredictionWithDetail || selectedPrediction}
                         fixture={fixture}
                         statsData={statsData}
                         onClose={() => setSelectedPrediction(null)}
@@ -1236,7 +1235,7 @@ export function MatchDetailPage() {
                 {selectedPrediction && (
                   <div className="flex-1 sticky top-4 self-start min-w-0">
                     <AIAnalysisPanel
-                      prediction={selectedPrediction}
+                      prediction={selectedPredictionWithDetail || selectedPrediction}
                       fixture={fixture}
                       statsData={statsData}
                       onClose={() => setSelectedPrediction(null)}
