@@ -46,10 +46,12 @@ function PredictionCard({ prediction, index: _index, isLive: _isLive, isBlurred 
   return (
     <div
       onClick={!isBlurred ? onClick : undefined}
-      className={`rounded-[14px] md:rounded-[20px] p-3 md:p-5 flex flex-col gap-[10px] md:gap-5 bg-white w-full ${compact ? 'md:w-[calc(50%-10px)]' : 'md:w-[calc(33.333%-14px)] md:max-w-[440px]'} ${isBlurred ? 'relative select-none pointer-events-none' : 'cursor-pointer'} ${isSelected ? 'ring-2 ring-[#0d1a67]' : ''}`}
+      className={`rounded-[14px] md:rounded-[20px] p-3 md:p-5 flex flex-col gap-[10px] md:gap-5 bg-white w-full ${!compact ? 'md:w-[calc(33.333%-14px)] md:max-w-[440px]' : ''} ${isBlurred ? 'relative select-none pointer-events-none' : 'cursor-pointer'}`}
       style={{
-        boxShadow: '0 2px 15px rgba(0,0,0,0.1)',
+        boxShadow: isSelected ? 'none' : '0 2px 15px rgba(0,0,0,0.1)',
         fontFamily: 'Montserrat, sans-serif',
+        outline: isSelected ? '4px solid #0d1a67' : 'none',
+        outlineOffset: '0px',
         ...(isBlurred ? {
           filter: 'blur(3px)',
           WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%)',
@@ -1172,12 +1174,12 @@ export function MatchDetailPage() {
               </div>
 
               {/* Desktop: cards in flex grid + AI Analysis panel */}
-              <div className="hidden md:flex gap-5">
-                <div className={`${selectedPrediction ? 'w-[55%]' : 'w-full'} transition-all duration-300`}>
+              <div className="hidden md:flex gap-5 items-start">
+                <div className={`${selectedPrediction ? 'w-[400px] flex-shrink-0' : 'flex-1'} transition-all duration-300`}>
                 {isLoadingFixtures ? (
-                  <div className="flex flex-row flex-wrap items-start gap-[20px]">
+                  <div className={`${selectedPrediction ? 'flex flex-col' : 'flex flex-row flex-wrap'} items-start gap-[20px]`}>
                     {[1, 2, 3, 4, 5, 6].map((i) => (
-                      <div key={i} className="bg-white rounded-[20px] p-5 animate-pulse w-[calc(33.333%-14px)] max-w-[440px]" style={{ boxShadow: '0 2px 15px rgba(0,0,0,0.1)' }}>
+                      <div key={i} className={`bg-white rounded-[20px] p-5 animate-pulse ${selectedPrediction ? 'w-full' : 'w-[calc(33.333%-14px)] max-w-[440px]'}`} style={{ boxShadow: '0 2px 15px rgba(0,0,0,0.1)' }}>
                         <div className="h-5 bg-gray-200 rounded w-1/4 mb-3" />
                         <div className="h-5 bg-gray-200 rounded w-3/4 mb-2" />
                         <div className="h-4 bg-gray-200 rounded w-1/3 mb-5" />
@@ -1191,7 +1193,7 @@ export function MatchDetailPage() {
                   </div>
                 ) : filteredPredictions.length > 0 ? (
                   <>
-                    <div className="flex flex-row flex-wrap items-start gap-[20px] min-h-[300px]">
+                    <div className={`${selectedPrediction ? 'flex flex-col' : 'flex flex-row flex-wrap'} items-start gap-[20px] min-h-[300px]`}>
                       {filteredPredictions.slice(0, 9).map((prediction: any, index: number) => (
                         <PredictionCard
                           key={prediction.prediction_id || index}
@@ -1201,7 +1203,6 @@ export function MatchDetailPage() {
                           isBlurred={!isAuthenticated && index >= 6}
                           isSelected={selectedPrediction?.prediction_id === prediction.prediction_id}
                           onClick={() => setSelectedPrediction(selectedPrediction?.prediction_id === prediction.prediction_id ? null : prediction)}
-                          compact={!!selectedPrediction}
                         />
                       ))}
                     </div>
@@ -1232,7 +1233,7 @@ export function MatchDetailPage() {
                 </div>
                 {/* Desktop AI Analysis Panel */}
                 {selectedPrediction && (
-                  <div className="w-[45%] sticky top-4 self-start">
+                  <div className="flex-1 sticky top-4 self-start min-w-0">
                     <AIAnalysisPanel
                       prediction={selectedPrediction}
                       fixture={fixture}
