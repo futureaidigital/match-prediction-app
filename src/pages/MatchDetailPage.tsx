@@ -833,12 +833,11 @@ export function MatchDetailPage() {
       const type = (p.prediction_type || '').toLowerCase();
       const title = (p.title || p.prediction_display_name || '').toLowerCase();
       switch (predictionCategory) {
-        case 'player': return type === 'anytime_goalscorer' || type === 'player_to_be_booked' || type.includes('player') || type.includes('scorer');
+        case 'player': return type === 'anytime_goalscorer' || type.includes('player') || type.includes('scorer');
         case 'match': return type === 'both_teams_to_score' || type === 'total_goals' || type.includes('match');
-        case 'team': return type.includes('team');
+        case 'team': return type === 'total_corners' || type === 'both_teams_to_score' || type === 'total_goals' || type.includes('team');
         case 'cards': return type === 'player_to_be_booked' || type.includes('card') || title.includes('card') || title.includes('booking') || title.includes('yellow');
         case 'shots': return type === 'shots_on_target' || type.includes('shot') || title.includes('shot');
-        case 'corners': return type === 'total_corners' || type.includes('corner') || title.includes('corner');
         default: return true;
       }
     });
@@ -1047,9 +1046,9 @@ export function MatchDetailPage() {
                     { id: 'all', label: 'All Predictions' },
                     { id: 'player', label: 'Player' },
                     { id: 'match', label: 'Match' },
+                    { id: 'team', label: 'Team' },
                     { id: 'cards', label: 'Cards' },
                     { id: 'shots', label: 'Shots' },
-                    { id: 'corners', label: 'Corners' },
                   ].map((cat) => (
                     <button
                       key={cat.id}
