@@ -1203,6 +1203,7 @@ export function MatchDetailPage() {
                           isBlurred={!isAuthenticated && index >= 6}
                           isSelected={selectedPrediction?.prediction_id === prediction.prediction_id}
                           onClick={() => setSelectedPrediction(selectedPrediction?.prediction_id === prediction.prediction_id ? null : prediction)}
+                          compact={!!selectedPrediction}
                         />
                       ))}
                     </div>
