@@ -56,6 +56,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // ==================== Initialize Auth State ====================
 
   useEffect(() => {
+    const autoLogin = async () => {
+      devLog.log('No valid session, auto-logging in with premium user...');
+      try {
+        const response = await api.login(TEST_CREDENTIALS.PREMIUM);
+        if (response.success) {
+          api.setToken(response.data.access_token);
+          localStorage.setItem('refresh_token', response.data.refresh_token);
+          setUser(response.data.user);
+          localStorage.setItem('demo_premium', 'true');
+          devLog.log('Auto-logged in as premium user');
+        }
+      } catch (err) {
+        devLog.warn('Auto-login failed, continuing as guest', err);
+      }
+    };
+
     const initializeAuth = async () => {
       devLog.log('Initializing auth...');
       const token = api.getToken();
@@ -63,22 +79,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       devLog.log('Token exists:', !!token, 'Was logged out:', wasLoggedOut);
 
       if (!token) {
-        // Only auto-login if user hasn't explicitly logged out
         if (!wasLoggedOut) {
-          devLog.log('No token found, auto-logging in with premium user...');
-          try {
-            const response = await api.login(TEST_CREDENTIALS.PREMIUM);
-            if (response.success) {
-              api.setToken(response.data.access_token);
-              localStorage.setItem('refresh_token', response.data.refresh_token);
-              setUser(response.data.user);
-              // Set demo premium flag for hasAccess check
-              localStorage.setItem('demo_premium', 'true');
-              devLog.log('Auto-logged in as premium user');
-            }
-          } catch (err) {
-            devLog.warn('Auto-login failed, continuing as guest', err);
-          }
+          await autoLogin();
         } else {
           devLog.log('User previously logged out, not auto-logging in');
         }
@@ -88,28 +90,38 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       try {
         devLog.log('Fetching current user...');
-        // Try to fetch current user with existing token
         const response = await api.getCurrentUser();
-        devLog.log('User response:', response);
 
         if (response.success && response.data) {
           devLog.log('User fetched:', response.data.email);
           setUser(response.data);
         } else {
-          devLog.error('Invalid user response structure');
           throw new Error('Invalid user response');
         }
       } catch (err) {
         devLog.warn('Failed to fetch user, attempting token refresh...', err);
-        // Token might be expired, try to refresh
         try {
           await refreshToken();
+          // Verify the refreshed token works with the backend
+          const retryResponse = await api.getCurrentUser();
+          if (retryResponse.success && retryResponse.data) {
+            setUser(retryResponse.data);
+          } else {
+            throw new Error('Refreshed token still rejected');
+          }
         } catch (refreshErr) {
-          devLog.error('Refresh failed, clearing auth state', refreshErr);
-          // Refresh failed, clear auth state
+          devLog.error('Refresh failed, clearing auth state and re-logging in', refreshErr);
+          // Clear stale auth state completely
           api.setToken(null);
+          localStorage.removeItem('refresh_token');
+          localStorage.removeItem('demo_premium');
           setUser(null);
           setSubscriptionStatus(null);
+
+          // Auto re-login with fresh Firebase session
+          if (!wasLoggedOut) {
+            await autoLogin();
+          }
         }
       } finally {
         devLog.log('Auth initialization complete');

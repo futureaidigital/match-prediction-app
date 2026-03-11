@@ -5,6 +5,12 @@ import { buildQueryString, parseApiError } from '@/lib/queryHelpers';
 const API_BASE_URL = env.API_BASE_URL;
 const BASE_PATH = `/api/v1`;
 
+// Firebase config
+const FIREBASE_API_KEY = 'AIzaSyAARYxtbpc2br10MmagyGIdMNCCMM9h8aA';
+const FIREBASE_SIGN_IN_URL = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${FIREBASE_API_KEY}`;
+const FIREBASE_TOKEN_URL = `https://securetoken.googleapis.com/v1/token?key=${FIREBASE_API_KEY}`;
+
+
 // ==================== Types ====================
 
 export interface ApiResponse<T> {
@@ -548,13 +554,27 @@ export interface FixturesResponse {
   fixture_ids?: number[];
 }
 
+// ==================== Device ID ====================
+
+function getDeviceId(): string {
+  const key = 'device_id';
+  let id = localStorage.getItem(key);
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem(key, id);
+  }
+  return id;
+}
+
 // ==================== API Client ====================
 
 class ApiClient {
   private token: string | null = null;
+  private deviceId: string;
 
   constructor() {
     this.token = localStorage.getItem('access_token');
+    this.deviceId = getDeviceId();
   }
 
   setToken(token: string | null) {
@@ -578,6 +598,7 @@ class ApiClient {
 
     const headers = {
       'Content-Type': 'application/json',
+      'X-Device-ID': this.deviceId,
       ...(this.token && { Authorization: `Bearer ${this.token}` }),
       ...options.headers,
     };
@@ -604,33 +625,122 @@ class ApiClient {
     return response.json();
   }
 
-  // Auth endpoints
+  // Auth endpoints - hybrid flow: Firebase auth + backend session registration
+
   async login(credentials: LoginRequest): Promise<ApiResponse<AuthResponse>> {
-    return this.request<AuthResponse>('/auth/login', {
+    // Step 1: Authenticate with Firebase directly
+    const firebaseResp = await fetch(FIREBASE_SIGN_IN_URL, {
       method: 'POST',
-      body: JSON.stringify(credentials),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: credentials.email,
+        password: credentials.password,
+        returnSecureToken: true,
+      }),
     });
+
+    if (!firebaseResp.ok) {
+      const err = await firebaseResp.json();
+      const msg = err?.error?.message || 'Firebase authentication failed';
+      throw new Error(msg === 'INVALID_LOGIN_CREDENTIALS' ? 'Invalid email or password' : msg);
+    }
+
+    const firebaseData = await firebaseResp.json();
+    const idToken: string = firebaseData.idToken;
+    const refreshToken: string = firebaseData.refreshToken;
+
+    // Step 2: Register session with backend (passes Firebase token + device_id)
+    const url = `${API_BASE_URL}${BASE_PATH}/auth/login`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Device-ID': this.deviceId,
+        'Authorization': `Bearer ${idToken}`,
+      },
+      body: JSON.stringify({ device_id: this.deviceId }),
+    });
+
+    if (!response.ok) {
+      let errorBody;
+      try { errorBody = await response.json(); } catch { /* ignore */ }
+      throw parseApiError(response, errorBody);
+    }
+
+    const backendData = await response.json();
+    const user: User = {
+      id: backendData.data.user.id,
+      email: backendData.data.user.email,
+      name: backendData.data.user.name,
+      country: backendData.data.user.country || '',
+      email_verified: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    // Store Firebase tokens — idToken used as access_token for API calls
+    localStorage.setItem('refresh_token', refreshToken);
+    this.setToken(idToken);
+
+    return {
+      success: true,
+      data: { access_token: idToken, refresh_token: refreshToken, user },
+    };
   }
 
-  async register(data: RegisterRequest): Promise<ApiResponse<AuthResponse>> {
+  async register(regData: RegisterRequest): Promise<ApiResponse<AuthResponse>> {
     return this.request<AuthResponse>('/auth/register', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify(regData),
     });
   }
 
   async logout(): Promise<ApiResponse<{ message: string }>> {
-    return this.request<{ message: string }>('/auth/logout', {
-      method: 'POST',
-    });
+    // No server call needed — just clear local state
+    return { success: true, data: { message: 'Logged out' } };
   }
 
   async refreshToken(): Promise<ApiResponse<AuthResponse>> {
-    const refreshToken = localStorage.getItem('refresh_token');
-    return this.request<AuthResponse>('/auth/refresh-token', {
+    const storedRefreshToken = localStorage.getItem('refresh_token');
+    if (!storedRefreshToken) throw new Error('No refresh token available');
+
+    // Refresh via Firebase
+    const resp = await fetch(FIREBASE_TOKEN_URL, {
       method: 'POST',
-      body: JSON.stringify({ refresh_token: refreshToken }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ grant_type: 'refresh_token', refresh_token: storedRefreshToken }),
     });
+
+    if (!resp.ok) throw new Error('Token refresh failed');
+
+    const data = await resp.json();
+    const newIdToken: string = data.id_token;
+    const newRefreshToken: string = data.refresh_token;
+
+    localStorage.setItem('refresh_token', newRefreshToken);
+    this.setToken(newIdToken);
+
+    // Re-sync session with backend
+    try {
+      await fetch(`${API_BASE_URL}${BASE_PATH}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Device-ID': this.deviceId,
+          'Authorization': `Bearer ${newIdToken}`,
+        },
+        body: JSON.stringify({ device_id: this.deviceId }),
+      });
+    } catch { /* best effort */ }
+
+    // Return minimal AuthResponse — caller just needs the token
+    const user: User = {
+      id: '', email: '', name: '', country: '',
+      email_verified: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    return { success: true, data: { access_token: newIdToken, refresh_token: newRefreshToken, user } };
   }
 
   async getCurrentUser(): Promise<ApiResponse<User>> {
