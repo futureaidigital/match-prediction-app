@@ -5,7 +5,7 @@ import { Footer } from '@/components/Footer';
 import { MatchBanner } from '@/components/MatchBanner';
 import { useFixtures, useFixtureStatistics, useFixtureCommentary } from '@/hooks/useFixtures';
 import { useFixturePredictions } from '@/hooks/usePredictions';
-// Player stats now come from inline statsData.players (fixture statistics endpoint)
+import { useMultiplePlayerDetails } from '@/hooks/usePlayers';
 import { useAuth } from '@/contexts/AuthContext';
 
 type TabType = 'predictions' | 'commentary' | 'stats' | 'lineups';
@@ -368,6 +368,69 @@ function SubstitutionRow({
   );
 }
 
+// Reusable stat comparison card — used in Team Performance Comparison section
+function StatComparisonCard({
+  title,
+  rows,
+  isExpanded,
+  onToggle,
+}: {
+  title: string;
+  rows: { label: string; home: any; away: any }[];
+  isExpanded: boolean;
+  onToggle: () => void;
+}) {
+  const font = { fontFamily: 'Montserrat, sans-serif' } as const;
+  return (
+    <div className="bg-white rounded-[14px] border border-[#e1e4eb] shadow-[0_1px_15px_0_rgba(0,0,0,0.10)] p-[16px] flex flex-col gap-[16px] flex-1" style={font}>
+      {/* Title — 18px SemiBold #0a0a0a */}
+      <h3 className="text-[18px] font-semibold text-[#0a0a0a]">{title}</h3>
+      {/* Stat rows — 15px gap, animated max-height */}
+      <div
+        className="overflow-hidden transition-all duration-300 ease-in-out flex flex-col"
+        style={{ gap: '15px', maxHeight: isExpanded ? `${rows.length * 39}px` : `${Math.min(5, rows.length) * 39}px` }}
+      >
+        {rows.map((row, i) => {
+          const h = typeof row.home === 'number' ? row.home : 0;
+          const a = typeof row.away === 'number' ? row.away : 0;
+          return (
+            <div key={i} className="flex items-center justify-between h-[24px]" style={{ gap: '10px' }}>
+              {/* Home value + left indicator */}
+              <div className="flex items-center gap-[7px] min-w-[60px]">
+                <div className="w-[3px] h-[24px] bg-[#0a0a0a]" style={{ borderRadius: '99px 0 0 99px' }} />
+                <span className={`text-[16px] font-semibold ${h >= a ? 'text-[#0a0a0a]' : 'text-[#0a0a0a60]'}`} style={{ lineHeight: '24px' }}>{row.home ?? '—'}</span>
+              </div>
+              {/* Center label — 14px Medium #7c8a9c */}
+              <span className="text-[14px] font-medium text-[#7c8a9c] text-center flex-1" style={{ lineHeight: '20px' }}>{row.label}</span>
+              {/* Away value + right indicator */}
+              <div className="flex items-center justify-end gap-[7px] min-w-[60px]">
+                <span className={`text-[16px] font-semibold ${a >= h ? 'text-[#0a0a0a]' : 'text-[#0a0a0a60]'}`} style={{ lineHeight: '24px' }}>{row.away ?? '—'}</span>
+                <div className="w-[3px] h-[24px] bg-[#0a0a0a]" style={{ borderRadius: '0 99px 99px 0' }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {/* Gradient dividers + counter */}
+      <div className="flex items-center justify-center gap-[15px]">
+        <div className="flex-1 h-px" style={{ background: 'linear-gradient(to right, transparent, #091143)' }} />
+        <span className="text-[12px] font-medium text-[#7c8a9c]" style={{ lineHeight: '140%' }}>
+          {isExpanded ? rows.length : Math.min(5, rows.length)} out of {rows.length}
+        </span>
+        <div className="flex-1 h-px" style={{ background: 'linear-gradient(to left, transparent, #091143)' }} />
+      </div>
+      {/* See More button — #0d1a67, rounded-8, h-40, border #d9d9d9, shadow */}
+      <button
+        onClick={onToggle}
+        className="w-full h-[40px] bg-[#0d1a67] border border-[#d9d9d9] text-white text-[14px] font-semibold rounded-[8px] hover:bg-[#0d1a67]/90 transition-colors"
+        style={{ boxShadow: '0 7px 4px -3px rgba(0,0,0,0.05)' }}
+      >
+        {isExpanded ? 'Show Less' : 'See More'}
+      </button>
+    </div>
+  );
+}
+
 // Stat comparison bar component
 function StatBar({
   label,
@@ -383,35 +446,57 @@ function StatBar({
   const total = homeValue + awayValue;
   const homePercent = total > 0 ? (homeValue / total) * 100 : 50;
   const awayPercent = total > 0 ? (awayValue / total) * 100 : 50;
-  const homeWinning = homeValue > awayValue;
-  const awayWinning = awayValue > homeValue;
 
-  return (
-    <div className="py-3 md:py-5">
-      <p className="text-center text-gray-900 font-semibold text-xs md:text-base mb-2 md:mb-3">{label}</p>
-      <div className="flex items-center gap-2 md:gap-4">
-        <span className={`w-8 md:w-12 text-left font-semibold text-xs md:text-base ${homeWinning ? 'text-green-500' : 'text-gray-900'}`}>
-          {isPercentage ? `${homeValue}%` : homeValue}
-        </span>
-        <div className="flex-1 flex h-1.5 md:h-2 gap-0.5 md:gap-1">
-          {/* Home bar - grows from center to left */}
-          <div className="flex-1 flex justify-end bg-gray-200 rounded-full">
-            <div
-              className={`h-full rounded-full ${homeWinning ? 'bg-green-500' : 'bg-gray-900'}`}
-              style={{ width: `${homePercent}%` }}
-            />
+  const font = { fontFamily: 'Montserrat, sans-serif' } as const;
+  const homeWins = homeValue > awayValue;
+  const awayWins = awayValue > homeValue;
+  const homeBarColor = homeWins ? '#27ae60' : '#27ae6040';
+  const awayBarColor = awayWins ? '#0d1a67' : '#0d1a6740';
+
+  // Ball Possession — pills + label row on top, 10px bars below
+  if (isPercentage) {
+    return (
+      <div className="flex flex-col items-center" style={{ gap: '10px', ...font }}>
+        {/* Top: home pill — label — away pill */}
+        <div className="flex items-center justify-between w-full">
+          <div className="h-[24px] px-[6px] rounded-[50px] flex items-center justify-center" style={{ backgroundColor: homeWins ? '#27ae60' : '#27ae6060' }}>
+            <span className="text-white text-[12px] font-semibold">{homeValue}%</span>
           </div>
-          {/* Away bar - grows from center to right */}
-          <div className="flex-1 flex justify-start bg-gray-200 rounded-full">
-            <div
-              className={`h-full rounded-full ${awayWinning ? 'bg-green-500' : 'bg-gray-900'}`}
-              style={{ width: `${awayPercent}%` }}
-            />
+          <span className="text-[14px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>{label}</span>
+          <div className="h-[24px] px-[6px] rounded-[50px] flex items-center justify-center" style={{ backgroundColor: awayWins ? '#0d1a67' : '#0d1a6760' }}>
+            <span className="text-white text-[12px] font-semibold">{awayValue}%</span>
           </div>
         </div>
-        <span className={`w-8 md:w-12 text-right font-semibold text-xs md:text-base ${awayWinning ? 'text-green-500' : 'text-gray-900'}`}>
-          {isPercentage ? `${awayValue}%` : awayValue}
-        </span>
+        {/* Bars below */}
+        <div className="flex w-full">
+          <div className="flex-1 h-[10px] rounded-l-[10px] bg-[#0a0a0a1a] overflow-hidden flex justify-end">
+            <div className="h-full rounded-l-[10px]" style={{ width: `${homePercent}%`, backgroundColor: homeBarColor }} />
+          </div>
+          <div className="flex-1 h-[10px] rounded-r-[10px] bg-[#0a0a0a1a] overflow-hidden">
+            <div className="h-full rounded-r-[10px]" style={{ width: `${awayPercent}%`, backgroundColor: awayBarColor }} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Standard stat — value + label + value row on top, 4px bars below
+  return (
+    <div className="flex flex-col items-center" style={{ gap: '10px', ...font }}>
+      {/* Top: home value — label — away value */}
+      <div className="flex items-center justify-between w-full">
+        <span className="text-[14px] font-semibold" style={{ lineHeight: '135%', color: homeWins ? '#0a0a0a' : '#0a0a0a60' }}>{homeValue}</span>
+        <span className="text-[14px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>{label}</span>
+        <span className="text-[14px] font-semibold text-right" style={{ lineHeight: '135%', color: awayWins ? '#0a0a0a' : '#0a0a0a60' }}>{awayValue}</span>
+      </div>
+      {/* Bars below */}
+      <div className="flex w-full" style={{ gap: '4px' }}>
+        <div className="flex-1 h-[4px] rounded-[10px] bg-[#0a0a0a1a] overflow-hidden flex justify-end">
+          <div className="h-full rounded-[10px]" style={{ width: `${homePercent}%`, backgroundColor: homeBarColor }} />
+        </div>
+        <div className="flex-1 h-[4px] rounded-[10px] bg-[#0a0a0a1a] overflow-hidden">
+          <div className="h-full rounded-[10px]" style={{ width: `${awayPercent}%`, backgroundColor: awayBarColor }} />
+        </div>
       </div>
     </div>
   );
@@ -952,8 +1037,14 @@ export function MatchDetailPage() {
 
   // Fetch fixture statistics
   const { data: statsResponse, isLoading: isLoadingStats } = useFixtureStatistics(fixtureId || '');
-  // Backend returns { statistics: { basic: {...}, advanced: {...} } }
+  // Backend returns { statistics: { basic: {...}, advanced: {...}, players: [...] } }
   const statsData = statsResponse?.data?.statistics;
+
+  // Resolve player names/images from player IDs in stats
+  const statsPlayerIds = useMemo(() => {
+    return ((statsData as any)?.players || []).map((p: any) => p.player_id as number);
+  }, [statsData]);
+  const statsPlayerDetails = useMultiplePlayerDetails(statsPlayerIds);
 
   // Fetch fixture commentary
   const { data: commentaryResponse, isLoading: isLoadingCommentary } = useFixtureCommentary(fixtureId || '');
@@ -1426,27 +1517,29 @@ export function MatchDetailPage() {
             </div>
           )}
           {activeTab === 'stats' && (
-            <div className="space-y-6">
-              {/* ── Match Info Card + Team Analysis ── */}
+            <div className="flex flex-col gap-[30px]" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+              {/* ═══ SECTION 1: MATCH HEADER ═══ 1440x514, horizontal, 30px gap */}
               <div className="flex gap-[30px]">
-              <div className="flex-1 bg-white rounded-[10px] shadow-[0_0_20px_0_rgba(0,0,0,0.10)] p-4 md:p-6">
-                {/* Team header */}
-                <div className="flex items-center justify-between px-5 mb-4">
+
+              {/* LEFT PANEL: Match Stats — 950x514, rounded-10, white, shadow */}
+              <div className="w-[950px] max-w-full h-[514px] bg-white rounded-[10px] shadow-[0_0_20px_0_rgba(0,0,0,0.10)] pt-[24px] px-[16px] pb-[16px] flex flex-col gap-[16px]">
+                {/* Match Info Bar — 918x32, horizontal, space-between, px-20, gap-46 */}
+                <div className="flex items-center justify-between px-[20px] h-[32px]" style={{ gap: '46px' }}>
                   <div className="flex items-center gap-3">
                     {fixture?.home_team_image_path
                       ? <img src={fixture.home_team_image_path} alt={fixture.home_team_name} className="w-8 h-8 object-contain" />
                       : <div className="w-8 h-8 bg-[#f7f8fa] rounded-full" />}
-                    <span className="font-semibold text-[#0a0a0a] text-sm">
+                    <span className="text-[14px] font-semibold text-[#0a0a0a]">
                       {fixture?.home_team_short_code || fixture?.home_team_name?.slice(0, 3).toUpperCase() || 'HOM'}
                     </span>
                   </div>
-                  <span className="text-[#7c8a9c] text-sm font-semibold">VS</span>
+                  <span className="text-[14px] font-semibold text-[#7c8a9c]">VS</span>
                   <div className="flex items-center gap-3">
-                    <span className="font-semibold text-[#0a0a0a] text-sm">
+                    <span className="text-[14px] font-semibold text-[#0a0a0a]">
                       {fixture?.away_team_short_code || fixture?.away_team_name?.slice(0, 3).toUpperCase() || 'AWY'}
                     </span>
                     {fixture?.away_team_image_path
-                      ? <img src={fixture.away_team_image_path} alt={fixture.away_team_name} className="w-8 h-8 object-contain rounded-full" />
+                      ? <img src={fixture.away_team_image_path} alt={fixture.away_team_name} className="w-8 h-8 object-contain" />
                       : <div className="w-8 h-8 bg-[#f7f8fa] rounded-full" />}
                   </div>
                 </div>
@@ -1462,102 +1555,131 @@ export function MatchDetailPage() {
                     ))}
                   </div>
                 ) : (
-                  <div className="bg-[#f7f8fa] rounded-[15px] overflow-hidden">
+                  <div className="bg-[#f7f8fa] rounded-[15px] p-[16px] flex flex-col items-center" style={{ gap: '32px' }}>
                     {(() => {
                       const raw = statsData?.raw_statistics?.top_level_summary || {};
                       return [
-                        { label: 'Ball possession', home: raw['ball-possession']?.home ?? null, away: raw['ball-possession']?.away ?? null, isPct: true },
-                        { label: 'Total shots', home: raw['shots-total']?.home ?? null, away: raw['shots-total']?.away ?? null },
-                        { label: 'Corner kicks', home: raw['corners']?.home ?? null, away: raw['corners']?.away ?? null },
-                        { label: 'Fouls', home: (statsData?.raw_statistics?.defence_and_discipline as any)?.['fouls']?.home ?? raw['fouls']?.home ?? null, away: (statsData?.raw_statistics?.defence_and_discipline as any)?.['fouls']?.away ?? raw['fouls']?.away ?? null },
-                        { label: 'Passes completed', home: raw['successful-passes']?.home ?? null, away: raw['successful-passes']?.away ?? null },
+                        { label: 'Ball possession', home: raw['ball-possession']?.home ?? null, away: raw['ball-possession']?.away ?? null, isPct: true, h: 44 },
+                        { label: 'Total shots', home: raw['shots-total']?.home ?? null, away: raw['shots-total']?.away ?? null, h: 38 },
+                        { label: 'Corner kicks', home: raw['corners']?.home ?? null, away: raw['corners']?.away ?? null, h: 38 },
+                        { label: 'Fouls', home: raw['fouls']?.home ?? null, away: raw['fouls']?.away ?? null, h: 38 },
+                        { label: 'Passes completed', home: raw['successful-passes']?.home ?? null, away: raw['successful-passes']?.away ?? null, h: 38 },
+                        { label: 'Total shots', home: raw['shots-total']?.home ?? null, away: raw['shots-total']?.away ?? null, h: 38 },
                       ];
-                    })().map((s, i, arr) => (
-                      <div key={s.label}>
-                        <div className="px-4">
-                          <StatBar label={s.label} homeValue={s.home ?? 0} awayValue={s.away ?? 0} isPercentage={s.isPct} />
-                        </div>
-                        {i < arr.length - 1 && <div className="h-px bg-[#e1e4eb] mx-4" />}
+                    })().map((s, i) => (
+                      <div key={`${s.label}-${i}`} className="w-full">
+                        <StatBar label={s.label} homeValue={s.home ?? 0} awayValue={s.away ?? 0} isPercentage={s.isPct} />
                       </div>
                     ))}
                   </div>
                 )}
               </div>
 
-              {/* Team Analysis Panel (right side) */}
-              <div className="hidden xl:flex w-[460px] shrink-0 bg-white rounded-[10px] shadow-[0_0_20px_0_rgba(0,0,0,0.10)] p-6 flex-col gap-[30px]">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-[16px] font-semibold text-[#0a0a0a]" style={{ fontFamily: 'Montserrat, sans-serif' }}>Team Analysis</h3>
-                    <p className="text-[12px] font-semibold text-[#7c8a9c]" style={{ letterSpacing: '-0.5px' }}>Based on performance in the last match</p>
+              {/* RIGHT PANEL: Team Analysis — 460x514, rounded-10, white, shadow */}
+              <div className="hidden xl:flex w-[460px] h-[514px] shrink-0 bg-white rounded-[10px] shadow-[0_0_20px_0_rgba(0,0,0,0.10)] pt-[16px] pb-[16px] px-[24px] flex-col items-center gap-[30px]">
+                {/* Header — title left, See Previous button right */}
+                <div className="w-full flex items-start justify-between">
+                  <div className="flex flex-col" style={{ gap: '4px' }}>
+                    <h3 className="text-[16px] font-semibold text-[#0a0a0a]" style={{ lineHeight: '24px' }}>Team Analysis</h3>
+                    <p className="text-[12px] font-semibold text-[#7c8a9c]" style={{ letterSpacing: '-0.5px', lineHeight: '18px' }}>Based on performance in the last match</p>
                   </div>
-                  <button className="text-[14px] font-medium text-[#0a0a0a] flex items-center gap-1 hover:opacity-70">
-                    See Previous <span className="text-lg">›</span>
+                  <button className="h-[46px] px-[16px] py-[12px] rounded-[8px] bg-[#f7f8fa] text-[14px] font-medium text-[#0a0a0a] flex items-center gap-[10px] hover:opacity-70 whitespace-nowrap">
+                    See Previous <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
                   </button>
                 </div>
-                {/* Radar chart placeholder */}
+                {/* Radar chart — 415x325 area with labels + value pills */}
                 <div className="flex-1 flex items-center justify-center">
-                  <div className="relative w-[280px] h-[280px]">
-                    {/* Pentagon background */}
-                    <svg viewBox="0 0 280 280" className="w-full h-full">
-                      {/* Grid lines */}
+                  <div className="relative" style={{ width: '415px', height: '325px' }}>
+                    {/* Pentagon SVG centered */}
+                    <svg viewBox="0 0 264 247" className="absolute" style={{ left: '76px', top: '39px', width: '264px', height: '247px' }}>
+                      {/* Background pentagon — light grey fill */}
+                      <polygon points="132,5 255,90 208,237 56,237 9,90" fill="#f7f8fa" stroke="none" />
+                      {/* Home team shape (blue) — stroke + semi-transparent fill */}
+                      <polygon points="132,30 225,95 195,210 69,210 39,95" fill="#ccd3fc" stroke="#0d1a67" strokeWidth="2" opacity="0.85" />
+                      {/* Away team shape (green) — stroke + semi-transparent fill */}
+                      <polygon points="132,70 185,115 168,190 96,190 79,115" fill="#c8e9d080" stroke="#27ae60" strokeWidth="2" />
                       {[0.3, 0.5, 0.7, 0.9].map((scale, i) => {
-                        const cx = 140, cy = 140, r = 120 * scale;
-                        const points = [0, 1, 2, 3, 4].map(j => {
+                        const cx = 132, cy = 124, r = 115 * scale;
+                        const pts = [0, 1, 2, 3, 4].map(j => {
                           const angle = (Math.PI * 2 * j / 5) - Math.PI / 2;
                           return `${cx + r * Math.cos(angle)},${cy + r * Math.sin(angle)}`;
                         }).join(' ');
-                        return <polygon key={i} points={points} fill="none" stroke="#e1e4eb" strokeWidth="1" />;
+                        return <polygon key={i} points={pts} fill="none" stroke="#e1e4eb" strokeWidth="0.5" />;
                       })}
-                      {/* Axis lines */}
                       {[0, 1, 2, 3, 4].map(j => {
                         const angle = (Math.PI * 2 * j / 5) - Math.PI / 2;
-                        return <line key={j} x1="140" y1="140" x2={140 + 108 * Math.cos(angle)} y2={140 + 108 * Math.sin(angle)} stroke="#e1e4eb" strokeWidth="1" />;
+                        return <line key={j} x1="132" y1="124" x2={132 + 103 * Math.cos(angle)} y2={124 + 103 * Math.sin(angle)} stroke="#e1e4eb" strokeWidth="0.5" />;
                       })}
                     </svg>
-                    {/* Labels */}
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 text-center">
-                      <span className="text-[11px] font-semibold text-[#0d1a67]">ATT</span>
+                    {/* Stat labels with value pills — positioned around the chart */}
+                    {/* ATT — top center */}
+                    <div className="absolute flex items-center gap-1" style={{ top: '0px', left: '50%', transform: 'translateX(-50%)' }}>
+                      <span className="text-[10px] font-semibold text-[#8c99a9]" style={{ letterSpacing: '-0.5px', lineHeight: '18px' }}>ATT</span>
+                      <div className="flex gap-[2px]">
+                        <span className="px-1 py-[6px] rounded-[4px] bg-[#f7f8fa] text-[10px] font-medium text-[#07bb15]" style={{ lineHeight: '7px' }}>39</span>
+                        <span className="px-1 py-[6px] rounded-[4px] bg-[#f7f8fa] text-[10px] font-medium text-[#0d1a67]" style={{ lineHeight: '7px' }}>78</span>
+                      </div>
                     </div>
-                    <div className="absolute top-1/3 right-0 translate-x-2 text-center">
-                      <span className="text-[11px] font-semibold text-[#0d1a67]">TAC</span>
+                    {/* TEC — right */}
+                    <div className="absolute flex items-center gap-1" style={{ top: '90px', right: '0px' }}>
+                      <span className="text-[10px] font-semibold text-[#8c99a9]" style={{ letterSpacing: '-0.5px', lineHeight: '18px' }}>TEC</span>
+                      <div className="flex gap-[2px]">
+                        <span className="px-1 py-[6px] rounded-[4px] bg-[#f7f8fa] text-[10px] font-medium text-[#07bb15]" style={{ lineHeight: '7px' }}>48</span>
+                        <span className="px-1 py-[6px] rounded-[4px] bg-[#f7f8fa] text-[10px] font-medium text-[#0d1a67]" style={{ lineHeight: '7px' }}>67</span>
+                      </div>
                     </div>
-                    <div className="absolute bottom-[10%] right-[10%] text-center">
-                      <span className="text-[11px] font-semibold text-[#0d1a67]">TAC</span>
+                    {/* TAC — bottom right */}
+                    <div className="absolute flex items-center gap-1" style={{ bottom: '10px', right: '40px' }}>
+                      <span className="text-[10px] font-semibold text-[#8c99a9]" style={{ letterSpacing: '-0.5px', lineHeight: '18px' }}>TAC</span>
+                      <div className="flex gap-[2px]">
+                        <span className="px-1 py-[6px] rounded-[4px] bg-[#f7f8fa] text-[10px] font-medium text-[#07bb15]" style={{ lineHeight: '7px' }}>70</span>
+                        <span className="px-1 py-[6px] rounded-[4px] bg-[#f7f8fa] text-[10px] font-medium text-[#0d1a67]" style={{ lineHeight: '7px' }}>55</span>
+                      </div>
                     </div>
-                    <div className="absolute bottom-[10%] left-[10%] text-center">
-                      <span className="text-[11px] font-semibold text-[#0d1a67]">DEF</span>
+                    {/* DEF — bottom left */}
+                    <div className="absolute flex items-center gap-1" style={{ bottom: '10px', left: '40px' }}>
+                      <span className="text-[10px] font-semibold text-[#8c99a9]" style={{ letterSpacing: '-0.5px', lineHeight: '18px' }}>DEF</span>
+                      <div className="flex gap-[2px]">
+                        <span className="px-1 py-[6px] rounded-[4px] bg-[#f7f8fa] text-[10px] font-medium text-[#07bb15]" style={{ lineHeight: '7px' }}>78</span>
+                        <span className="px-1 py-[6px] rounded-[4px] bg-[#f7f8fa] text-[10px] font-medium text-[#0d1a67]" style={{ lineHeight: '7px' }}>23</span>
+                      </div>
                     </div>
-                    <div className="absolute top-1/3 left-0 -translate-x-2 text-center">
-                      <span className="text-[11px] font-semibold text-[#0d1a67]">CRE</span>
+                    {/* CRE — left */}
+                    <div className="absolute flex items-center gap-1" style={{ top: '90px', left: '0px' }}>
+                      <span className="text-[10px] font-semibold text-[#8c99a9]" style={{ letterSpacing: '-0.5px', lineHeight: '18px' }}>CRE</span>
+                      <div className="flex gap-[2px]">
+                        <span className="px-1 py-[6px] rounded-[4px] bg-[#f7f8fa] text-[10px] font-medium text-[#07bb15]" style={{ lineHeight: '7px' }}>48</span>
+                        <span className="px-1 py-[6px] rounded-[4px] bg-[#f7f8fa] text-[10px] font-medium text-[#0d1a67]" style={{ lineHeight: '7px' }}>67</span>
+                      </div>
                     </div>
                   </div>
                 </div>
-                {/* Legend */}
-                <div className="flex items-center justify-center gap-6">
+                {/* Legend — 103x40, vertical, 4px gap */}
+                <div className="flex flex-col items-center gap-[4px]">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-[2px] bg-[#0d1a67]" />
-                    <span className="text-[12px] text-[#7c8a9c]">{fixture?.home_team_name || 'Home'}</span>
+                    <div className="w-[24px] h-[6px] rounded-full bg-[#0d1a67]" />
+                    <span className="text-[10px] font-semibold text-[#8c99a9]" style={{ letterSpacing: '-0.5px', lineHeight: '18px' }}>{fixture?.home_team_name || 'Home'}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-[2px] bg-[#27ae60]" />
-                    <span className="text-[12px] text-[#7c8a9c]">{fixture?.away_team_name || 'Away'}</span>
+                    <div className="w-[24px] h-[6px] rounded-full bg-[#27ae60]" />
+                    <span className="text-[10px] font-semibold text-[#8c99a9]" style={{ letterSpacing: '-0.5px', lineHeight: '18px' }}>{fixture?.away_team_name || 'Away'}</span>
                   </div>
                 </div>
               </div>
               </div>
 
-              {/* ── Team Performance Comparison ── */}
-              <div className="rounded-[20px] bg-[#f7f8fa] p-5">
-                <h2 className="text-[22px] font-semibold text-[#0a0a0a] mb-4" style={{ fontFamily: 'Montserrat, sans-serif' }}>Team Performance Comparison</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+              {/* ═══ SECTION 2: TEAM PERFORMANCE COMPARISON ═══ 1440x782, gap-15 */}
+              <div className="flex flex-col gap-[15px]">
+                <h2 className="text-[22px] font-semibold text-[#000000]" style={{ lineHeight: '130%' }}>Team Performance Comparison</h2>
+                {/* Cards container — rounded-20, p-20, gap-20 */}
+                <div className="rounded-[20px] bg-[#f7f8fa] p-[20px] flex flex-col gap-[20px]">
+                {/* Row 1: 3 cards at 453.33px */}
+                <div className="flex gap-[20px]">
                   {(() => {
                     const raw = statsData?.raw_statistics || {} as any;
                     const atk = raw.attacking_threat || {};
                     const shots = raw.shots || {};
                     const duels = raw.duels_and_dribbling || {};
-                    const def = raw.defence_and_discipline || {};
-                    const passes = raw.passes || {};
                     return [
                     {
                       id: 'xg',
@@ -1596,21 +1718,32 @@ export function MatchDetailPage() {
                         { label: 'Dribble Success %', home: duels['successful-dribbles-percentage']?.home, away: duels['successful-dribbles-percentage']?.away },
                       ],
                     },
-                    {
-                      id: 'defence',
-                      title: 'Defence',
-                      rows: [
+                    // Defence and Passes are in Row 2 below
+                  ]; })().map((card) => (
+                    <StatComparisonCard
+                      key={card.id}
+                      title={card.title}
+                      rows={card.rows}
+                      isExpanded={expandedStatCards.has(card.id)}
+                      onToggle={() => setExpandedStatCards(prev => { const next = new Set(prev); if (next.has(card.id)) next.delete(card.id); else next.add(card.id); return next; })}
+                    />
+                  ))}
+                </div>
+                {/* Row 2: 2 cards at 690px */}
+                <div className="flex gap-[20px]">
+                  {(() => {
+                    const raw = statsData?.raw_statistics || {} as any;
+                    const def = raw.defence_and_discipline || {};
+                    const passes = raw.passes || {};
+                    const row2Cards = [
+                      { id: 'defence', title: 'Defence', rows: [
                         { label: 'Tackles', home: def['tackles']?.home, away: def['tackles']?.away },
                         { label: 'Interceptions', home: def['interceptions']?.home, away: def['interceptions']?.away },
                         { label: 'Keeper Saves', home: def['saves']?.home, away: def['saves']?.away },
                         { label: 'Offsides', home: def['offsides']?.home, away: def['offsides']?.away },
                         { label: 'Yellow Cards', home: def['yellowcards']?.home, away: def['yellowcards']?.away },
-                      ],
-                    },
-                    {
-                      id: 'passes',
-                      title: 'Passes',
-                      rows: [
+                      ]},
+                      { id: 'passes', title: 'Passes', rows: [
                         { label: 'Total Passes', home: passes['passes']?.home, away: passes['passes']?.away },
                         { label: 'Accurate Passes', home: passes['successful-passes']?.home, away: passes['successful-passes']?.away },
                         { label: 'Pass Accuracy %', home: passes['successful-passes-percentage']?.home, away: passes['successful-passes-percentage']?.away },
@@ -1618,99 +1751,52 @@ export function MatchDetailPage() {
                         { label: 'Long Passes', home: passes['successful-long-passes']?.home, away: passes['successful-long-passes']?.away },
                         { label: 'Total Crosses', home: passes['total-crosses']?.home, away: passes['total-crosses']?.away },
                         { label: 'Free Kicks', home: passes['free-kicks']?.home, away: passes['free-kicks']?.away },
-                      ],
-                    },
-                  ]; })().map((card) => {
-                    const isExpanded = expandedStatCards.has(card.id);
-                    const visibleRows = isExpanded ? card.rows : card.rows.slice(0, 5);
-                    const hasData = card.rows.some(r => r.home != null || r.away != null);
-                    return (
-                      <div key={card.id} className={`bg-white rounded-[14px] shadow-[0_1px_15px_0_rgba(0,0,0,0.10)] p-4 ${card.id === 'defence' || card.id === 'passes' ? 'xl:col-span-1 md:col-span-1' : ''}`}>
-                        <h3 className="text-[18px] font-semibold text-[#0a0a0a] mb-3" style={{ fontFamily: 'Montserrat, sans-serif' }}>{card.title}</h3>
-                        {!hasData && isLoadingStats ? (
-                          <div className="space-y-3 animate-pulse">
-                            {[1,2,3,4,5].map(i => (
-                              <div key={i} className="flex items-center gap-3">
-                                <div className="w-8 h-3 bg-gray-100 rounded" />
-                                <div className="flex-1 h-3 bg-gray-100 rounded" />
-                                <div className="w-8 h-3 bg-gray-100 rounded" />
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <>
-                            {visibleRows.map((row, i) => {
-                              const h = row.home ?? 0;
-                              const a = row.away ?? 0;
-                              const total = h + a;
-                              const homePct = total > 0 ? (h / total) * 100 : 50;
-                              const awayPct = total > 0 ? (a / total) * 100 : 50;
-                              const homeWin = h > a;
-                              const awayWin = a > h;
-                              return (
-                                <div key={i} className={i > 0 ? 'mt-3 pt-3 border-t border-[#e1e4eb]' : ''}>
-                                  <div className="flex items-center justify-between mb-1">
-                                    <span className={`text-sm font-semibold ${homeWin ? 'text-[#0d1a67]' : 'text-[#0a0a0a]'}`}>{row.home ?? '—'}</span>
-                                    <span className="text-xs text-[#7c8a9c] font-medium">{row.label}</span>
-                                    <span className={`text-sm font-semibold ${awayWin ? 'text-[#0d1a67]' : 'text-[#0a0a0a]'}`}>{row.away ?? '—'}</span>
-                                  </div>
-                                  <div className="flex h-1.5 gap-0.5">
-                                    <div className="flex-1 bg-[#e1e4eb] rounded-full overflow-hidden flex justify-end">
-                                      <div className="h-full rounded-full bg-[#0d1a67] transition-all" style={{ width: `${homePct}%` }} />
-                                    </div>
-                                    <div className="flex-1 bg-[#e1e4eb] rounded-full overflow-hidden flex justify-start">
-                                      <div className="h-full rounded-full bg-[#ccd3fc] transition-all" style={{ width: `${awayPct}%` }} />
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                            <p className="text-[12px] text-[#7c8a9c] text-center mt-3" style={{ fontFamily: 'Montserrat, sans-serif' }}>5 out of {card.rows.length}</p>
-                            <button
-                              onClick={() => setExpandedStatCards(prev => {
-                                const next = new Set(prev);
-                                if (next.has(card.id)) next.delete(card.id); else next.add(card.id);
-                                return next;
-                              })}
-                              className="mt-3 w-full h-10 bg-[#0d1a67] text-white text-[14px] font-semibold rounded-[8px] hover:bg-[#0d1a67]/90 transition-colors shadow-[0_7px_4px_-3px_rgba(0,0,0,0.05)]"
-                              style={{ fontFamily: 'Montserrat, sans-serif' }}
-                            >
-                              {isExpanded ? 'Show Less' : 'See More'}
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    );
-                  })}
+                      ]},
+                    ];
+                    return row2Cards.map(card => (
+                      <StatComparisonCard
+                        key={card.id}
+                        title={card.title}
+                        rows={card.rows}
+                        isExpanded={expandedStatCards.has(card.id)}
+                        onToggle={() => setExpandedStatCards(prev => { const next = new Set(prev); if (next.has(card.id)) next.delete(card.id); else next.add(card.id); return next; })}
+                      />
+                    ));
+                  })()}
+                </div>
                 </div>
               </div>
 
-              {/* ── Recent Head-to-Head ── */}
-              <div>
-                <h2 className="text-[22px] font-semibold text-[#0a0a0a] mb-4" style={{ fontFamily: 'Montserrat, sans-serif' }}>Recent Head-to-Head</h2>
-                <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
-                  {/* Placeholder cards - will be populated when H2H API is available */}
-                  {[1, 2].map((i) => (
-                    <div key={i} className="flex-shrink-0 w-[282px] bg-white rounded-[14px] border border-[#e1e4eb] p-[15px] flex flex-col gap-[15px]">
-                      <span className="text-[12px] font-semibold text-[#27ae60]" style={{ letterSpacing: '-0.5px' }}>Completed • —</span>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
+              {/* ═══ SECTION 3: RECENT HEAD-TO-HEAD ═══ 1440x179, gap-15 */}
+              <div className="flex flex-col gap-[15px]">
+                <h2 className="text-[22px] font-semibold text-[#000000]" style={{ lineHeight: '130%' }}>Recent Head-to-Head</h2>
+                {/* Match cards — horizontal, 20px gap */}
+                <div className="flex gap-[20px] overflow-x-auto pb-2 scrollbar-hide">
+                  {[
+                    { date: '13 Feb 2026', home: fixture?.home_team_short_code || 'HOM', away: fixture?.away_team_short_code || 'AWY', homeScore: '2', awayScore: '1', min: "76'" },
+                    { date: '12 Feb 2026', home: fixture?.home_team_short_code || 'HOM', away: fixture?.away_team_short_code || 'AWY', homeScore: '1', awayScore: '2', min: "76'" },
+                  ].map((match, i) => (
+                    <div key={i} className="flex-shrink-0 w-[282px] h-[135px] bg-white rounded-[14px] shadow-[0_1px_15px_0_rgba(0,0,0,0.10)] p-[15px] flex flex-col gap-[15px]">
+                      {/* Date/status — 14px Medium #000, center, lineHeight 20px */}
+                      <span className="text-[14px] font-medium text-[#000000] text-center" style={{ lineHeight: '20px' }}>Completed • {match.date}</span>
+                      {/* Match result — 252x70, horizontal */}
+                      <div className="flex items-center justify-between h-[70px]">
+                        <div className="flex flex-col items-center gap-1 w-[75px]">
                           <div className="w-8 h-8 rounded-full bg-[#f7f8fa]" />
-                          <span className="text-[14px] font-semibold text-[#0a0a0a]">—</span>
+                          <span className="text-[12px] font-semibold text-[#0a0a0a]">{match.home}</span>
                         </div>
                         <div className="flex flex-col items-center">
-                          <span className="text-[18px] font-bold text-[#0a0a0a]">— - —</span>
-                          <span className="text-[10px] text-[#7c8a9c]">—′</span>
+                          <span className="text-[20px] font-bold text-[#0a0a0a]">{match.homeScore} - {match.awayScore}</span>
+                          <span className="text-[10px] text-[#7c8a9c]">{match.min}</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[14px] font-semibold text-[#0a0a0a]">—</span>
+                        <div className="flex flex-col items-center gap-1 w-[75px]">
                           <div className="w-8 h-8 rounded-full bg-[#f7f8fa]" />
+                          <span className="text-[12px] font-semibold text-[#0a0a0a]">{match.away}</span>
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
-                <p className="text-[12px] text-[#7c8a9c] mt-2">Head-to-head data will appear when available from the API.</p>
               </div>
 
               {/* ── Player Stats ── */}
@@ -1786,8 +1872,13 @@ export function MatchDetailPage() {
                       const pas = p.statistics?.passes || {};
                       const def = p.statistics?.defence || {};
                       const duel = p.statistics?.duels || {};
-                      const name = `Player ${p.player_id}`;
-                      const position = p.location === 'home' ? fixture?.home_team_short_code : fixture?.away_team_short_code;
+                      // Resolve player name/image from details lookup
+                      const playerDetail = (statsPlayerDetails[idx]?.data?.data as any)?.player || (statsPlayerDetails[idx]?.data?.data as any);
+                      const name = playerDetail?.display_name || playerDetail?.common_name || playerDetail?.player_name || `Player ${p.player_id}`;
+                      const imgUrl = playerDetail?.image_path;
+                      const jerseyNum = playerDetail?.current_team?.jersey_number;
+                      const posObj = playerDetail?.position;
+                      const position = typeof posObj === 'object' ? posObj?.name : (p.location === 'home' ? 'Home' : 'Away');
                       const rating = ts.rating;
                       const ratingNum = typeof rating === 'number' ? rating.toFixed(1) : null;
                       const ratingColor = ratingNum == null ? '#7c8a9c' : parseFloat(ratingNum) >= 7 ? '#27ae60' : parseFloat(ratingNum) >= 5 ? '#f39c12' : '#e74c3c';
@@ -1795,9 +1886,18 @@ export function MatchDetailPage() {
 
                       return (
                         <div key={`${p.player_id}-${idx}`} className="flex items-center px-[1px] h-[50px]" style={{ gap: '55px' }}>
-                          {/* Player info */}
+                          {/* Player info — avatar with jersey badge + name/position */}
                           <div className="flex items-center gap-[10px] min-w-[158px]">
-                            <div className="w-8 h-8 rounded-full bg-[#f7f8fa] flex items-center justify-center text-[10px] font-bold text-[#7c8a9c]">{String(p.player_id).slice(-2)}</div>
+                            <div className="relative">
+                              {imgUrl ? (
+                                <img src={imgUrl} alt={name} className="w-[40px] h-[40px] rounded-full object-cover bg-[#f7f8fa]" />
+                              ) : (
+                                <div className="w-[40px] h-[40px] rounded-full bg-[#f7f8fa] flex items-center justify-center text-[12px] font-bold text-[#7c8a9c]">{name.slice(0,2).toUpperCase()}</div>
+                              )}
+                              {jerseyNum != null && (
+                                <span className="absolute -bottom-1 -left-1 w-[18px] h-[18px] rounded-full bg-[#0d1a67] text-white text-[9px] font-bold flex items-center justify-center border-2 border-white">{jerseyNum}</span>
+                              )}
+                            </div>
                             <div className="min-w-0">
                               <p className="text-[14px] font-semibold text-[#0a0a0a] truncate" style={{ fontFamily: 'Montserrat, sans-serif' }}>{name}</p>
                               <p className="text-[12px] text-[#7c8a9c]" style={{ fontFamily: 'Montserrat, sans-serif' }}>{position}</p>
