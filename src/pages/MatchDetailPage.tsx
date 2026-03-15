@@ -410,8 +410,39 @@ function H2HMatchModal({ h2hMatch, onClose }: { h2hMatch: any; onClose: () => vo
         {/* Content */}
         <div className="p-6 flex flex-col gap-[30px]">
           {isLoading ? (
-            <div className="flex items-center justify-center py-20">
-              <div className="w-8 h-8 border-3 border-[#0d1a67] border-t-transparent rounded-full animate-spin" />
+            <div className="flex flex-col gap-6 py-6">
+              {/* Skeleton stat bars */}
+              <div className="bg-[#f7f8fa] rounded-[15px] p-[16px] flex flex-col gap-6 animate-pulse">
+                {[1,2,3,4,5].map(i => (
+                  <div key={i} className="flex flex-col gap-2">
+                    <div className="flex justify-between">
+                      <div className="w-10 h-4 bg-gray-200 rounded" />
+                      <div className="w-24 h-4 bg-gray-200 rounded" />
+                      <div className="w-10 h-4 bg-gray-200 rounded" />
+                    </div>
+                    <div className="flex gap-1">
+                      <div className="flex-1 h-2 bg-gray-200 rounded-full" />
+                      <div className="flex-1 h-2 bg-gray-200 rounded-full" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {/* Skeleton comparison cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 animate-pulse">
+                {[1,2,3,4].map(i => (
+                  <div key={i} className="bg-white rounded-[14px] border border-[#e1e4eb] p-4 flex flex-col gap-4">
+                    <div className="w-32 h-5 bg-gray-200 rounded" />
+                    {[1,2,3,4,5].map(j => (
+                      <div key={j} className="flex justify-between">
+                        <div className="w-12 h-4 bg-gray-100 rounded" />
+                        <div className="w-24 h-4 bg-gray-100 rounded" />
+                        <div className="w-12 h-4 bg-gray-100 rounded" />
+                      </div>
+                    ))}
+                    <div className="w-full h-10 bg-gray-200 rounded-lg" />
+                  </div>
+                ))}
+              </div>
             </div>
           ) : !modalStatsData ? (
             <div className="text-center py-20 text-[#7c8a9c]">No statistics available for this match.</div>
