@@ -182,6 +182,8 @@ export interface FixtureStatisticsData {
   basic: Record<string, any>;  // Backend returns dynamic dict
   advanced: Record<string, any>;  // Backend returns dynamic dict
   raw_statistics?: Record<string, Record<string, { home: number; away: number }>>;  // Actual API structure
+  players?: any[];  // Inline player stats from fixture statistics
+  head_to_head?: any[];  // H2H match history
   home_team_id?: number;
   away_team_id?: number;
   created_at?: string;

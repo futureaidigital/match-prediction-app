@@ -1768,36 +1768,42 @@ export function MatchDetailPage() {
               </div>
 
               {/* ═══ SECTION 3: RECENT HEAD-TO-HEAD ═══ 1440x179, gap-15 */}
+              {((statsData as any)?.head_to_head?.length > 0) && (
               <div className="flex flex-col gap-[15px]">
                 <h2 className="text-[22px] font-semibold text-[#000000]" style={{ lineHeight: '130%' }}>Recent Head-to-Head</h2>
-                {/* Match cards — horizontal, 20px gap */}
+                {/* Match cards — horizontal scroll, 20px gap */}
                 <div className="flex gap-[20px] overflow-x-auto pb-2 scrollbar-hide">
-                  {[
-                    { date: '13 Feb 2026', home: fixture?.home_team_short_code || 'HOM', away: fixture?.away_team_short_code || 'AWY', homeScore: '2', awayScore: '1', min: "76'" },
-                    { date: '12 Feb 2026', home: fixture?.home_team_short_code || 'HOM', away: fixture?.away_team_short_code || 'AWY', homeScore: '1', awayScore: '2', min: "76'" },
-                  ].map((match, i) => (
-                    <div key={i} className="flex-shrink-0 w-[282px] h-[135px] bg-white rounded-[14px] shadow-[0_1px_15px_0_rgba(0,0,0,0.10)] p-[15px] flex flex-col gap-[15px]">
-                      {/* Date/status — 14px Medium #000, center, lineHeight 20px */}
-                      <span className="text-[14px] font-medium text-[#000000] text-center" style={{ lineHeight: '20px' }}>Completed • {match.date}</span>
-                      {/* Match result — 252x70, horizontal */}
-                      <div className="flex items-center justify-between h-[70px]">
-                        <div className="flex flex-col items-center gap-1 w-[75px]">
-                          <div className="w-8 h-8 rounded-full bg-[#f7f8fa]" />
-                          <span className="text-[12px] font-semibold text-[#0a0a0a]">{match.home}</span>
-                        </div>
-                        <div className="flex flex-col items-center">
-                          <span className="text-[20px] font-bold text-[#0a0a0a]">{match.homeScore} - {match.awayScore}</span>
-                          <span className="text-[10px] text-[#7c8a9c]">{match.min}</span>
-                        </div>
-                        <div className="flex flex-col items-center gap-1 w-[75px]">
-                          <div className="w-8 h-8 rounded-full bg-[#f7f8fa]" />
-                          <span className="text-[12px] font-semibold text-[#0a0a0a]">{match.away}</span>
+                  {((statsData as any).head_to_head as any[]).slice(0, 5).map((h2h: any, i: number) => {
+                    const date = h2h.starting_at ? new Date(h2h.starting_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+                    const homeName = h2h.home_team_name?.split(' ').pop()?.slice(0, 3).toUpperCase() || 'HOM';
+                    const awayName = h2h.away_team_name?.split(' ').pop()?.slice(0, 3).toUpperCase() || 'AWY';
+                    return (
+                      <div key={h2h.fixture_id || i} className="flex-shrink-0 w-[282px] h-[135px] bg-white rounded-[14px] shadow-[0_1px_15px_0_rgba(0,0,0,0.10)] p-[15px] flex flex-col gap-[15px]">
+                        <span className="text-[14px] font-medium text-[#000000] text-center" style={{ lineHeight: '20px' }}>Completed • {date}</span>
+                        <div className="flex items-center justify-between h-[70px]">
+                          <div className="flex flex-col items-center gap-1 w-[75px]">
+                            {h2h.home_team_image_path ? (
+                              <img src={h2h.home_team_image_path} alt="" className="w-8 h-8 object-contain" />
+                            ) : <div className="w-8 h-8 rounded-full bg-[#f7f8fa]" />}
+                            <span className="text-[12px] font-semibold text-[#0a0a0a]">{homeName}</span>
+                          </div>
+                          <div className="flex flex-col items-center">
+                            <span className="text-[20px] font-bold text-[#0a0a0a]">{h2h.home_score} - {h2h.away_score}</span>
+                            <span className="text-[10px] text-[#7c8a9c]">{h2h.duration_minutes ? `${h2h.duration_minutes}'` : '90\''}</span>
+                          </div>
+                          <div className="flex flex-col items-center gap-1 w-[75px]">
+                            {h2h.away_team_image_path ? (
+                              <img src={h2h.away_team_image_path} alt="" className="w-8 h-8 object-contain" />
+                            ) : <div className="w-8 h-8 rounded-full bg-[#f7f8fa]" />}
+                            <span className="text-[12px] font-semibold text-[#0a0a0a]">{awayName}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
+              )}
 
               {/* ── Player Stats ── */}
               {((statsData as any)?.players?.length > 0 || featuredPlayerIds.length > 0) && (
@@ -1805,19 +1811,19 @@ export function MatchDetailPage() {
                   <h2 className="text-[22px] font-semibold text-[#0a0a0a] mb-4 text-center" style={{ fontFamily: 'Montserrat, sans-serif' }}>Player stats</h2>
                   <div className="bg-white rounded-[20px] border border-[#e1e4eb] p-5">
                     <div className="flex flex-col gap-5">
-                    {/* Tab bar - 735px max width */}
-                    <div className="w-[735px] max-w-full rounded-[10px] bg-[#f7f8fa] p-[6px]">
-                    <div className="flex h-[44px] items-center justify-center gap-[6px] overflow-x-auto scrollbar-hide">
+                    {/* Tab bar — 735x56, #f7f8fa bg, rounded-10, p-6 */}
+                    <div className="w-[735px] max-w-full h-[56px] rounded-[10px] bg-[#f7f8fa] p-[6px]">
+                    <div className="flex h-[44px] items-center justify-center overflow-x-auto scrollbar-hide">
                       {(['summary','attacking','passing','defensive','discipline'] as const).map(tab => (
                         <button
                           key={tab}
                           onClick={() => setPlayerStatsTab(tab)}
-                          className={`flex-shrink-0 h-[44px] px-5 rounded-[8px] text-[14px] font-semibold capitalize transition-colors ${
+                          className={`w-[144px] h-[44px] rounded-[8px] text-[16px] text-center transition-colors ${
                             playerStatsTab === tab
-                              ? 'bg-[#0d1a67] text-white'
-                              : 'text-[#7c8a9c] hover:text-[#0d1a67]'
+                              ? 'bg-[#0d1a67] text-white font-semibold'
+                              : 'bg-[#f7f8fa] text-[#7c8a9c] font-normal hover:text-[#0d1a67]'
                           }`}
-                          style={{ fontFamily: 'Montserrat, sans-serif' }}
+                          style={{ fontFamily: 'Montserrat, sans-serif', lineHeight: '24px', paddingTop: '10px', paddingBottom: '10px' }}
                         >
                           {tab.charAt(0).toUpperCase() + tab.slice(1)}
                         </button>
