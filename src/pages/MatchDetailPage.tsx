@@ -1679,8 +1679,8 @@ export function MatchDetailPage() {
                           <div key={lbl.name} className="absolute flex items-center gap-1" style={lbl.style as any}>
                             <span className="text-[10px] font-semibold text-[#8c99a9]" style={{ letterSpacing: '-0.5px', lineHeight: '18px' }}>{lbl.name}</span>
                             <div className="flex gap-[2px]">
-                              <span className="px-1 py-[6px] rounded-[4px] bg-[#f7f8fa] text-[10px] font-medium text-[#07bb15]" style={{ lineHeight: '7px' }}>{lbl.homeVal}</span>
-                              <span className="px-1 py-[6px] rounded-[4px] bg-[#f7f8fa] text-[10px] font-medium text-[#0d1a67]" style={{ lineHeight: '7px' }}>{lbl.awayVal}</span>
+                              <span className="px-1 py-[6px] rounded-[4px] bg-[#f7f8fa] text-[10px] font-medium text-[#0d1a67]" style={{ lineHeight: '7px' }}>{lbl.homeVal}</span>
+                              <span className="px-1 py-[6px] rounded-[4px] bg-[#f7f8fa] text-[10px] font-medium text-[#27ae60]" style={{ lineHeight: '7px' }}>{lbl.awayVal}</span>
                             </div>
                           </div>
                         ))}
