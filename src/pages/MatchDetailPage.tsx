@@ -1683,15 +1683,16 @@ export function MatchDetailPage() {
                     return [
                     {
                       id: 'xg',
-                      title: 'Expected Goals (xG)',
+                      title: 'Attacking Threat',
                       rows: [
-                        { label: 'Expected Goals (xG)', home: atk['expected-goals']?.home, away: atk['expected-goals']?.away },
-                        { label: 'xG Open Play', home: atk['xg-open-play']?.home, away: atk['xg-open-play']?.away },
-                        { label: 'xG Set Play', home: atk['xg-set-play']?.home, away: atk['xg-set-play']?.away },
-                        { label: 'Non-penalty xG', home: atk['non-penalty-xg']?.home, away: atk['non-penalty-xg']?.away },
-                        { label: 'xG on target (xGOT)', home: atk['xgot']?.home, away: atk['xgot']?.away },
+                        { label: 'Goals', home: atk['goals']?.home, away: atk['goals']?.away },
+                        { label: 'Assists', home: atk['assists']?.home, away: atk['assists']?.away },
+                        { label: 'Goal Attempts', home: atk['goal-attempts']?.home, away: atk['goal-attempts']?.away },
+                        { label: 'Attacks', home: atk['attacks']?.home, away: atk['attacks']?.away },
+                        { label: 'Dangerous Attacks', home: atk['dangerous-attacks']?.home, away: atk['dangerous-attacks']?.away },
                         { label: 'Big Chances Created', home: atk['big-chances-created']?.home, away: atk['big-chances-created']?.away },
                         { label: 'Big Chances Missed', home: atk['big-chances-missed']?.home, away: atk['big-chances-missed']?.away },
+                        { label: 'Penalties', home: atk['penalties']?.home, away: atk['penalties']?.away },
                       ],
                     },
                     {
@@ -1740,6 +1741,7 @@ export function MatchDetailPage() {
                         { label: 'Tackles', home: def['tackles']?.home, away: def['tackles']?.away },
                         { label: 'Interceptions', home: def['interceptions']?.home, away: def['interceptions']?.away },
                         { label: 'Keeper Saves', home: def['saves']?.home, away: def['saves']?.away },
+                        { label: 'Ball Safe', home: def['ball-safe']?.home, away: def['ball-safe']?.away },
                         { label: 'Offsides', home: def['offsides']?.home, away: def['offsides']?.away },
                         { label: 'Yellow Cards', home: def['yellowcards']?.home, away: def['yellowcards']?.away },
                       ]},
@@ -1751,6 +1753,8 @@ export function MatchDetailPage() {
                         { label: 'Long Passes', home: passes['successful-long-passes']?.home, away: passes['successful-long-passes']?.away },
                         { label: 'Total Crosses', home: passes['total-crosses']?.home, away: passes['total-crosses']?.away },
                         { label: 'Free Kicks', home: passes['free-kicks']?.home, away: passes['free-kicks']?.away },
+                        { label: 'Throw-ins', home: passes['throwins']?.home, away: passes['throwins']?.away },
+                        { label: 'Goal Kicks', home: passes['goals-kicks']?.home, away: passes['goals-kicks']?.away },
                       ]},
                     ];
                     return row2Cards.map(card => (
