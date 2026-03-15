@@ -368,6 +368,136 @@ function SubstitutionRow({
   );
 }
 
+// H2H Match Detail Modal — shows stats for a clicked H2H match
+function H2HMatchModal({ h2hMatch, onClose }: { h2hMatch: any; onClose: () => void }) {
+  const { data: statsResponse, isLoading } = useFixtureStatistics(String(h2hMatch.fixture_id));
+  const modalStatsData = statsResponse?.data?.statistics;
+  const [modalExpandedCards, setModalExpandedCards] = useState<Set<string>>(new Set());
+
+  const date = h2hMatch.starting_at ? new Date(h2hMatch.starting_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center" onClick={onClose}>
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/50" />
+      {/* Modal */}
+      <div
+        className="relative bg-white w-full md:w-[960px] md:rounded-[16px] rounded-t-[16px] max-h-[90vh] overflow-y-auto"
+        style={{ fontFamily: 'Montserrat, sans-serif' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="sticky top-0 z-10 bg-white border-b border-[#e1e4eb] px-6 py-4 flex items-center justify-between rounded-t-[16px]">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              {h2hMatch.home_team_image_path ? <img src={h2hMatch.home_team_image_path} alt="" className="w-8 h-8 object-contain" /> : <div className="w-8 h-8 rounded-full bg-[#f7f8fa]" />}
+              <span className="text-[16px] font-semibold text-[#0a0a0a]">{h2hMatch.home_team_name || 'Home'}</span>
+            </div>
+            <span className="text-[20px] font-bold text-[#0a0a0a]">{h2hMatch.home_score} - {h2hMatch.away_score}</span>
+            <div className="flex items-center gap-3">
+              <span className="text-[16px] font-semibold text-[#0a0a0a]">{h2hMatch.away_team_name || 'Away'}</span>
+              {h2hMatch.away_team_image_path ? <img src={h2hMatch.away_team_image_path} alt="" className="w-8 h-8 object-contain" /> : <div className="w-8 h-8 rounded-full bg-[#f7f8fa]" />}
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-[12px] text-[#7c8a9c]">{date}</span>
+            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f7f8fa]">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 flex flex-col gap-[30px]">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="w-8 h-8 border-3 border-[#0d1a67] border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : !modalStatsData ? (
+            <div className="text-center py-20 text-[#7c8a9c]">No statistics available for this match.</div>
+          ) : (
+            <>
+              {/* Match stat bars */}
+              <div className="bg-[#f7f8fa] rounded-[15px] p-[16px] flex flex-col items-center" style={{ gap: '32px' }}>
+                {(() => {
+                  const raw = modalStatsData?.raw_statistics?.top_level_summary || {};
+                  return [
+                    { label: 'Ball possession', home: raw['ball-possession']?.home ?? null, away: raw['ball-possession']?.away ?? null, isPct: true },
+                    { label: 'Total shots', home: raw['shots-total']?.home ?? null, away: raw['shots-total']?.away ?? null },
+                    { label: 'Corner kicks', home: raw['corners']?.home ?? null, away: raw['corners']?.away ?? null },
+                    { label: 'Fouls', home: raw['fouls']?.home ?? null, away: raw['fouls']?.away ?? null },
+                    { label: 'Passes completed', home: raw['successful-passes']?.home ?? null, away: raw['successful-passes']?.away ?? null },
+                  ];
+                })().map((s, i) => (
+                  <div key={`${s.label}-${i}`} className="w-full">
+                    <StatBar label={s.label} homeValue={s.home ?? 0} awayValue={s.away ?? 0} isPercentage={s.isPct} />
+                  </div>
+                ))}
+              </div>
+
+              {/* Team Performance Comparison */}
+              <div className="flex flex-col gap-[15px]">
+                <h3 className="text-[18px] font-semibold text-[#000000]">Team Performance Comparison</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-[20px]">
+                  {(() => {
+                    const raw = modalStatsData?.raw_statistics || {} as any;
+                    const atk = raw.attacking_threat || {};
+                    const shots = raw.shots || {};
+                    const duels = raw.duels_and_dribbling || {};
+                    const def = raw.defence_and_discipline || {};
+                    const passes = raw.passes || {};
+                    return [
+                      { id: 'xg', title: 'Attacking Threat', rows: [
+                        { label: 'Goals', home: atk['goals']?.home, away: atk['goals']?.away },
+                        { label: 'Assists', home: atk['assists']?.home, away: atk['assists']?.away },
+                        { label: 'Dangerous Attacks', home: atk['dangerous-attacks']?.home, away: atk['dangerous-attacks']?.away },
+                        { label: 'Big Chances Created', home: atk['big-chances-created']?.home, away: atk['big-chances-created']?.away },
+                        { label: 'Big Chances Missed', home: atk['big-chances-missed']?.home, away: atk['big-chances-missed']?.away },
+                      ]},
+                      { id: 'shots', title: 'Shots', rows: [
+                        { label: 'Total Shots', home: shots['shots-total']?.home, away: shots['shots-total']?.away },
+                        { label: 'Shots on Target', home: shots['shots-on-target']?.home, away: shots['shots-on-target']?.away },
+                        { label: 'Shots off Target', home: shots['shots-off-target']?.home, away: shots['shots-off-target']?.away },
+                        { label: 'Blocked Shots', home: shots['shots-blocked']?.home, away: shots['shots-blocked']?.away },
+                        { label: 'Hit woodwork', home: shots['hit-woodwork']?.home, away: shots['hit-woodwork']?.away },
+                      ]},
+                      { id: 'duels', title: 'Duels', rows: [
+                        { label: 'Duels Won', home: duels['duels-won']?.home, away: duels['duels-won']?.away },
+                        { label: 'Successful Headers', home: duels['successful-headers']?.home, away: duels['successful-headers']?.away },
+                        { label: 'Successful dribbles', home: duels['successful-dribbles']?.home, away: duels['successful-dribbles']?.away },
+                      ]},
+                      { id: 'defence', title: 'Defence', rows: [
+                        { label: 'Tackles', home: def['tackles']?.home, away: def['tackles']?.away },
+                        { label: 'Interceptions', home: def['interceptions']?.home, away: def['interceptions']?.away },
+                        { label: 'Keeper Saves', home: def['saves']?.home, away: def['saves']?.away },
+                        { label: 'Offsides', home: def['offsides']?.home, away: def['offsides']?.away },
+                      ]},
+                      { id: 'passes', title: 'Passes', rows: [
+                        { label: 'Total Passes', home: passes['passes']?.home, away: passes['passes']?.away },
+                        { label: 'Accurate Passes', home: passes['successful-passes']?.home, away: passes['successful-passes']?.away },
+                        { label: 'Pass Accuracy %', home: passes['successful-passes-percentage']?.home, away: passes['successful-passes-percentage']?.away },
+                        { label: 'Key Passes', home: passes['key-passes']?.home, away: passes['key-passes']?.away },
+                      ]},
+                    ];
+                  })().map(card => (
+                    <StatComparisonCard
+                      key={card.id}
+                      title={card.title}
+                      rows={card.rows}
+                      isExpanded={modalExpandedCards.has(card.id)}
+                      onToggle={() => setModalExpandedCards(prev => { const next = new Set(prev); if (next.has(card.id)) next.delete(card.id); else next.add(card.id); return next; })}
+                    />
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Reusable stat comparison card — used in Team Performance Comparison section
 function StatComparisonCard({
   title,
@@ -969,6 +1099,7 @@ export function MatchDetailPage() {
   const [selectedPrediction, setSelectedPrediction] = useState<any>(null);
   const [playerStatsTab, setPlayerStatsTab] = useState<'summary' | 'attacking' | 'passing' | 'defensive' | 'discipline'>('summary');
   const [expandedStatCards, setExpandedStatCards] = useState<Set<string>>(new Set());
+  const [h2hModalFixture, setH2hModalFixture] = useState<any>(null);
 
   // Fetch specific fixture by ID (backend returns fixture with predictions)
   const { data: fixturesResponse, isLoading: isLoadingFixtures } = useFixtures(
@@ -1833,7 +1964,7 @@ export function MatchDetailPage() {
                     const homeName = h2h.home_team_name?.split(' ').pop()?.slice(0, 3).toUpperCase() || 'HOM';
                     const awayName = h2h.away_team_name?.split(' ').pop()?.slice(0, 3).toUpperCase() || 'AWY';
                     return (
-                      <div key={h2h.fixture_id || i} className="flex-shrink-0 w-[282px] h-[135px] bg-white rounded-[14px] shadow-[0_1px_15px_0_rgba(0,0,0,0.10)] p-[15px] flex flex-col gap-[15px]">
+                      <div key={h2h.fixture_id || i} onClick={() => setH2hModalFixture(h2h)} className="flex-shrink-0 w-[282px] h-[135px] bg-white rounded-[14px] shadow-[0_1px_15px_0_rgba(0,0,0,0.10)] p-[15px] flex flex-col gap-[15px] cursor-pointer hover:shadow-[0_2px_20px_0_rgba(0,0,0,0.15)] transition-shadow">
                         <span className="text-[14px] font-medium text-[#000000] text-center" style={{ lineHeight: '20px' }}>Completed • {date}</span>
                         <div className="flex items-center justify-between h-[70px]">
                           <div className="flex flex-col items-center gap-1 w-[75px]">
@@ -2015,6 +2146,10 @@ export function MatchDetailPage() {
                 </div>
               )}
             </div>
+          )}
+          {/* H2H Match Detail Modal */}
+          {h2hModalFixture && (
+            <H2HMatchModal h2hMatch={h2hModalFixture} onClose={() => setH2hModalFixture(null)} />
           )}
           {activeTab === 'lineups' && (
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-4 md:gap-6">
