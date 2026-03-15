@@ -45,7 +45,7 @@ interface MatchCardProps {
   // Blur all predictions (for free users beyond first page)
   blurAllPredictions?: boolean;
   // Variant for different layouts
-  variant?: 'default' | 'compact';
+  variant?: 'default' | 'compact' | 'minimal';
   // For compact variant
   isToday?: boolean;
 }
@@ -70,6 +70,7 @@ export function MatchCard({
 }: MatchCardProps) {
   const navigate = useNavigate();
   const isCompact = variant === 'compact';
+  const isMinimal = variant === 'minimal';
 
   const handleCardClick = () => {
     navigate(`/match/${id}`);
@@ -88,6 +89,61 @@ export function MatchCard({
   // Only show 2 predictions in compact variant
   const compactVisiblePredictions = visiblePredictions.slice(0, 2);
   const compactBlurredPredictions = blurredPredictions.slice(0, Math.max(0, 2 - compactVisiblePredictions.length));
+
+  // Minimal variant — 1 prediction, no footer, for matches page
+  if (isMinimal) {
+    const firstPred = predictions[0];
+    return (
+      <div
+        onClick={handleCardClick}
+        className="bg-white rounded-xl p-4 cursor-pointer transition-shadow w-full flex flex-col"
+        style={{ boxShadow: '0 0 12px rgba(0, 0, 0, 0.08)', fontFamily: 'Montserrat, sans-serif' }}
+        onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 0 20px rgba(0, 0, 0, 0.12)'}
+        onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 0 12px rgba(0, 0, 0, 0.08)'}
+      >
+        {/* Teams row */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex flex-col items-center w-[60px]">
+            <TeamAvatar logo={homeTeam.logo} name={homeTeam.name} shortName={homeTeam.shortName} size="sm" />
+            <span className="text-[11px] font-semibold text-[#0a0a0a] mt-1">{homeTeam.shortName}</span>
+          </div>
+          <div className="flex flex-col items-center">
+            {status === 'live' && score ? (
+              <>
+                <span className="text-[12px] font-semibold text-[#e74c3c]">{currentMinute}'</span>
+                <span className="text-[18px] font-bold text-[#0a0a0a]">{score.home} - {score.away}</span>
+              </>
+            ) : (
+              <>
+                <span className="text-[14px] font-bold text-[#0a0a0a]">{kickoffTime || 'TBD'}</span>
+                <span className="text-[11px] text-[#7c8a9c]">TODAY</span>
+              </>
+            )}
+          </div>
+          <div className="flex flex-col items-center w-[60px]">
+            <TeamAvatar logo={awayTeam.logo} name={awayTeam.name} shortName={awayTeam.shortName} size="sm" />
+            <span className="text-[11px] font-semibold text-[#0a0a0a] mt-1">{awayTeam.shortName}</span>
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div className="h-px bg-[#e1e4eb] mb-3" />
+
+        {/* Single prediction + trend */}
+        {firstPred && (
+          <div>
+            <PredictionBar
+              label={firstPred.label}
+              percentage={firstPred.percentage}
+              trend={firstPred.trend}
+              size="md"
+              showBackground
+            />
+          </div>
+        )}
+      </div>
+    );
+  }
 
   if (isCompact) {
     return (

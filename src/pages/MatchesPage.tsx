@@ -1,12 +1,14 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { MatchCard } from '@/components/MatchCard';
+import { SmartCombo } from '@/components/SmartCombo';
 import { Calendar } from '@/components/ui/Calendar';
 import { FilterPanel, FilterValues, SortOption } from '@/components/ui/FilterPanel';
 import { useFixtures } from '@/hooks/useFixtures';
-import { useLeagueNames } from '@/hooks/useLeagues';
+import { useLeagues, useLeagueNames } from '@/hooks/useLeagues';
+import { useAuth } from '@/contexts/AuthContext';
 
 type TabType = 'live' | 'all';
 
@@ -260,10 +262,99 @@ function MobileBottomNav({ activeTab }: { activeTab: string }) {
   );
 }
 
+// League horizontal scroll row with dynamic left/right chevrons
+function LeagueScrollRow({ league, leagueId, navigate, isPremium, transformToMatchCard }: {
+  league: { leagueName: string; country: string; logo?: string; fixtures: any[] };
+  leagueId: string;
+  navigate: (path: string) => void;
+  isPremium: boolean;
+  transformToMatchCard: (f: any) => any;
+}) {
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const updateArrows = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 10);
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 10);
+  };
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    updateArrows();
+    el.addEventListener('scroll', updateArrows);
+    window.addEventListener('resize', updateArrows);
+    return () => {
+      el.removeEventListener('scroll', updateArrows);
+      window.removeEventListener('resize', updateArrows);
+    };
+  }, [league.fixtures.length]);
+
+  return (
+    <div className="rounded-[16px] bg-[#f7f8fa] p-[12px] flex flex-col gap-[12px]">
+      {/* League header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-[10px]">
+          {league.logo ? <img src={league.logo} alt="" className="w-[24px] h-[24px] object-contain" /> : <div className="w-[24px] h-[24px] rounded-full bg-[#e1e4eb]" />}
+          <span className="text-[14px] font-bold text-[#0a0a0a]">{league.leagueName}</span>
+          {league.country && <span className="text-[14px] text-[#7c8a9c]">, {league.country}</span>}
+        </div>
+        <button onClick={() => navigate(`/league/${leagueId}`)} className="text-[14px] font-medium text-[#0d1a67] hover:underline">Live Table</button>
+      </div>
+      {/* Cards row */}
+      <div className="relative">
+        {/* Left fade + chevron */}
+        {canScrollLeft && (
+          <>
+            <div className="absolute left-0 top-0 w-[71px] h-full pointer-events-none z-[5]" style={{ background: 'linear-gradient(to right, #f7f8fa, transparent)' }} />
+            <button
+              onClick={() => scrollRef.current?.scrollBy({ left: -296, behavior: 'smooth' })}
+              className="absolute left-[4px] top-1/2 -translate-y-1/2 w-[32px] h-[32px] rounded-full bg-white shadow-[0_2px_8px_rgba(0,0,0,0.15)] flex items-center justify-center hover:bg-[#f7f8fa] transition-colors z-10"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" strokeWidth="2"><polyline points="15 18 9 12 15 6" /></svg>
+            </button>
+          </>
+        )}
+        {/* Scrollable cards */}
+        <div ref={scrollRef} className="flex gap-[16px] overflow-x-auto scrollbar-hide scroll-smooth">
+          {league.fixtures.map((fixture: any) => (
+            <div key={fixture.fixture.fixture_id} className="flex-shrink-0 w-[280px]">
+              <MatchCard {...transformToMatchCard(fixture)} isPremium={isPremium} variant="minimal" />
+            </div>
+          ))}
+        </div>
+        {/* Right fade + chevron */}
+        {canScrollRight && (
+          <>
+            <div className="absolute right-0 top-0 w-[71px] h-full pointer-events-none z-[5]" style={{ background: 'linear-gradient(to left, #f7f8fa, transparent)' }} />
+            <button
+              onClick={() => scrollRef.current?.scrollBy({ left: 296, behavior: 'smooth' })}
+              className="absolute right-[4px] top-1/2 -translate-y-1/2 w-[32px] h-[32px] rounded-full bg-white shadow-[0_2px_8px_rgba(0,0,0,0.15)] flex items-center justify-center hover:bg-[#f7f8fa] transition-colors z-10"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" strokeWidth="2"><polyline points="9 18 15 12 9 6" /></svg>
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function MatchesPage() {
+  const navigate = useNavigate();
+  const { hasAccess } = useAuth();
+  const isPremium = hasAccess();
   const [activeTab, setActiveTab] = useState<TabType>('all');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [selectedLeagueId, setSelectedLeagueId] = useState<number | null>(null);
+
+  // Fetch leagues for sidebar
+  const { data: leaguesResponse } = useLeagues();
+  const leagues = leaguesResponse?.data?.leagues || [];
 
   // Filter state
   const [filterLeagues, setFilterLeagues] = useState<number[]>([]);
@@ -294,6 +385,9 @@ export function MatchesPage() {
 
   // Fetch fixtures with filters - use return_all to get all fixtures in single request
   // When on "live" tab, fetch live matches; otherwise fetch by date
+  // Use selectedLeagueId from sidebar, or filterLeagues from filter panel
+  const activeLeagues = selectedLeagueId ? [selectedLeagueId] : filterLeagues;
+
   const fixtureParams = {
     ...(activeTab === 'live'
       ? { match_type: 'live' as const }
@@ -301,9 +395,9 @@ export function MatchesPage() {
           date_from: formatDateForApi(currentDate),
           date_to: formatDateForApi(currentDate),
         }),
-    ...(filterLeagues.length > 0 && { leagues: filterLeagues }),
+    ...(activeLeagues.length > 0 && { leagues: activeLeagues }),
     sort_by: sortBy,
-    return_all: true, // Return all fixtures instead of just 6
+    return_all: true,
   };
 
   const { data: fixturesResponse, isLoading } = useFixtures(fixtureParams);
@@ -596,204 +690,174 @@ export function MatchesPage() {
           )}
         </div>
 
-        {/* Desktop Layout */}
-        <div className="hidden md:block max-w-[1400px] mx-auto px-6 py-6">
-          {/* Tabs and Filters Row */}
-          <div className="flex items-center justify-between gap-4 mb-6">
-            {/* Tabs */}
-            <div className="flex bg-gray-100 rounded-lg p-1 w-fit">
-              <button
-                onClick={() => setActiveTab('all')}
-                className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors ${
-                  activeTab === 'all'
-                    ? 'bg-[#0d1a67] text-white'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                All Matches
-              </button>
-              <button
-                onClick={() => setActiveTab('live')}
-                className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors ${
-                  activeTab === 'live'
-                    ? 'bg-[#0d1a67] text-white'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                Live Matches
-              </button>
-            </div>
+        {/* Desktop Layout — 3-column: Sidebar + Center + Smart Combo */}
+        <div className="hidden md:flex max-w-[1440px] mx-auto px-6 py-6 gap-6" style={{ fontFamily: 'Montserrat, sans-serif' }}>
 
-            {/* Date Navigation and Filter (hidden on live tab) */}
-            <div className="flex items-center gap-3">
-              {/* Date Navigation - only show when not on live tab */}
-              {activeTab !== 'live' && (
-                <>
-                  {/* Left arrow in grey box */}
+          {/* LEFT SIDEBAR — 341x581, rounded-12, p-16, gap-16, white bg */}
+          <div className="w-[341px] shrink-0 bg-white rounded-[12px] p-[16px] flex flex-col gap-[16px] self-start" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+            <h2 className="text-[16px] font-semibold text-[#0a0a0a]">Top leagues</h2>
+            {/* League list — rounded-8, p-8, gap-8, #f7f8fa bg */}
+            <div className="rounded-[8px] bg-[#f7f8fa] p-[8px] flex flex-col gap-[8px]">
+              {leagues.slice(0, 9).map((league) => {
+                const isSelected = selectedLeagueId === league.league_id;
+                return (
                   <button
-                    onClick={() => setCurrentDate(new Date(currentDate.getTime() - 86400000))}
-                    className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors flex items-center justify-center"
+                    key={league.league_id}
+                    onClick={() => setSelectedLeagueId(isSelected ? null : league.league_id)}
+                    className={`flex items-center gap-[10px] px-[8px] py-[12px] rounded-[8px] transition-colors ${
+                      isSelected ? 'bg-[#0d1a67]' : 'bg-white hover:bg-[#f0f1f5]'
+                    }`}
                   >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <polyline points="15 18 9 12 15 6" />
-                    </svg>
+                    {league.image_path ? (
+                      <img src={league.image_path} alt="" className="w-[24px] h-[24px] object-contain rounded-full" />
+                    ) : (
+                      <div className="w-[24px] h-[24px] rounded-full bg-[#e1e4eb]" />
+                    )}
+                    <span className={`text-[14px] font-semibold truncate flex-1 text-left ${isSelected ? 'text-white' : 'text-[#0a0a0a]'}`}>{league.league_name}</span>
+                    {isSelected && (
+                      <div className="w-[22px] h-[22px] rounded-full bg-[#f7f8fa] flex items-center justify-center shrink-0">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="#000"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                      </div>
+                    )}
                   </button>
-
-                  {/* Date display */}
-                  <span className="text-sm font-semibold text-gray-900 min-w-[100px] text-center">
-                    {currentDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
-                  </span>
-
-                  {/* Right arrow in grey box */}
-                  <button
-                    onClick={() => setCurrentDate(new Date(currentDate.getTime() + 86400000))}
-                    className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors flex items-center justify-center"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <polyline points="9 18 15 12 9 6" />
-                    </svg>
-                  </button>
-
-                  {/* Calendar in grey box */}
-                  <Calendar
-                    selectedDate={currentDate}
-                    onDateSelect={setCurrentDate}
-                  />
-                </>
-              )}
-
-              {/* Filter */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowFilterPanel(!showFilterPanel)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm font-medium ${
-                    showFilterPanel || hasActiveFilters
-                      ? 'bg-[#0d1a67] text-white'
-                      : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                  }`}
-                >
-                  Filter
-                  <img
-                    src="/arrow-down.svg"
-                    alt="Arrow"
-                    className={`w-[15px] h-auto transition-transform ${showFilterPanel ? 'rotate-180' : ''}`}
-                    style={showFilterPanel || hasActiveFilters ? { filter: 'invert(1)' } : {}}
-                  />
-                </button>
-                <FilterPanel
-                  isOpen={showFilterPanel}
-                  onClose={() => setShowFilterPanel(false)}
-                  onApply={handleFilterApply}
-                  initialFilters={currentFilters}
-                />
-              </div>
+                );
+              })}
             </div>
           </div>
 
-          {/* Loading State - Desktop Skeleton */}
-          {isLoading && (
-            <div className="space-y-8">
-              {[1, 2, 3].map((i) => (
-                <div key={i}>
-                  {/* League Header Skeleton */}
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse" />
-                    <div>
-                      <div className="h-5 bg-gray-200 rounded w-40 mb-1 animate-pulse" />
-                      <div className="h-4 bg-gray-200 rounded w-24 animate-pulse" />
-                    </div>
-                  </div>
-                  {/* Cards Grid Skeleton */}
-                  <div className="bg-white rounded-xl border border-gray-200 p-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                      <SkeletonMatchCard />
-                      <SkeletonMatchCard />
-                      <SkeletonMatchCard />
-                      <SkeletonMatchCard />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          {/* CENTER — 708px, rounded-12, p-16, gap-16, white bg */}
+          <div className="flex-1 min-w-0 bg-white rounded-[12px] p-[16px] flex flex-col gap-[16px] self-start" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+            {/* Top bar — 676x44, horizontal, gap-10 */}
+            <div className="flex items-center gap-[10px]">
+              {/* Tabs — 264x44, #f7f8fa, rounded-10, p-4 */}
+              <div className="flex bg-[#f7f8fa] rounded-[10px] p-[4px] h-[44px]">
+                <button
+                  onClick={() => setActiveTab('all')}
+                  className={`h-[36px] px-[20px] py-[6px] text-[14px] font-semibold rounded-[8px] transition-colors ${
+                    activeTab === 'all' ? 'bg-[#0d1a67] text-white' : 'text-[#7c8a9c]'
+                  }`}
+                >
+                  All Matches
+                </button>
+                <button
+                  onClick={() => setActiveTab('live')}
+                  className={`h-[36px] px-[20px] py-[6px] text-[14px] font-semibold rounded-[8px] transition-colors ${
+                    activeTab === 'live' ? 'bg-[#0d1a67] text-white' : 'text-[#7c8a9c]'
+                  }`}
+                >
+                  Live Matches
+                </button>
+              </div>
 
-          {/* Live Matches Tab */}
-          {activeTab === 'live' && !isLoading && (
-            <>
-              {/* Live Matches Section */}
-              {liveFixtures.length > 0 && (
-                <div className="mb-10">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="flex-1" />
+
+              {/* Date Navigation — 180x44, white bg, rounded-8, p-6, gap-16 */}
+              {activeTab !== 'live' && (
+                <div className="flex items-center h-[44px] px-[6px] gap-[16px] bg-white rounded-[8px]">
+                  <button
+                    onClick={() => setCurrentDate(new Date(currentDate.getTime() - 86400000))}
+                    className="w-5 h-5 flex items-center justify-center hover:opacity-70"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" strokeWidth="2"><polyline points="15 18 9 12 15 6" /></svg>
+                  </button>
+                  <div className="flex items-center gap-[8px]">
+                    <Calendar selectedDate={currentDate} onDateSelect={setCurrentDate} />
+                    <span className="text-[14px] font-semibold text-[#0a0a0a] whitespace-nowrap">
+                      {currentDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' })}{' '}
+                      {currentDate.toLocaleDateString('en-GB', { weekday: 'short' })}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setCurrentDate(new Date(currentDate.getTime() + 86400000))}
+                    className="w-5 h-5 flex items-center justify-center hover:opacity-70"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" strokeWidth="2"><polyline points="9 18 15 12 9 6" /></svg>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Loading Skeleton */}
+            {isLoading && (
+              <div className="space-y-6">
+                {[1, 2].map((i) => (
+                  <div key={i}>
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-6 h-6 bg-gray-200 rounded-full animate-pulse" />
+                      <div className="h-4 bg-gray-200 rounded w-40 animate-pulse" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <SkeletonMatchCard />
+                      <SkeletonMatchCard />
+                      <SkeletonMatchCard />
+                      <SkeletonMatchCard />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Live Matches Tab */}
+            {activeTab === 'live' && !isLoading && (
+              <>
+                {liveFixtures.length > 0 ? (
+                  <div className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth pb-2">
                     {liveFixtures.map((fixture) => (
-                      <MatchCard
-                        key={fixture.fixture.fixture_id}
-                        {...transformToMatchCard(fixture)}
-                      />
+                      <div key={fixture.fixture.fixture_id} className="flex-shrink-0 w-[calc(50%-8px)]">
+                        <MatchCard {...transformToMatchCard(fixture)} isPremium={isPremium} variant="minimal" />
+                      </div>
                     ))}
                   </div>
-                </div>
-              )}
-
-              {liveFixtures.length === 0 && (
-                <div className="flex flex-col items-center justify-center min-h-[calc(100vh-300px)] bg-white rounded-xl border border-gray-200">
-                  <img
-                    src="/404.svg"
-                    alt="No live matches"
-                    className="w-32 h-32 mb-6 opacity-60"
-                  />
-                  <p className="text-gray-500 font-medium text-lg">No matches are currently being played</p>
-                </div>
-              )}
-            </>
-          )}
-
-          {/* All Matches Tab - Grouped by League */}
-          {activeTab === 'all' && !isLoading && (
-            <div className="space-y-8">
-              {Object.entries(fixturesByLeague).map(([leagueId, league]) => (
-                <div key={leagueId}>
-                  {/* League Header */}
-                  <div className="flex items-center gap-3 mb-4">
-                    {league.logo ? (
-                      <img src={league.logo} alt={league.leagueName} className="w-8 h-8 object-contain" />
-                    ) : (
-                      <div className="w-8 h-8 bg-gray-200 rounded-full" />
-                    )}
-                    <div>
-                      <h2 className="text-lg font-bold text-gray-900">{league.leagueName}</h2>
-                      {league.country && (
-                        <p className="text-sm text-gray-500">{league.country}</p>
-                      )}
-                    </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center min-h-[400px] bg-white rounded-xl border border-[#e1e4eb]">
+                    <img src="/404.svg" alt="No live matches" className="w-24 h-24 mb-4 opacity-60" />
+                    <p className="text-[#7c8a9c] font-medium">No matches are currently being played</p>
                   </div>
+                )}
+              </>
+            )}
 
-                  {/* League Matches */}
-                  <div className="bg-gray-100 rounded-xl p-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                      {league.fixtures.slice(0, 4).map((fixture) => (
-                        <UpcomingMatchCard
-                          key={fixture.fixture.fixture_id}
-                          fixture={fixture}
-                          leagueName={league.leagueName}
-                        />
+            {/* All Matches Tab */}
+            {activeTab === 'all' && !isLoading && (
+              <div className="space-y-8">
+                {/* When a league is selected — 2-column scrollable grid */}
+                {selectedLeagueId && Object.entries(fixturesByLeague).map(([leagueId, league]) => (
+                  <div key={leagueId} className="rounded-[16px] bg-[#f7f8fa] p-[12px] flex flex-col gap-[12px]">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-[10px]">
+                        {league.logo ? <img src={league.logo} alt="" className="w-[24px] h-[24px] object-contain" /> : <div className="w-[24px] h-[24px] rounded-full bg-[#e1e4eb]" />}
+                        <span className="text-[14px] font-bold text-[#0a0a0a]">{league.leagueName}</span>
+                        {league.country && <span className="text-[14px] text-[#7c8a9c]">, {league.country}</span>}
+                      </div>
+                      <button onClick={() => navigate(`/league/${leagueId}`)} className="text-[14px] font-medium text-[#0d1a67] hover:underline">Live Table</button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-[16px]">
+                      {league.fixtures.map((fixture) => (
+                        <MatchCard key={fixture.fixture.fixture_id} {...transformToMatchCard(fixture)} isPremium={isPremium} variant="minimal" />
                       ))}
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
 
-              {Object.keys(fixturesByLeague).length === 0 && (
-                <div className="flex flex-col items-center justify-center min-h-[calc(100vh-300px)] bg-white rounded-xl border border-gray-200">
-                  <img
-                    src="/404.svg"
-                    alt="No matches"
-                    className="w-32 h-32 mb-6 opacity-60"
-                  />
-                  <p className="text-gray-500 font-medium text-lg">No matches found for this date</p>
-                </div>
-              )}
-            </div>
-          )}
+                {/* When no league selected — horizontal scroll per league in #f7f8fa container */}
+                {!selectedLeagueId && Object.entries(fixturesByLeague).map(([leagueId, league]) => (
+                  <LeagueScrollRow key={leagueId} league={league} leagueId={leagueId} navigate={navigate} isPremium={isPremium} transformToMatchCard={transformToMatchCard} />
+                ))}
+
+                {Object.keys(fixturesByLeague).length === 0 && (
+                  <div className="flex flex-col items-center justify-center min-h-[400px] bg-white rounded-xl border border-[#e1e4eb]">
+                    <img src="/404.svg" alt="No matches" className="w-24 h-24 mb-4 opacity-60" />
+                    <p className="text-[#7c8a9c] font-medium">No matches found for this date</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* RIGHT SIDEBAR — Smart Combo */}
+          <div className="w-[460px] shrink-0">
+            <SmartCombo isPremium={isPremium} />
+          </div>
         </div>
       </main>
 
