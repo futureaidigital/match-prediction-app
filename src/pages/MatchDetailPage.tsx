@@ -1806,12 +1806,29 @@ export function MatchDetailPage() {
               </div>
 
               {/* ═══ SECTION 3: RECENT HEAD-TO-HEAD ═══ 1440x179, gap-15 */}
-              {((statsData as any)?.head_to_head?.length > 0) && (
+              {((statsData as any)?.head_to_head?.length > 0) && (() => {
+                const h2hData = (statsData as any).head_to_head as any[];
+                const h2hScrollRef = { current: null as HTMLDivElement | null };
+                const scrollH2H = (dir: 'left' | 'right') => {
+                  if (h2hScrollRef.current) {
+                    h2hScrollRef.current.scrollBy({ left: dir === 'right' ? 302 : -302, behavior: 'smooth' });
+                  }
+                };
+                return (
               <div className="flex flex-col gap-[15px]">
-                <h2 className="text-[22px] font-semibold text-[#000000]" style={{ lineHeight: '130%' }}>Recent Head-to-Head</h2>
-                {/* Match cards — horizontal scroll, 20px gap */}
-                <div className="flex gap-[20px] overflow-x-auto pb-2 scrollbar-hide">
-                  {((statsData as any).head_to_head as any[]).slice(0, 5).map((h2h: any, i: number) => {
+                <div className="flex items-center justify-between">
+                  <h2 className="text-[22px] font-semibold text-[#000000]" style={{ lineHeight: '130%' }}>Recent Head-to-Head</h2>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => scrollH2H('left')} className="w-[36px] h-[36px] rounded-[8px] border border-[#e1e4eb] bg-white flex items-center justify-center hover:bg-[#f7f8fa] transition-colors">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
+                    </button>
+                    <button onClick={() => scrollH2H('right')} className="w-[36px] h-[36px] rounded-[8px] border border-[#e1e4eb] bg-white flex items-center justify-center hover:bg-[#f7f8fa] transition-colors">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
+                    </button>
+                  </div>
+                </div>
+                <div ref={(el) => { h2hScrollRef.current = el; }} className="flex gap-[20px] overflow-x-auto pb-2 scrollbar-hide scroll-smooth">
+                  {h2hData.slice(0, 10).map((h2h: any, i: number) => {
                     const date = h2h.starting_at ? new Date(h2h.starting_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
                     const homeName = h2h.home_team_name?.split(' ').pop()?.slice(0, 3).toUpperCase() || 'HOM';
                     const awayName = h2h.away_team_name?.split(' ').pop()?.slice(0, 3).toUpperCase() || 'AWY';
@@ -1841,7 +1858,8 @@ export function MatchDetailPage() {
                   })}
                 </div>
               </div>
-              )}
+                );
+              })()}
 
               {/* ── Player Stats ── */}
               {((statsData as any)?.players?.length > 0 || featuredPlayerIds.length > 0) && (
