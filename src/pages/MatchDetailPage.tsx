@@ -1587,73 +1587,107 @@ export function MatchDetailPage() {
                     See Previous <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
                   </button>
                 </div>
-                {/* Radar chart — 415x325 area with labels + value pills */}
-                <div className="flex-1 flex items-center justify-center">
-                  <div className="relative" style={{ width: '415px', height: '325px' }}>
-                    {/* Pentagon SVG centered */}
-                    <svg viewBox="0 0 264 247" className="absolute" style={{ left: '76px', top: '39px', width: '264px', height: '247px' }}>
-                      {/* Background pentagon — light grey fill */}
-                      <polygon points="132,5 255,90 208,237 56,237 9,90" fill="#f7f8fa" stroke="none" />
-                      {/* Home team shape (blue) — stroke + semi-transparent fill */}
-                      <polygon points="132,30 225,95 195,210 69,210 39,95" fill="#ccd3fc" stroke="#0d1a67" strokeWidth="2" opacity="0.85" />
-                      {/* Away team shape (green) — stroke + semi-transparent fill */}
-                      <polygon points="132,70 185,115 168,190 96,190 79,115" fill="#c8e9d080" stroke="#27ae60" strokeWidth="2" />
-                      {[0.3, 0.5, 0.7, 0.9].map((scale, i) => {
-                        const cx = 132, cy = 124, r = 115 * scale;
-                        const pts = [0, 1, 2, 3, 4].map(j => {
-                          const angle = (Math.PI * 2 * j / 5) - Math.PI / 2;
-                          return `${cx + r * Math.cos(angle)},${cy + r * Math.sin(angle)}`;
-                        }).join(' ');
-                        return <polygon key={i} points={pts} fill="none" stroke="#e1e4eb" strokeWidth="0.5" />;
-                      })}
-                      {[0, 1, 2, 3, 4].map(j => {
-                        const angle = (Math.PI * 2 * j / 5) - Math.PI / 2;
-                        return <line key={j} x1="132" y1="124" x2={132 + 103 * Math.cos(angle)} y2={124 + 103 * Math.sin(angle)} stroke="#e1e4eb" strokeWidth="0.5" />;
-                      })}
-                    </svg>
-                    {/* Stat labels with value pills — positioned around the chart */}
-                    {/* ATT — top center */}
-                    <div className="absolute flex items-center gap-1" style={{ top: '0px', left: '50%', transform: 'translateX(-50%)' }}>
-                      <span className="text-[10px] font-semibold text-[#8c99a9]" style={{ letterSpacing: '-0.5px', lineHeight: '18px' }}>ATT</span>
-                      <div className="flex gap-[2px]">
-                        <span className="px-1 py-[6px] rounded-[4px] bg-[#f7f8fa] text-[10px] font-medium text-[#07bb15]" style={{ lineHeight: '7px' }}>39</span>
-                        <span className="px-1 py-[6px] rounded-[4px] bg-[#f7f8fa] text-[10px] font-medium text-[#0d1a67]" style={{ lineHeight: '7px' }}>78</span>
+                {/* Radar chart — data-driven from raw_statistics */}
+                {(() => {
+                  const raw = statsData?.raw_statistics || {} as any;
+                  const atk = raw.attacking_threat || {};
+                  const shots = raw.shots || {};
+                  const duels = raw.duels_and_dribbling || {};
+                  const def = raw.defence_and_discipline || {};
+                  const pas = raw.passes || {};
+                  // Compute scores per axis (0-100 scale)
+                  const computeScore = (val: number, max: number) => Math.min(Math.round((val / Math.max(max, 1)) * 100), 100);
+
+                  // ATT: goals + dangerous-attacks + shots-on-target
+                  const attHome = (atk['goals']?.home || 0) * 20 + (atk['dangerous-attacks']?.home || 0) * 0.5 + (shots['shots-on-target']?.home || 0) * 3;
+                  const attAway = (atk['goals']?.away || 0) * 20 + (atk['dangerous-attacks']?.away || 0) * 0.5 + (shots['shots-on-target']?.away || 0) * 3;
+                  const attMax = Math.max(attHome, attAway, 1);
+
+                  // TEC: pass accuracy + dribble success
+                  const tecHome = (pas['successful-passes-percentage']?.home || 0) + (duels['successful-dribbles-percentage']?.home || 0) * 0.5;
+                  const tecAway = (pas['successful-passes-percentage']?.away || 0) + (duels['successful-dribbles-percentage']?.away || 0) * 0.5;
+                  const tecMax = Math.max(tecHome, tecAway, 1);
+
+                  // TAC: tackles + interceptions
+                  const tacHome = (def['tackles']?.home || 0) + (def['interceptions']?.home || 0);
+                  const tacAway = (def['tackles']?.away || 0) + (def['interceptions']?.away || 0);
+                  const tacMax = Math.max(tacHome, tacAway, 1);
+
+                  // DEF: saves + ball-safe + successful-headers
+                  const defHome = (def['saves']?.home || 0) * 3 + (def['ball-safe']?.home || 0) + (duels['successful-headers']?.home || 0);
+                  const defAway = (def['saves']?.away || 0) * 3 + (def['ball-safe']?.away || 0) + (duels['successful-headers']?.away || 0);
+                  const defMax = Math.max(defHome, defAway, 1);
+
+                  // CRE: key-passes + big-chances-created + assists
+                  const creHome = (pas['key-passes']?.home || 0) + (atk['big-chances-created']?.home || 0) * 3 + (atk['assists']?.home || 0) * 5;
+                  const creAway = (pas['key-passes']?.away || 0) + (atk['big-chances-created']?.away || 0) * 3 + (atk['assists']?.away || 0) * 5;
+                  const creMax = Math.max(creHome, creAway, 1);
+
+                  // Order: ATT (top), TEC (right), TAC (bottom-right), DEF (bottom-left), CRE (left)
+                  const homeScores = [
+                    computeScore(attHome, attMax),
+                    computeScore(tecHome, tecMax),
+                    computeScore(tacHome, tacMax),
+                    computeScore(defHome, defMax),
+                    computeScore(creHome, creMax),
+                  ];
+                  const awayScores = [
+                    computeScore(attAway, attMax),
+                    computeScore(tecAway, tecMax),
+                    computeScore(tacAway, tacMax),
+                    computeScore(defAway, defMax),
+                    computeScore(creAway, creMax),
+                  ];
+
+                  const cx = 132, cy = 124, maxR = 103;
+                  const toPoints = (scores: number[]) => scores.map((s, j) => {
+                    const r = (s / 100) * maxR;
+                    const angle = (Math.PI * 2 * j / 5) - Math.PI / 2;
+                    return `${cx + r * Math.cos(angle)},${cy + r * Math.sin(angle)}`;
+                  }).join(' ');
+
+                  const labels = [
+                    { name: 'ATT', homeVal: homeScores[0], awayVal: awayScores[0], style: { top: '0px', left: '50%', transform: 'translateX(-50%)' } },
+                    { name: 'TEC', homeVal: homeScores[1], awayVal: awayScores[1], style: { top: '90px', right: '0px' } },
+                    { name: 'TAC', homeVal: homeScores[2], awayVal: awayScores[2], style: { bottom: '10px', right: '40px' } },
+                    { name: 'DEF', homeVal: homeScores[3], awayVal: awayScores[3], style: { bottom: '10px', left: '40px' } },
+                    { name: 'CRE', homeVal: homeScores[4], awayVal: awayScores[4], style: { top: '90px', left: '0px' } },
+                  ];
+
+                  return (
+                    <div className="flex-1 flex items-center justify-center">
+                      <div className="relative" style={{ width: '415px', height: '325px' }}>
+                        <svg viewBox="0 0 264 247" className="absolute" style={{ left: '76px', top: '39px', width: '264px', height: '247px' }}>
+                          {/* Background pentagon */}
+                          <polygon points={toPoints([100,100,100,100,100])} fill="#f7f8fa" stroke="none" />
+                          {/* Grid lines */}
+                          {[0.3, 0.5, 0.7, 0.9].map((scale, i) => (
+                            <polygon key={i} points={toPoints([scale*100,scale*100,scale*100,scale*100,scale*100])} fill="none" stroke="#e1e4eb" strokeWidth="0.5" />
+                          ))}
+                          {/* Axis lines */}
+                          {[0, 1, 2, 3, 4].map(j => {
+                            const angle = (Math.PI * 2 * j / 5) - Math.PI / 2;
+                            return <line key={j} x1={cx} y1={cy} x2={cx + maxR * Math.cos(angle)} y2={cy + maxR * Math.sin(angle)} stroke="#e1e4eb" strokeWidth="0.5" />;
+                          })}
+                          {/* Home team shape (blue) */}
+                          <polygon points={toPoints(homeScores)} fill="#ccd3fc" stroke="#0d1a67" strokeWidth="2" opacity="0.85" />
+                          {/* Away team shape (green) */}
+                          <polygon points={toPoints(awayScores)} fill="#c8e9d080" stroke="#27ae60" strokeWidth="2" />
+                        </svg>
+                        {/* Labels with value pills */}
+                        {labels.map(lbl => (
+                          <div key={lbl.name} className="absolute flex items-center gap-1" style={lbl.style as any}>
+                            <span className="text-[10px] font-semibold text-[#8c99a9]" style={{ letterSpacing: '-0.5px', lineHeight: '18px' }}>{lbl.name}</span>
+                            <div className="flex gap-[2px]">
+                              <span className="px-1 py-[6px] rounded-[4px] bg-[#f7f8fa] text-[10px] font-medium text-[#07bb15]" style={{ lineHeight: '7px' }}>{lbl.homeVal}</span>
+                              <span className="px-1 py-[6px] rounded-[4px] bg-[#f7f8fa] text-[10px] font-medium text-[#0d1a67]" style={{ lineHeight: '7px' }}>{lbl.awayVal}</span>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                    {/* TEC — right */}
-                    <div className="absolute flex items-center gap-1" style={{ top: '90px', right: '0px' }}>
-                      <span className="text-[10px] font-semibold text-[#8c99a9]" style={{ letterSpacing: '-0.5px', lineHeight: '18px' }}>TEC</span>
-                      <div className="flex gap-[2px]">
-                        <span className="px-1 py-[6px] rounded-[4px] bg-[#f7f8fa] text-[10px] font-medium text-[#07bb15]" style={{ lineHeight: '7px' }}>48</span>
-                        <span className="px-1 py-[6px] rounded-[4px] bg-[#f7f8fa] text-[10px] font-medium text-[#0d1a67]" style={{ lineHeight: '7px' }}>67</span>
-                      </div>
-                    </div>
-                    {/* TAC — bottom right */}
-                    <div className="absolute flex items-center gap-1" style={{ bottom: '10px', right: '40px' }}>
-                      <span className="text-[10px] font-semibold text-[#8c99a9]" style={{ letterSpacing: '-0.5px', lineHeight: '18px' }}>TAC</span>
-                      <div className="flex gap-[2px]">
-                        <span className="px-1 py-[6px] rounded-[4px] bg-[#f7f8fa] text-[10px] font-medium text-[#07bb15]" style={{ lineHeight: '7px' }}>70</span>
-                        <span className="px-1 py-[6px] rounded-[4px] bg-[#f7f8fa] text-[10px] font-medium text-[#0d1a67]" style={{ lineHeight: '7px' }}>55</span>
-                      </div>
-                    </div>
-                    {/* DEF — bottom left */}
-                    <div className="absolute flex items-center gap-1" style={{ bottom: '10px', left: '40px' }}>
-                      <span className="text-[10px] font-semibold text-[#8c99a9]" style={{ letterSpacing: '-0.5px', lineHeight: '18px' }}>DEF</span>
-                      <div className="flex gap-[2px]">
-                        <span className="px-1 py-[6px] rounded-[4px] bg-[#f7f8fa] text-[10px] font-medium text-[#07bb15]" style={{ lineHeight: '7px' }}>78</span>
-                        <span className="px-1 py-[6px] rounded-[4px] bg-[#f7f8fa] text-[10px] font-medium text-[#0d1a67]" style={{ lineHeight: '7px' }}>23</span>
-                      </div>
-                    </div>
-                    {/* CRE — left */}
-                    <div className="absolute flex items-center gap-1" style={{ top: '90px', left: '0px' }}>
-                      <span className="text-[10px] font-semibold text-[#8c99a9]" style={{ letterSpacing: '-0.5px', lineHeight: '18px' }}>CRE</span>
-                      <div className="flex gap-[2px]">
-                        <span className="px-1 py-[6px] rounded-[4px] bg-[#f7f8fa] text-[10px] font-medium text-[#07bb15]" style={{ lineHeight: '7px' }}>48</span>
-                        <span className="px-1 py-[6px] rounded-[4px] bg-[#f7f8fa] text-[10px] font-medium text-[#0d1a67]" style={{ lineHeight: '7px' }}>67</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                  );
+                })()}
                 {/* Legend — 103x40, vertical, 4px gap */}
                 <div className="flex flex-col items-center gap-[4px]">
                   <div className="flex items-center gap-2">
