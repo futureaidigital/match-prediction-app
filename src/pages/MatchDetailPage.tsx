@@ -374,6 +374,12 @@ function H2HMatchModal({ h2hMatch, onClose }: { h2hMatch: any; onClose: () => vo
   const modalStatsData = statsResponse?.data?.statistics;
   const [modalExpandedCards, setModalExpandedCards] = useState<Set<string>>(new Set());
 
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
+
   const date = h2hMatch.starting_at ? new Date(h2hMatch.starting_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 
   return (
@@ -382,7 +388,7 @@ function H2HMatchModal({ h2hMatch, onClose }: { h2hMatch: any; onClose: () => vo
       <div className="absolute inset-0 bg-black/50" />
       {/* Modal */}
       <div
-        className="relative bg-white w-full md:w-[960px] md:rounded-[16px] rounded-t-[16px] max-h-[90vh] overflow-y-auto"
+        className="relative bg-white w-full md:w-[960px] md:rounded-[16px] rounded-t-[16px] max-h-[90vh] overflow-y-auto scrollbar-hide"
         style={{ fontFamily: 'Montserrat, sans-serif' }}
         onClick={(e) => e.stopPropagation()}
       >
