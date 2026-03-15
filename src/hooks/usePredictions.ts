@@ -9,6 +9,8 @@ export function useFixturePredictions(
     prediction_type?: string;
     page?: number;
     limit?: number;
+    sort_by?: string;
+    sort_order?: string;
   },
   options?: Omit<
     UseQueryOptions<ApiResponse<Prediction[]>>,

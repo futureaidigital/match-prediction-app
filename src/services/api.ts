@@ -181,6 +181,9 @@ export interface FixtureStatisticsData {
   fixture_id: number;
   basic: Record<string, any>;  // Backend returns dynamic dict
   advanced: Record<string, any>;  // Backend returns dynamic dict
+  raw_statistics?: Record<string, Record<string, { home: number; away: number }>>;  // Actual API structure
+  home_team_id?: number;
+  away_team_id?: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -853,7 +856,15 @@ class ApiClient {
     prediction_type?: string;
     page?: number;
     limit?: number;
+    sort_by?: string;
+    sort_order?: string;
   }): Promise<ApiResponse<Prediction[]>> {
+    if (params.fixture_id) {
+      // Use the per-fixture predictions endpoint
+      const { fixture_id, ...rest } = params;
+      const queryString = buildQueryString(rest);
+      return this.request<Prediction[]>(`/fixtures/${fixture_id}/predictions${queryString}`);
+    }
     const queryString = buildQueryString(params);
     return this.request<Prediction[]>(`/predictions${queryString}`);
   }

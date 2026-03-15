@@ -77,20 +77,45 @@ export function DemoPage() {
     return params;
   }, [selectedDate, filterLeagues, sortBy, hasActiveFilters, isDateFiltered]);
 
-  // Fetch fixtures with filters
-  const { data: fixturesResponse, isLoading: isLoadingFixtures, error, refetch: refetchFixtures } = useFixtures(fixtureParams);
+  // Step 1: Fetch initial fixtures (returns all fixture_ids + first 6 with details)
+  const { data: fixturesResponse, isLoading: isLoadingInitial, error, refetch: refetchFixtures } = useFixtures(fixtureParams);
 
-  // Get fixtures from response
-  const allFixtures = fixturesResponse?.data?.fixtures ?? [];
+  // All fixture IDs from the initial response (used for pagination)
+  const allFixtureIds = fixturesResponse?.data?.fixture_ids ?? [];
+  const initialFixtures = fixturesResponse?.data?.fixtures ?? [];
 
-  // Paginate fixtures client-side
-  const fixtures = useMemo(() => {
+  // Step 2: Determine which fixture IDs we need for the current page
+  const pageFixtureIds = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    return allFixtures.slice(startIndex, endIndex);
-  }, [allFixtures, currentPage, itemsPerPage]);
+    return allFixtureIds.slice(startIndex, endIndex);
+  }, [allFixtureIds, currentPage, itemsPerPage]);
 
-  const isLoading = isLoadingFixtures;
+  // Step 3: Check if we already have data for this page from the initial response
+  const initialFixtureIds = useMemo(
+    () => new Set(initialFixtures.map((f) => f.fixture.fixture_id)),
+    [initialFixtures]
+  );
+  const needsFetch = pageFixtureIds.length > 0 && !pageFixtureIds.every((id) => initialFixtureIds.has(id));
+
+  // Step 4: Fetch additional fixture details when paginating beyond the initial 6
+  const { data: pageResponse, isLoading: isLoadingPage } = useFixtures(
+    { fixture_ids: pageFixtureIds, sort_by: sortBy },
+    { enabled: needsFetch && pageFixtureIds.length > 0 }
+  );
+
+  // Use page-specific data if we fetched it, otherwise use initial fixtures sliced for page 1
+  const fixtures = useMemo(() => {
+    if (needsFetch) {
+      return pageResponse?.data?.fixtures ?? [];
+    }
+    // Page 1 (or pages covered by initial response) — slice from initial fixtures
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return initialFixtures.slice(startIndex, endIndex);
+  }, [needsFetch, pageResponse, initialFixtures, currentPage, itemsPerPage]);
+
+  const isLoading = isLoadingInitial || (needsFetch && isLoadingPage);
 
   // Refetch fixtures when authentication state changes
   useEffect(() => {
@@ -102,12 +127,11 @@ export function DemoPage() {
   // Check if user is premium - use hasAccess() which checks both subscriptionStatus and demo_premium flag
   const isPremium = hasAccess();
 
-  // Calculate total pages from all fixtures (minimum 10 for demo when no filters)
+  // Calculate total pages from all fixture IDs
   const totalPages = useMemo(() => {
-    const totalCount = allFixtures.length;
-    // When filters are active, show actual pages; otherwise show minimum 10 for demo
-    return hasActiveFilters ? Math.max(Math.ceil(totalCount / itemsPerPage), 1) : Math.max(Math.ceil(totalCount / itemsPerPage), 10);
-  }, [allFixtures.length, itemsPerPage, hasActiveFilters]);
+    const totalCount = allFixtureIds.length;
+    return Math.max(Math.ceil(totalCount / itemsPerPage), 1);
+  }, [allFixtureIds.length, itemsPerPage]);
 
   // Transform fixture data to match MatchCard interface
   const paginatedCards = useMemo(() => {
@@ -127,10 +151,10 @@ export function DemoPage() {
 
   // Mark as loaded once we get data
   useEffect(() => {
-    if (allFixtures.length > 0 && !hasLoadedOnce) {
+    if (allFixtureIds.length > 0 && !hasLoadedOnce) {
       setHasLoadedOnce(true);
     }
-  }, [allFixtures.length, hasLoadedOnce]);
+  }, [allFixtureIds.length, hasLoadedOnce]);
 
 
   // Only show full page skeleton on initial load, not when filters change

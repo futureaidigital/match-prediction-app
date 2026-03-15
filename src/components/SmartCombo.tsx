@@ -2,7 +2,6 @@ import { useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MatchCard } from '@/components/MatchCard';
 import { useCurrentSmartCombo } from '@/hooks/useSmartCombo';
-import { useSmartComboPredictions } from '@/hooks/usePredictions';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface SmartComboProps {
@@ -27,53 +26,17 @@ export function SmartCombo({ isPremium = false }: SmartComboProps) {
   const combo = comboResponse?.data?.combo;
   const fixtures = comboResponse?.data?.fixtures || [];
 
-  // Fetch predictions sorted by pct_change from /predictions/smart-combos
-  // This follows the architecture: sort by pct_change for trending predictions
-  const {
-    data: predictionsResponse,
-    isLoading: isLoadingPredictions,
-    refetch: refetchPredictions,
-  } = useSmartComboPredictions(
-    {
-      combo_id: combo?.combo_id,
-      sort_by: 'pct_change',
-      sort_order: 'desc',
-      limit: 50,
-    },
-    {
-      enabled: !!combo?.combo_id && isAuthenticated,
-    }
-  );
-
   // Refetch data when authentication state changes
   useEffect(() => {
     if (isAuthenticated) {
       refetchCombo();
-      if (combo?.combo_id) {
-        refetchPredictions();
-      }
     }
   }, [isAuthenticated]);
 
-  // Get the sorted predictions and group by fixture_id
-  const sortedPredictions = predictionsResponse?.data?.predictions || [];
-  const predictionsByFixture = useMemo(() => {
-    const map = new Map<number, typeof sortedPredictions>();
-    sortedPredictions.forEach((pred) => {
-      const existing = map.get(pred.fixture_id) || [];
-      existing.push(pred);
-      map.set(pred.fixture_id, existing);
-    });
-    return map;
-  }, [sortedPredictions]);
-
-  // Convert fixtures to MatchCard format, using sorted predictions
+  // Convert fixtures to MatchCard format using inline predictions
   const matchCards = useMemo(() => {
     return fixtures.map((fixtureData) => {
-      const { fixture, predictions: fallbackPredictions } = fixtureData;
-
-      // Use sorted predictions from the separate endpoint, or fall back to embedded predictions
-      const predictions = predictionsByFixture.get(fixture.fixture_id) || fallbackPredictions;
+      const { fixture, predictions } = fixtureData;
 
       // Use logo fields if available from backend
       const homeTeamLogo = fixture.home_team_image_path || fixture.home_team_logo_location;
@@ -119,7 +82,7 @@ export function SmartCombo({ isPremium = false }: SmartComboProps) {
         })),
       };
     });
-  }, [fixtures, predictionsByFixture]);
+  }, [fixtures]);
 
   // Use accuracy from combo data
   const accuracy = useMemo(() => {
@@ -130,7 +93,7 @@ export function SmartCombo({ isPremium = false }: SmartComboProps) {
 
 
   // Loading state
-  if (isAuthLoading || isLoadingCombo || isLoadingPredictions) {
+  if (isAuthLoading || isLoadingCombo) {
     return (
       <div className="w-[358px] md:w-[460px] mx-auto md:mx-0">
         <div

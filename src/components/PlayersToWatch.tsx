@@ -308,9 +308,9 @@ export function PlayersToWatch() {
         const positionId = playerData?.position?.id || playerData?.position_id || statsData?.position_id;
         const positionName = playerData?.position?.name;
 
-        // Get team info - team_id is available, team_name might not be
+        // Get team info from nested current_team object
         const teamId = playerData?.current_team?.team_id;
-        const teamName = playerData?.team_name;
+        const teamName = playerData?.current_team?.team_name || playerData?.team_name;
 
         return {
           player_id: playerId,

@@ -5,7 +5,7 @@ import { Footer } from '@/components/Footer';
 import { MatchBanner } from '@/components/MatchBanner';
 import { useFixtures, useFixtureStatistics, useFixtureCommentary } from '@/hooks/useFixtures';
 import { useFixturePredictions } from '@/hooks/usePredictions';
-import { useMultiplePlayerDetails } from '@/hooks/usePlayers';
+// Player stats now come from inline statsData.players (fixture statistics endpoint)
 import { useAuth } from '@/contexts/AuthContext';
 
 type TabType = 'predictions' | 'commentary' | 'stats' | 'lineups';
@@ -601,14 +601,29 @@ function AIAnalysisPanel({ prediction, fixture: _fixture, statsData: _statsData,
 
   const title = prediction.title || prediction.prediction_display_name || 'Prediction';
 
-  const statCols = [
-    { key: 'rating', label: 'RTG' },
-    { key: 'shots_on_target', label: 'SOT' },
-    { key: 'total_shots', label: 'SHOT' },
-    { key: 'shots_off_target', label: 'OFF' },
-    { key: 'chances_created', label: 'CRE' },
-    { key: 'goals', label: 'GLS' },
-  ];
+  // Dynamic stat columns derived from match_history data
+  // Map known keys to short labels; fall back to uppercase key
+  const labelMap: Record<string, string> = {
+    rating: 'RTG', shots_on_target: 'SOT', 'shots on target': 'SOT',
+    total_shots: 'SHOT', 'total shots': 'SHOT', shots_off_target: 'OFF',
+    chances_created: 'CRE', goals: 'GLS', xG: 'xG',
+    big_chances: 'BIG', tackles: 'TKL', fouls: 'FLS',
+    cards: 'CRD', tackle_to_interception_ratio: 'T/I',
+  };
+  // Exclude non-stat keys from match_history entries
+  const excludeKeys = new Set(['fixture_id', 'home_team_name', 'away_team_name', 'home_team_logo_url', 'away_team_logo_url', 'starting_at']);
+  const statCols = matchHistory.length > 0
+    ? Object.keys(matchHistory[0])
+        .filter(k => !excludeKeys.has(k))
+        .map(k => ({ key: k, label: labelMap[k] || k.slice(0, 4).toUpperCase() }))
+    : [
+        { key: 'rating', label: 'RTG' },
+        { key: 'shots_on_target', label: 'SOT' },
+        { key: 'total_shots', label: 'SHOT' },
+        { key: 'shots_off_target', label: 'OFF' },
+        { key: 'chances_created', label: 'CRE' },
+        { key: 'goals', label: 'GLS' },
+      ];
 
   return (
     <div
@@ -628,10 +643,23 @@ function AIAnalysisPanel({ prediction, fixture: _fixture, statsData: _statsData,
       {/* Inner #f7f8fa container */}
       <div className="rounded-[16px] bg-[#f7f8fa] p-4 flex flex-col gap-6">
 
-        {/* 1. AI Analysis */}
+        {/* 1. AI Analysis - collapsible */}
         <div className="flex flex-col gap-[15px]">
-          <span className="text-[14px] font-semibold text-[#7c8a9c] uppercase tracking-wide">AI Analysis</span>
-          <div className="rounded-[20px] bg-white border border-[#e1e4eb] p-4">
+          <button
+            onClick={() => {
+              const el = document.getElementById(`ai-analysis-${prediction.prediction_id || prediction._id || 'detail'}`);
+              if (el) el.classList.toggle('hidden');
+              const chevron = document.getElementById(`ai-chevron-${prediction.prediction_id || prediction._id || 'detail'}`);
+              if (chevron) chevron.classList.toggle('rotate-180');
+            }}
+            className="flex items-center justify-between w-full"
+          >
+            <span className="text-[14px] font-semibold text-[#7c8a9c] uppercase tracking-wide">AI Analysis</span>
+            <svg id={`ai-chevron-${prediction.prediction_id || prediction._id || 'detail'}`} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7c8a9c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+          <div id={`ai-analysis-${prediction.prediction_id || prediction._id || 'detail'}`} className="rounded-[20px] bg-white border border-[#e1e4eb] p-4">
             <p className="text-sm font-medium text-[#7c8a9c] leading-[1.6]">
               {aiAnalysis || 'No analysis available for this prediction.'}
             </p>
@@ -645,33 +673,36 @@ function AIAnalysisPanel({ prediction, fixture: _fixture, statsData: _statsData,
             <p className="text-xs font-medium text-[#7c8a9c]">Comparing {title} performance</p>
           </div>
           <div className="rounded-[8px] bg-white p-4 flex flex-col gap-4">
-            {/* Current prediction bar */}
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-[#7c8a9c] w-24 shrink-0">Current</span>
-              <div className="flex-1 h-[6px] rounded-full bg-[#e1e4eb]">
-                <div className="h-[6px] rounded-full transition-all" style={{ width: `${percentage}%`, backgroundColor: conf.color }} />
+            {/* Bars container */}
+            <div className="flex flex-col gap-2">
+              {/* vs Top 6 row */}
+              <div className="flex items-center gap-4 h-6">
+                <span className="text-[12px] font-semibold text-[#7c8a9c] flex-1" style={{ letterSpacing: '-0.5px' }}>vs Top 6</span>
+                <span className="text-[14px] font-semibold text-black whitespace-nowrap" style={{ letterSpacing: '-0.5px' }}>{preGamePercentage > 0 ? `${(preGamePercentage / 100 * 5).toFixed(1)} Avg SOT` : '-'}</span>
+                <div className="w-px h-4 bg-[#e1e4eb]" />
+                <div className="relative w-[204px] h-[6px] rounded-full bg-[#ebebeb]">
+                  <div className="absolute top-0 left-0 h-[6px] rounded-full bg-[#858585] transition-all" style={{ width: `${Math.min(preGamePercentage, 100)}%` }} />
+                </div>
               </div>
-              <span className="text-sm font-semibold w-10 text-right" style={{ color: conf.color }}>{percentage}%</span>
-            </div>
-            {/* Pre-game bar */}
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-[#7c8a9c] w-24 shrink-0">Pre-game</span>
-              <div className="flex-1 h-[6px] rounded-full bg-[#e1e4eb]">
-                <div className="h-[6px] rounded-full bg-[#7c8a9c] transition-all" style={{ width: `${preGamePercentage}%` }} />
+              {/* vs Bottom 6 row */}
+              <div className="flex items-center gap-4 h-6">
+                <span className="text-[12px] font-semibold text-[#7c8a9c] flex-1" style={{ letterSpacing: '-0.5px' }}>vs Bottom 6</span>
+                <span className="text-[14px] font-semibold text-black whitespace-nowrap" style={{ letterSpacing: '-0.5px' }}>{percentage > 0 ? `${(percentage / 100 * 5).toFixed(1)} Avg SOT` : '-'}</span>
+                <div className="w-px h-4 bg-[#e1e4eb]" />
+                <div className="relative w-[204px] h-[6px] rounded-full bg-[#ebebeb]">
+                  <div className="absolute top-0 left-0 h-[6px] rounded-full bg-[#27ae60] transition-all" style={{ width: `${Math.min(percentage, 100)}%` }} />
+                </div>
               </div>
-              <span className="text-sm font-semibold text-[#7c8a9c] w-10 text-right">{preGamePercentage}%</span>
             </div>
             {/* Insight badge */}
             {pctChange !== 0 && (
-              <div className="rounded-lg px-3 py-2 flex items-center gap-2" style={{ backgroundColor: pctChange > 0 ? '#e6f4ec' : '#fdedec' }}>
-                <img src="/trend.svg" width="16" height="10" alt="" style={{
-                  filter: pctChange > 0
-                    ? 'brightness(0) saturate(100%) invert(52%) sepia(79%) saturate(409%) hue-rotate(95deg) brightness(93%) contrast(91%)'
-                    : 'brightness(0) saturate(100%) invert(33%) sepia(84%) saturate(1200%) hue-rotate(329deg) brightness(97%) contrast(95%)',
+              <div className="rounded-[8px] px-2 py-1 flex items-center justify-center gap-2" style={{ backgroundColor: '#ddefe7' }}>
+                <img src="/trend.svg" width="14" height="14" alt="" style={{
+                  filter: 'brightness(0) saturate(100%) invert(52%) sepia(79%) saturate(409%) hue-rotate(95deg) brightness(93%) contrast(91%)',
                   transform: pctChange > 0 ? 'none' : 'scaleY(-1)',
                 }} />
-                <span className="text-sm font-semibold" style={{ color: pctChange > 0 ? '#27ae60' : '#e74c3c' }}>
-                  {Math.abs(pctChange).toFixed(0)}% Performance {pctChange > 0 ? 'Increase' : 'Decrease'} vs Similar Matches
+                <span className="text-[12px] font-semibold" style={{ color: '#27ae60', letterSpacing: '-0.5px' }}>
+                  {Math.abs(pctChange).toFixed(0)}% Performance {pctChange > 0 ? 'Increase' : 'Decrease'} vs Weak Teams
                 </span>
               </div>
             )}
@@ -684,36 +715,74 @@ function AIAnalysisPanel({ prediction, fixture: _fixture, statsData: _statsData,
         {/* 3. Detailed Match Stats */}
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-1">
-            <h4 className="text-[16px] font-semibold text-[#0a0a0a]">Detailed Match Stats</h4>
-            <p className="text-xs font-medium text-[#7c8a9c]">Last 5 matches</p>
+            <h4 className="text-[16px] font-semibold text-[#0a0a0a]" style={{ letterSpacing: '-1%' }}>Detailed Match Stats</h4>
+            <p className="text-[12px] font-semibold text-[#7c8a9c]" style={{ letterSpacing: '-0.5px' }}>Last 5 matches</p>
           </div>
-          <div className="bg-white rounded-[8px] overflow-hidden">
-            {/* Table header */}
-            <div className="flex items-center px-4 h-[40px] bg-[#f7f8fa]">
-              <span className="text-xs font-semibold text-[#7c8a9c] flex-1">MATCH</span>
-              {statCols.map(col => (
-                <span key={col.key} className="text-xs font-semibold text-[#7c8a9c] w-10 text-center">{col.label}</span>
+          <div className="flex flex-col gap-4">
+            {/* Table header row */}
+            <div className="flex items-center px-2 h-[30px] bg-white rounded-[8px]">
+              <span className="text-[12px] font-semibold text-[#7c8a9c] flex-1" style={{ letterSpacing: '-0.5px' }}>MATCH</span>
+              {statCols.map((col, idx) => (
+                <div key={col.key} className="flex items-center">
+                  {idx > 0 && <div className="w-px h-4 bg-[#e1e4eb] mx-1.5" />}
+                  <span className="w-10 h-[30px] rounded-[4px] flex items-center justify-center text-[12px] font-semibold text-[#7c8a9c]" style={{ letterSpacing: '-0.5px' }}>{col.label}</span>
+                </div>
               ))}
             </div>
+            {/* Data rows */}
             {matchHistory.length > 0 ? matchHistory.slice(0, 5).map((match: any, i: number) => {
               const date = match.starting_at ? new Date(match.starting_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '';
               const oppName = match.away_team_name || match.home_team_name || '';
               const shortOpp = oppName.length > 12 ? oppName.slice(0, 10) + '…' : oppName;
+              const oppLogo = match.away_team_logo_url || match.home_team_logo_url || '';
+              // Determine result badge
+              const goals = match.goals ?? 0;
+              const result = goals > 0 ? 'W' : goals === 0 ? 'D' : 'L';
+              const resultColor = result === 'W' ? '#27ae60' : result === 'L' ? '#e74c3c' : '#f39c12';
+              // RTG color based on rating value
+              const rtg = match.rating;
+              const rtgColor = rtg != null && rtg >= 7.5 ? '#00ca68' : rtg != null && rtg >= 6.5 ? '#f39c12' : '#e74c3c';
               return (
-                <div key={i} className={`flex items-center px-4 h-[48px] ${i < matchHistory.slice(0,5).length - 1 ? 'border-b border-[#f0f1f3]' : ''}`}>
-                  <div className="flex-1 flex flex-col">
-                    <span className="text-xs font-semibold text-[#0a0a0a] leading-tight">Vs {shortOpp}</span>
-                    <span className="text-[10px] font-medium text-[#7c8a9c]">{date}</span>
-                  </div>
-                  {statCols.map(col => (
-                    <span key={col.key} className="text-xs font-medium text-[#3a3f47] w-10 text-center">
-                      {match[col.key] != null ? match[col.key] : '-'}
+                <div key={i} className="flex items-center px-2 h-[38px]">
+                  {/* Match info */}
+                  <div className="flex-1 flex items-center gap-2 min-w-0">
+                    {oppLogo ? (
+                      <img src={oppLogo} alt="" className="w-5 h-5 rounded-full shrink-0" />
+                    ) : (
+                      <div className="w-5 h-5 rounded-full bg-[#e1e4eb] shrink-0" />
+                    )}
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-[12px] font-semibold text-[#0a0a0a] leading-tight truncate" style={{ letterSpacing: '-0.5px' }}>Vs {shortOpp}</span>
+                      <span className="text-[10px] font-medium text-[#27ae60]" style={{ letterSpacing: '-0.5px' }}>{date}</span>
+                    </div>
+                    {/* Result badge */}
+                    <span className="ml-1 w-[18px] h-[18px] rounded-[4px] flex items-center justify-center text-[10px] font-bold text-white shrink-0" style={{ backgroundColor: resultColor }}>
+                      {result}
                     </span>
-                  ))}
+                  </div>
+                  {/* Stat columns */}
+                  {statCols.map((col, colIdx) => {
+                    const val = match[col.key];
+                    return (
+                      <div key={col.key} className="flex items-center">
+                        {colIdx > 0 && <div className="w-px h-4 bg-[#e1e4eb] mx-1.5" />}
+                        {/* RTG column (first) gets colored pill */}
+                        {colIdx === 0 ? (
+                          <span className="w-10 h-[30px] rounded-[4px] flex items-center justify-center text-[12px] font-bold text-white" style={{ backgroundColor: val != null ? rtgColor : '#f7f8fa', color: val != null ? '#fff' : '#7c8a9c' }}>
+                            {val != null ? (typeof val === 'number' ? val.toFixed(1) : val) : '-'}
+                          </span>
+                        ) : (
+                          <span className="w-10 h-[30px] rounded-[4px] bg-[#f7f8fa] flex items-center justify-center text-[12px] font-medium text-[#3a3f47]">
+                            {val != null ? val : '-'}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               );
             }) : (
-              <div className="px-4 py-6 text-xs text-[#7c8a9c] text-center">No match history available</div>
+              <div className="px-4 py-6 text-[12px] text-[#7c8a9c] text-center">No match history available</div>
             )}
           </div>
         </div>
@@ -724,25 +793,21 @@ function AIAnalysisPanel({ prediction, fixture: _fixture, statsData: _statsData,
         {/* 4. Model Confidence */}
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-1">
-            <h4 className="text-[16px] font-semibold text-[#0a0a0a]">Model confidence</h4>
-            <p className="text-xs font-semibold text-[#7c8a9c]">Based on 15+ factors</p>
+            <h4 className="text-[16px] font-semibold text-[#0a0a0a]" style={{ letterSpacing: '-1%', lineHeight: '24px' }}>Model confidence</h4>
+            <p className="text-[12px] font-semibold text-[#7c8a9c]" style={{ letterSpacing: '-0.5px', lineHeight: '18px' }}>Based on 15+ factors</p>
           </div>
           <div className="rounded-[8px] bg-white p-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-baseline gap-1">
-                <span className="text-[32px] font-bold leading-none" style={{ color: conf.color }}>{modelScore.toFixed(2)}</span>
-                <span className="text-sm font-medium text-[#7c8a9c]">/ 1.0</span>
+              <div className="flex items-end gap-2">
+                <span className="text-[32px] font-semibold" style={{ color: conf.color, letterSpacing: '-0.5px', lineHeight: '40px' }}>{modelScore.toFixed(2)}</span>
+                <span className="text-[16px] font-semibold text-[#7c8a9c]" style={{ letterSpacing: '-0.5px', lineHeight: '16px', paddingBottom: '4px' }}>/  1.0</span>
               </div>
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ backgroundColor: conf.bg }}>
-                <img src="/trend.svg" width="14" height="9" alt="" style={{
-                  filter: conf.color === '#27ae60'
-                    ? 'brightness(0) saturate(100%) invert(52%) sepia(79%) saturate(409%) hue-rotate(95deg) brightness(93%) contrast(91%)'
-                    : conf.color === '#f39c12'
-                    ? 'brightness(0) saturate(100%) invert(63%) sepia(91%) saturate(489%) hue-rotate(1deg) brightness(101%) contrast(95%)'
-                    : 'brightness(0) saturate(100%) invert(33%) sepia(84%) saturate(1200%) hue-rotate(329deg) brightness(97%) contrast(95%)',
+              <div className="flex items-center gap-2 px-2 py-1 rounded-[8px]" style={{ backgroundColor: '#ddefe7' }}>
+                <img src="/trend.svg" width="14" height="14" alt="" style={{
+                  filter: 'brightness(0) saturate(100%) invert(52%) sepia(79%) saturate(409%) hue-rotate(95deg) brightness(93%) contrast(91%)',
                   transform: modelScore < 0.5 ? 'scaleY(-1)' : 'none',
                 }} />
-                <span className="text-sm font-semibold" style={{ color: conf.color }}>{conf.label}</span>
+                <span className="text-[12px] font-semibold" style={{ color: '#27ae60', letterSpacing: '-0.5px', lineHeight: '18px' }}>{conf.label}</span>
               </div>
             </div>
           </div>
@@ -751,37 +816,58 @@ function AIAnalysisPanel({ prediction, fixture: _fixture, statsData: _statsData,
         {/* 5. Season Context */}
         {seasonContext && (
           <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <h4 className="text-[16px] font-semibold text-[#0a0a0a]">Season Context</h4>
-              <div className="flex gap-1">
+            {/* Header: title + tab switcher */}
+            <div className="flex items-center justify-between h-[56px]">
+              <h4 className="text-[16px] font-semibold text-[#0a0a0a]" style={{ letterSpacing: '-1%', lineHeight: '24px' }}>Season Context</h4>
+              <div className="flex rounded-[10px] bg-white p-[6px] gap-[6px]">
                 <button onClick={() => setFormTab('home')}
-                  className={`h-[32px] px-4 rounded-lg text-sm font-semibold transition-colors ${formTab === 'home' ? 'bg-[#0d1a67] text-white' : 'text-[#7c8a9c]'}`}>
+                  className={`h-[44px] px-6 rounded-[8px] text-[14px] font-semibold transition-colors ${formTab === 'home' ? 'bg-[#0d1a67] text-white' : 'text-[#7c8a9c]'}`}>
                   Home Form
                 </button>
                 <button onClick={() => setFormTab('away')}
-                  className={`h-[32px] px-4 rounded-lg text-sm font-semibold transition-colors ${formTab === 'away' ? 'bg-[#0d1a67] text-white' : 'text-[#7c8a9c]'}`}>
+                  className={`h-[44px] px-6 rounded-[8px] text-[14px] font-semibold transition-colors ${formTab === 'away' ? 'bg-[#0d1a67] text-white' : 'text-[#7c8a9c]'}`}>
                   Away Form
                 </button>
               </div>
             </div>
-            {activeForm && (
-              <div className="rounded-[14px] bg-white border border-[#e1e4eb] p-4 flex items-center justify-around">
-                <div className="flex flex-col items-center gap-1">
-                  <span className="text-[28px] font-bold text-[#0d1a67]">{activeForm.total_matches ?? '-'}</span>
-                  <span className="text-xs font-semibold text-[#7c8a9c]">Matches</span>
+            {/* Stats card - dynamic fields from activeForm */}
+            {activeForm && (() => {
+              // Map known keys to display labels
+              const formLabelMap: Record<string, string> = {
+                total_matches: 'Matches', goals: 'Goals', xG: 'xG',
+                conversions: 'Conv. Rate', average_shots_on_target: 'Avg SOT',
+                average_rating: 'Avg Rating', shots_per_90: 'Shots/90',
+                cards: 'Cards', fouls_per_90: 'Fouls/90', tackles_per_90: 'Tackles/90',
+              };
+              const formEntries = Object.entries(activeForm)
+                .filter(([, v]) => v != null && typeof v === 'number')
+                .map(([k, v]) => ({
+                  key: k,
+                  label: formLabelMap[k] || k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+                  value: v as number,
+                }));
+              // Color: first stat = navy, middle = green, rest = navy
+              const colors = formEntries.map((_, i) => i === 1 ? '#27ae60' : '#0d1a67');
+              return (
+                <div className="rounded-[14px] bg-white border border-[#e1e4eb] px-[14px] pt-[14px] pb-[20px] flex items-center justify-center">
+                  <div className="flex items-center gap-[60px]">
+                    {formEntries.map((entry, i) => (
+                      <div key={entry.key} className="flex items-center gap-[60px]">
+                        {i > 0 && (
+                          <div className="h-[36px] w-px" style={{ background: 'linear-gradient(to bottom, transparent, #0d1a67, transparent)' }} />
+                        )}
+                        <div className="flex flex-col items-center">
+                          <span className="text-[40px] font-bold" style={{ color: colors[i], lineHeight: '135%' }}>
+                            {typeof entry.value === 'number' ? (Number.isInteger(entry.value) ? entry.value : entry.value.toFixed(1)) : entry.value}
+                          </span>
+                          <span className="text-[16px] font-medium text-[#7c8a9c]" style={{ lineHeight: '135%', marginTop: '-5px' }}>{entry.label}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="w-px h-10 bg-[#e1e4eb]" />
-                <div className="flex flex-col items-center gap-1">
-                  <span className="text-[28px] font-bold" style={{ color: conf.color }}>{activeForm.average_shots_on_target?.toFixed(1) ?? '-'}</span>
-                  <span className="text-xs font-semibold text-[#7c8a9c]">Avg SOT</span>
-                </div>
-                <div className="w-px h-10 bg-[#e1e4eb]" />
-                <div className="flex flex-col items-center gap-1">
-                  <span className="text-[28px] font-bold text-[#0d1a67]">{activeForm.average_rating?.toFixed(1) ?? '-'}</span>
-                  <span className="text-xs font-semibold text-[#7c8a9c]">Avg Rating</span>
-                </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
         )}
       </div>
@@ -812,14 +898,17 @@ export function MatchDetailPage() {
   }, [fixturesResponse]);
 
   const fixture = fixtureData?.fixture;
-  const predictions = fixtureData?.predictions || [];
+  const inlinePredictions = fixtureData?.predictions || [];
 
-  // Fetch full predictions (with detail) for the AI Analysis panel
+  // Fetch full predictions (with detail) from /fixtures/{id}/predictions
   const { data: fullPredictionsResponse } = useFixturePredictions(
-    { fixture_id: fixtureId ? parseInt(fixtureId, 10) : undefined, limit: 130 },
+    { fixture_id: fixtureId ? parseInt(fixtureId, 10) : undefined, limit: 50, sort_by: 'pct_change', sort_order: 'desc' },
     { enabled: !!fixtureId }
   );
   const fullPredictions: any[] = (fullPredictionsResponse?.data as any)?.predictions || (fullPredictionsResponse?.data as any) || [];
+
+  // Use full predictions as primary source, fall back to inline predictions
+  const predictions = fullPredictions.length > 0 ? fullPredictions : inlinePredictions;
 
   // Extract unique player IDs from player predictions for the Player Stats section
   const featuredPlayerIds = useMemo(() => {
@@ -830,7 +919,7 @@ export function MatchDetailPage() {
     return Array.from(ids).slice(0, 12);
   }, [fullPredictions]);
 
-  const playerDetailsResults = useMultiplePlayerDetails(featuredPlayerIds);
+  // Player details/stats now come from inline statsData.players (fixture statistics endpoint)
 
   // When a prediction is selected, enrich it with detail from full predictions
   const selectedPredictionWithDetail = useMemo(() => {
@@ -1146,8 +1235,8 @@ export function MatchDetailPage() {
                           index={index}
                           isLive={fixture?.minutes_elapsed !== null && fixture?.minutes_elapsed !== undefined}
                           isBlurred={!isAuthenticated && index >= 6}
-                          isSelected={selectedPrediction?.prediction_id === prediction.prediction_id}
-                          onClick={() => setSelectedPrediction(selectedPrediction?.prediction_id === prediction.prediction_id ? null : prediction)}
+                          isSelected={selectedPrediction === prediction}
+                          onClick={() => setSelectedPrediction(selectedPrediction === prediction ? null : prediction)}
                         />
                       ))}
                     </div>
@@ -1214,8 +1303,8 @@ export function MatchDetailPage() {
                           index={index}
                           isLive={fixture?.minutes_elapsed !== null && fixture?.minutes_elapsed !== undefined}
                           isBlurred={!isAuthenticated && index >= 6}
-                          isSelected={selectedPrediction?.prediction_id === prediction.prediction_id}
-                          onClick={() => setSelectedPrediction(selectedPrediction?.prediction_id === prediction.prediction_id ? null : prediction)}
+                          isSelected={selectedPrediction === prediction}
+                          onClick={() => setSelectedPrediction(selectedPrediction === prediction ? null : prediction)}
                           compact={!!selectedPrediction}
                         />
                       ))}
@@ -1338,8 +1427,9 @@ export function MatchDetailPage() {
           )}
           {activeTab === 'stats' && (
             <div className="space-y-6">
-              {/* ── Match Info Card ── */}
-              <div className="bg-white rounded-[10px] shadow-[0_0_20px_0_rgba(0,0,0,0.10)] p-4 md:p-6">
+              {/* ── Match Info Card + Team Analysis ── */}
+              <div className="flex gap-[30px]">
+              <div className="flex-1 bg-white rounded-[10px] shadow-[0_0_20px_0_rgba(0,0,0,0.10)] p-4 md:p-6">
                 {/* Team header */}
                 <div className="flex items-center justify-between px-5 mb-4">
                   <div className="flex items-center gap-3">
@@ -1373,13 +1463,16 @@ export function MatchDetailPage() {
                   </div>
                 ) : (
                   <div className="bg-[#f7f8fa] rounded-[15px] overflow-hidden">
-                    {[
-                      { label: 'Ball possession', home: statsData?.basic?.home_possession ?? null, away: statsData?.basic?.away_possession ?? null, isPct: true },
-                      { label: 'Total shots', home: statsData?.basic?.home_total_shots ?? null, away: statsData?.basic?.away_total_shots ?? null },
-                      { label: 'Corner kicks', home: statsData?.basic?.home_corner_kicks ?? null, away: statsData?.basic?.away_corner_kicks ?? null },
-                      { label: 'Fouls', home: statsData?.basic?.home_fouls ?? null, away: statsData?.basic?.away_fouls ?? null },
-                      { label: 'Passes completed', home: statsData?.basic?.home_passes_total ?? statsData?.basic?.home_pass_accuracy ?? null, away: statsData?.basic?.away_passes_total ?? statsData?.basic?.away_pass_accuracy ?? null },
-                    ].map((s, i, arr) => (
+                    {(() => {
+                      const raw = statsData?.raw_statistics?.top_level_summary || {};
+                      return [
+                        { label: 'Ball possession', home: raw['ball-possession']?.home ?? null, away: raw['ball-possession']?.away ?? null, isPct: true },
+                        { label: 'Total shots', home: raw['shots-total']?.home ?? null, away: raw['shots-total']?.away ?? null },
+                        { label: 'Corner kicks', home: raw['corners']?.home ?? null, away: raw['corners']?.away ?? null },
+                        { label: 'Fouls', home: (statsData?.raw_statistics?.defence_and_discipline as any)?.['fouls']?.home ?? raw['fouls']?.home ?? null, away: (statsData?.raw_statistics?.defence_and_discipline as any)?.['fouls']?.away ?? raw['fouls']?.away ?? null },
+                        { label: 'Passes completed', home: raw['successful-passes']?.home ?? null, away: raw['successful-passes']?.away ?? null },
+                      ];
+                    })().map((s, i, arr) => (
                       <div key={s.label}>
                         <div className="px-4">
                           <StatBar label={s.label} homeValue={s.home ?? 0} awayValue={s.away ?? 0} isPercentage={s.isPct} />
@@ -1391,73 +1484,149 @@ export function MatchDetailPage() {
                 )}
               </div>
 
+              {/* Team Analysis Panel (right side) */}
+              <div className="hidden xl:flex w-[460px] shrink-0 bg-white rounded-[10px] shadow-[0_0_20px_0_rgba(0,0,0,0.10)] p-6 flex-col gap-[30px]">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-[16px] font-semibold text-[#0a0a0a]" style={{ fontFamily: 'Montserrat, sans-serif' }}>Team Analysis</h3>
+                    <p className="text-[12px] font-semibold text-[#7c8a9c]" style={{ letterSpacing: '-0.5px' }}>Based on performance in the last match</p>
+                  </div>
+                  <button className="text-[14px] font-medium text-[#0a0a0a] flex items-center gap-1 hover:opacity-70">
+                    See Previous <span className="text-lg">›</span>
+                  </button>
+                </div>
+                {/* Radar chart placeholder */}
+                <div className="flex-1 flex items-center justify-center">
+                  <div className="relative w-[280px] h-[280px]">
+                    {/* Pentagon background */}
+                    <svg viewBox="0 0 280 280" className="w-full h-full">
+                      {/* Grid lines */}
+                      {[0.3, 0.5, 0.7, 0.9].map((scale, i) => {
+                        const cx = 140, cy = 140, r = 120 * scale;
+                        const points = [0, 1, 2, 3, 4].map(j => {
+                          const angle = (Math.PI * 2 * j / 5) - Math.PI / 2;
+                          return `${cx + r * Math.cos(angle)},${cy + r * Math.sin(angle)}`;
+                        }).join(' ');
+                        return <polygon key={i} points={points} fill="none" stroke="#e1e4eb" strokeWidth="1" />;
+                      })}
+                      {/* Axis lines */}
+                      {[0, 1, 2, 3, 4].map(j => {
+                        const angle = (Math.PI * 2 * j / 5) - Math.PI / 2;
+                        return <line key={j} x1="140" y1="140" x2={140 + 108 * Math.cos(angle)} y2={140 + 108 * Math.sin(angle)} stroke="#e1e4eb" strokeWidth="1" />;
+                      })}
+                    </svg>
+                    {/* Labels */}
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 text-center">
+                      <span className="text-[11px] font-semibold text-[#0d1a67]">ATT</span>
+                    </div>
+                    <div className="absolute top-1/3 right-0 translate-x-2 text-center">
+                      <span className="text-[11px] font-semibold text-[#0d1a67]">TAC</span>
+                    </div>
+                    <div className="absolute bottom-[10%] right-[10%] text-center">
+                      <span className="text-[11px] font-semibold text-[#0d1a67]">TAC</span>
+                    </div>
+                    <div className="absolute bottom-[10%] left-[10%] text-center">
+                      <span className="text-[11px] font-semibold text-[#0d1a67]">DEF</span>
+                    </div>
+                    <div className="absolute top-1/3 left-0 -translate-x-2 text-center">
+                      <span className="text-[11px] font-semibold text-[#0d1a67]">CRE</span>
+                    </div>
+                  </div>
+                </div>
+                {/* Legend */}
+                <div className="flex items-center justify-center gap-6">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-[2px] bg-[#0d1a67]" />
+                    <span className="text-[12px] text-[#7c8a9c]">{fixture?.home_team_name || 'Home'}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-[2px] bg-[#27ae60]" />
+                    <span className="text-[12px] text-[#7c8a9c]">{fixture?.away_team_name || 'Away'}</span>
+                  </div>
+                </div>
+              </div>
+              </div>
+
               {/* ── Team Performance Comparison ── */}
-              <div>
-                <h2 className="text-[18px] font-semibold text-[#0a0a0a] mb-4">Team Performance Comparison</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {[
+              <div className="rounded-[20px] bg-[#f7f8fa] p-5">
+                <h2 className="text-[22px] font-semibold text-[#0a0a0a] mb-4" style={{ fontFamily: 'Montserrat, sans-serif' }}>Team Performance Comparison</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                  {(() => {
+                    const raw = statsData?.raw_statistics || {} as any;
+                    const atk = raw.attacking_threat || {};
+                    const shots = raw.shots || {};
+                    const duels = raw.duels_and_dribbling || {};
+                    const def = raw.defence_and_discipline || {};
+                    const passes = raw.passes || {};
+                    return [
                     {
                       id: 'xg',
                       title: 'Expected Goals (xG)',
                       rows: [
-                        { label: 'Expected Goals (xG)', home: statsData?.advanced?.home_xg ?? statsData?.advanced?.xg_home, away: statsData?.advanced?.away_xg ?? statsData?.advanced?.xg_away },
-                        { label: 'xG Open Play', home: statsData?.advanced?.home_xg_open_play ?? statsData?.advanced?.xg_open_play_home, away: statsData?.advanced?.away_xg_open_play ?? statsData?.advanced?.xg_open_play_away },
-                        { label: 'xG Set Play', home: statsData?.advanced?.home_xg_set_play ?? statsData?.advanced?.xg_set_play_home, away: statsData?.advanced?.away_xg_set_play ?? statsData?.advanced?.xg_set_play_away },
-                        { label: 'Non-penalty xG', home: statsData?.advanced?.home_np_xg, away: statsData?.advanced?.away_np_xg },
-                        { label: 'xG on target (xGOT)', home: statsData?.advanced?.home_xgot, away: statsData?.advanced?.away_xgot },
+                        { label: 'Expected Goals (xG)', home: atk['expected-goals']?.home, away: atk['expected-goals']?.away },
+                        { label: 'xG Open Play', home: atk['xg-open-play']?.home, away: atk['xg-open-play']?.away },
+                        { label: 'xG Set Play', home: atk['xg-set-play']?.home, away: atk['xg-set-play']?.away },
+                        { label: 'Non-penalty xG', home: atk['non-penalty-xg']?.home, away: atk['non-penalty-xg']?.away },
+                        { label: 'xG on target (xGOT)', home: atk['xgot']?.home, away: atk['xgot']?.away },
+                        { label: 'Big Chances Created', home: atk['big-chances-created']?.home, away: atk['big-chances-created']?.away },
+                        { label: 'Big Chances Missed', home: atk['big-chances-missed']?.home, away: atk['big-chances-missed']?.away },
                       ],
                     },
                     {
                       id: 'shots',
                       title: 'Shots',
                       rows: [
-                        { label: 'Total Shots', home: statsData?.basic?.home_total_shots, away: statsData?.basic?.away_total_shots },
-                        { label: 'Shots off Target', home: statsData?.advanced?.home_shots_off_target ?? statsData?.basic?.home_shots_off_target, away: statsData?.advanced?.away_shots_off_target ?? statsData?.basic?.away_shots_off_target },
-                        { label: 'Shots on Target', home: statsData?.basic?.home_shots_on_target, away: statsData?.basic?.away_shots_on_target },
-                        { label: 'Blocked Shots', home: statsData?.advanced?.home_blocked_shots, away: statsData?.advanced?.away_blocked_shots },
-                        { label: 'Hit woodwork', home: statsData?.advanced?.home_hit_woodwork, away: statsData?.advanced?.away_hit_woodwork },
+                        { label: 'Total Shots', home: shots['shots-total']?.home, away: shots['shots-total']?.away },
+                        { label: 'Shots off Target', home: shots['shots-off-target']?.home, away: shots['shots-off-target']?.away },
+                        { label: 'Shots on Target', home: shots['shots-on-target']?.home, away: shots['shots-on-target']?.away },
+                        { label: 'Blocked Shots', home: shots['shots-blocked']?.home, away: shots['shots-blocked']?.away },
+                        { label: 'Hit woodwork', home: shots['hit-woodwork']?.home, away: shots['hit-woodwork']?.away },
+                        { label: 'Shots Inside Box', home: shots['shots-insidebox']?.home, away: shots['shots-insidebox']?.away },
+                        { label: 'Shots Outside Box', home: shots['shots-outsidebox']?.home, away: shots['shots-outsidebox']?.away },
                       ],
                     },
                     {
                       id: 'duels',
                       title: 'Duels',
                       rows: [
-                        { label: 'Total Duels', home: statsData?.advanced?.home_duels_total, away: statsData?.advanced?.away_duels_total },
-                        { label: 'Duels Won', home: statsData?.advanced?.home_duels_won, away: statsData?.advanced?.away_duels_won },
-                        { label: 'Ground Duels Won', home: statsData?.advanced?.home_ground_duels_won, away: statsData?.advanced?.away_ground_duels_won },
-                        { label: 'Aerial Duels Won', home: statsData?.advanced?.home_aerial_duels_won, away: statsData?.advanced?.away_aerial_duels_won },
-                        { label: 'Successful dribbles', home: statsData?.advanced?.home_dribbles_won, away: statsData?.advanced?.away_dribbles_won },
+                        { label: 'Duels Won', home: duels['duels-won']?.home, away: duels['duels-won']?.away },
+                        { label: 'Successful Headers', home: duels['successful-headers']?.home, away: duels['successful-headers']?.away },
+                        { label: 'Dribble Attempts', home: duels['dribble-attempts']?.home, away: duels['dribble-attempts']?.away },
+                        { label: 'Successful dribbles', home: duels['successful-dribbles']?.home, away: duels['successful-dribbles']?.away },
+                        { label: 'Dribble Success %', home: duels['successful-dribbles-percentage']?.home, away: duels['successful-dribbles-percentage']?.away },
                       ],
                     },
                     {
                       id: 'defence',
                       title: 'Defence',
                       rows: [
-                        { label: 'Tackles', home: statsData?.advanced?.home_tackles, away: statsData?.advanced?.away_tackles },
-                        { label: 'Interceptions', home: statsData?.advanced?.home_interceptions, away: statsData?.advanced?.away_interceptions },
-                        { label: 'Keeper Saves', home: statsData?.advanced?.home_keeper_saves ?? statsData?.basic?.home_shots_on_target, away: statsData?.advanced?.away_keeper_saves ?? statsData?.basic?.away_shots_on_target },
-                        { label: 'Clearances', home: statsData?.advanced?.home_clearances, away: statsData?.advanced?.away_clearances },
-                        { label: 'Errors', home: statsData?.advanced?.home_errors, away: statsData?.advanced?.away_errors },
+                        { label: 'Tackles', home: def['tackles']?.home, away: def['tackles']?.away },
+                        { label: 'Interceptions', home: def['interceptions']?.home, away: def['interceptions']?.away },
+                        { label: 'Keeper Saves', home: def['saves']?.home, away: def['saves']?.away },
+                        { label: 'Offsides', home: def['offsides']?.home, away: def['offsides']?.away },
+                        { label: 'Yellow Cards', home: def['yellowcards']?.home, away: def['yellowcards']?.away },
                       ],
                     },
                     {
                       id: 'passes',
                       title: 'Passes',
                       rows: [
-                        { label: 'Total Passes', home: statsData?.advanced?.home_passes_total ?? statsData?.basic?.home_passes_total, away: statsData?.advanced?.away_passes_total ?? statsData?.basic?.away_passes_total },
-                        { label: 'Accurate Passes', home: statsData?.advanced?.home_accurate_passes, away: statsData?.advanced?.away_accurate_passes },
-                        { label: 'Own Half', home: statsData?.advanced?.home_passes_own_half, away: statsData?.advanced?.away_passes_own_half },
-                        { label: 'Opposition Half', home: statsData?.advanced?.home_passes_opp_half, away: statsData?.advanced?.away_passes_opp_half },
-                        { label: 'Accurate long Balls', home: statsData?.advanced?.home_accurate_long_balls, away: statsData?.advanced?.away_accurate_long_balls },
+                        { label: 'Total Passes', home: passes['passes']?.home, away: passes['passes']?.away },
+                        { label: 'Accurate Passes', home: passes['successful-passes']?.home, away: passes['successful-passes']?.away },
+                        { label: 'Pass Accuracy %', home: passes['successful-passes-percentage']?.home, away: passes['successful-passes-percentage']?.away },
+                        { label: 'Key Passes', home: passes['key-passes']?.home, away: passes['key-passes']?.away },
+                        { label: 'Long Passes', home: passes['successful-long-passes']?.home, away: passes['successful-long-passes']?.away },
+                        { label: 'Total Crosses', home: passes['total-crosses']?.home, away: passes['total-crosses']?.away },
+                        { label: 'Free Kicks', home: passes['free-kicks']?.home, away: passes['free-kicks']?.away },
                       ],
                     },
-                  ].map((card) => {
+                  ]; })().map((card) => {
                     const isExpanded = expandedStatCards.has(card.id);
                     const visibleRows = isExpanded ? card.rows : card.rows.slice(0, 5);
                     const hasData = card.rows.some(r => r.home != null || r.away != null);
                     return (
-                      <div key={card.id} className="bg-white rounded-[15px] shadow-[0_0_15px_0_rgba(0,0,0,0.10)] p-4">
-                        <h3 className="text-[16px] font-semibold text-[#0a0a0a] mb-3">{card.title}</h3>
+                      <div key={card.id} className={`bg-white rounded-[14px] shadow-[0_1px_15px_0_rgba(0,0,0,0.10)] p-4 ${card.id === 'defence' || card.id === 'passes' ? 'xl:col-span-1 md:col-span-1' : ''}`}>
+                        <h3 className="text-[18px] font-semibold text-[#0a0a0a] mb-3" style={{ fontFamily: 'Montserrat, sans-serif' }}>{card.title}</h3>
                         {!hasData && isLoadingStats ? (
                           <div className="space-y-3 animate-pulse">
                             {[1,2,3,4,5].map(i => (
@@ -1496,14 +1665,15 @@ export function MatchDetailPage() {
                                 </div>
                               );
                             })}
-                            <p className="text-xs text-[#7c8a9c] text-center mt-3">5 out of {card.rows.length}</p>
+                            <p className="text-[12px] text-[#7c8a9c] text-center mt-3" style={{ fontFamily: 'Montserrat, sans-serif' }}>5 out of {card.rows.length}</p>
                             <button
                               onClick={() => setExpandedStatCards(prev => {
                                 const next = new Set(prev);
                                 if (next.has(card.id)) next.delete(card.id); else next.add(card.id);
                                 return next;
                               })}
-                              className="mt-3 w-full h-10 bg-[#0d1a67] text-white text-sm font-semibold rounded-lg hover:bg-[#0d1a67]/90 transition-colors"
+                              className="mt-3 w-full h-10 bg-[#0d1a67] text-white text-[14px] font-semibold rounded-[8px] hover:bg-[#0d1a67]/90 transition-colors shadow-[0_7px_4px_-3px_rgba(0,0,0,0.05)]"
+                              style={{ fontFamily: 'Montserrat, sans-serif' }}
                             >
                               {isExpanded ? 'Show Less' : 'See More'}
                             </button>
@@ -1515,126 +1685,170 @@ export function MatchDetailPage() {
                 </div>
               </div>
 
+              {/* ── Recent Head-to-Head ── */}
+              <div>
+                <h2 className="text-[22px] font-semibold text-[#0a0a0a] mb-4" style={{ fontFamily: 'Montserrat, sans-serif' }}>Recent Head-to-Head</h2>
+                <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+                  {/* Placeholder cards - will be populated when H2H API is available */}
+                  {[1, 2].map((i) => (
+                    <div key={i} className="flex-shrink-0 w-[282px] bg-white rounded-[14px] border border-[#e1e4eb] p-[15px] flex flex-col gap-[15px]">
+                      <span className="text-[12px] font-semibold text-[#27ae60]" style={{ letterSpacing: '-0.5px' }}>Completed • —</span>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-[#f7f8fa]" />
+                          <span className="text-[14px] font-semibold text-[#0a0a0a]">—</span>
+                        </div>
+                        <div className="flex flex-col items-center">
+                          <span className="text-[18px] font-bold text-[#0a0a0a]">— - —</span>
+                          <span className="text-[10px] text-[#7c8a9c]">—′</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[14px] font-semibold text-[#0a0a0a]">—</span>
+                          <div className="w-8 h-8 rounded-full bg-[#f7f8fa]" />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[12px] text-[#7c8a9c] mt-2">Head-to-head data will appear when available from the API.</p>
+              </div>
+
               {/* ── Player Stats ── */}
-              {featuredPlayerIds.length > 0 && (
+              {((statsData as any)?.players?.length > 0 || featuredPlayerIds.length > 0) && (
                 <div>
-                  <h2 className="text-[18px] font-semibold text-[#0a0a0a] mb-4">Player stats</h2>
-                  <div className="bg-white rounded-[15px] shadow-[0_0_15px_0_rgba(0,0,0,0.10)] overflow-hidden">
-                    {/* Tab bar */}
-                    <div className="flex gap-2 p-3 border-b border-[#e1e4eb] overflow-x-auto scrollbar-hide">
+                  <h2 className="text-[22px] font-semibold text-[#0a0a0a] mb-4 text-center" style={{ fontFamily: 'Montserrat, sans-serif' }}>Player stats</h2>
+                  <div className="bg-white rounded-[20px] border border-[#e1e4eb] p-5">
+                    <div className="flex flex-col gap-5">
+                    {/* Tab bar - 735px max width */}
+                    <div className="w-[735px] max-w-full rounded-[10px] bg-[#f7f8fa] p-[6px]">
+                    <div className="flex h-[44px] items-center justify-center gap-[6px] overflow-x-auto scrollbar-hide">
                       {(['summary','attacking','passing','defensive','discipline'] as const).map(tab => (
                         <button
                           key={tab}
                           onClick={() => setPlayerStatsTab(tab)}
-                          className={`flex-shrink-0 h-10 px-4 rounded-lg text-sm font-semibold capitalize transition-colors border ${
+                          className={`flex-shrink-0 h-[44px] px-5 rounded-[8px] text-[14px] font-semibold capitalize transition-colors ${
                             playerStatsTab === tab
-                              ? 'bg-[#0d1a67] text-white border-[#0d1a67]'
-                              : 'bg-white text-[#7c8a9c] border-[#e1e4eb] hover:border-[#0d1a67] hover:text-[#0d1a67]'
+                              ? 'bg-[#0d1a67] text-white'
+                              : 'text-[#7c8a9c] hover:text-[#0d1a67]'
                           }`}
+                          style={{ fontFamily: 'Montserrat, sans-serif' }}
                         >
                           {tab.charAt(0).toUpperCase() + tab.slice(1)}
                         </button>
                       ))}
                     </div>
-                    {/* Table header */}
-                    <div className="flex items-center px-4 py-2 border-b border-[#e1e4eb] text-xs text-[#7c8a9c] font-medium">
-                      <div className="flex-1">Players</div>
-                      {playerStatsTab === 'summary' && <>
-                        <div className="w-14 text-center">Rating</div>
-                        <div className="w-12 text-center">Min</div>
-                        <div className="w-12 text-center">Goal</div>
-                        <div className="w-14 text-center">Assists</div>
-                        <div className="w-12 text-center">xG</div>
-                        <div className="w-12 text-center">xA</div>
-                      </>}
-                      {playerStatsTab === 'attacking' && <>
-                        <div className="w-14 text-center">Goals</div>
-                        <div className="w-14 text-center">Assists</div>
-                        <div className="w-14 text-center">Shots</div>
-                        <div className="w-14 text-center">On Tgt</div>
-                        <div className="w-14 text-center">Key Pass</div>
-                      </>}
-                      {playerStatsTab === 'passing' && <>
-                        <div className="w-14 text-center">Passes</div>
-                        <div className="w-14 text-center">Acc.</div>
-                        <div className="w-16 text-center">Acc %</div>
-                        <div className="w-14 text-center">Key</div>
-                      </>}
-                      {playerStatsTab === 'defensive' && <>
-                        <div className="w-14 text-center">Tackles</div>
-                        <div className="w-16 text-center">Intercept</div>
-                        <div className="w-14 text-center">Duels</div>
-                        <div className="w-14 text-center">Won</div>
-                        <div className="w-14 text-center">Clear</div>
-                      </>}
-                      {playerStatsTab === 'discipline' && <>
-                        <div className="w-14 text-center">Fouls</div>
-                        <div className="w-14 text-center">Yellow</div>
-                        <div className="w-14 text-center">Red</div>
-                        <div className="w-16 text-center">F.Drawn</div>
-                      </>}
                     </div>
-                    {/* Player rows */}
-                    {playerDetailsResults.map((result, idx) => {
-                      const player = (result.data?.data as any);
-                      const name = player?.display_name || player?.common_name || player?.player_name || `Player ${featuredPlayerIds[idx]}`;
-                      const position = player?.position || player?.position_name || 'Player';
-                      const imgUrl = player?.image_path || player?.player_image_url;
-                      // Get prediction data for this player
-                      const playerPreds = fullPredictions.filter((p: any) => p.player_id === featuredPlayerIds[idx]);
-                      const avgPred = playerPreds.length > 0 ? playerPreds.reduce((s: number, p: any) => s + (p.prediction ?? 0), 0) / playerPreds.length : null;
-                      const ratingNum = avgPred != null ? (avgPred > 1 ? avgPred : avgPred * 10).toFixed(1) : null;
+                    {/* Table header */}
+                    <div className="flex items-center px-5 py-[14px] rounded-[10px] bg-[#f7f8fa]" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+                      <div className="flex-1 text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>Players</div>
+                      <div className="flex">
+                        {playerStatsTab === 'summary' && <>
+                          <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>Rating</div>
+                          <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>Min</div>
+                          <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>Goal</div>
+                          <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>Assists</div>
+                          <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>xG</div>
+                          <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>xA</div>
+                        </>}
+                        {playerStatsTab === 'attacking' && <>
+                          <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>Goals</div>
+                          <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>Assists</div>
+                          <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>Shots</div>
+                          <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>On Target</div>
+                          <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>Key Pass</div>
+                        </>}
+                        {playerStatsTab === 'passing' && <>
+                          <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>Passes</div>
+                          <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>Accurate</div>
+                          <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>Acc %</div>
+                          <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>Key</div>
+                        </>}
+                        {playerStatsTab === 'defensive' && <>
+                          <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>Tackles</div>
+                          <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>Intercept</div>
+                          <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>Duels</div>
+                          <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>Won</div>
+                          <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>Clear</div>
+                        </>}
+                        {playerStatsTab === 'discipline' && <>
+                          <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>Fouls</div>
+                          <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>Yellow</div>
+                          <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>Red</div>
+                          <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>F.Drawn</div>
+                        </>}
+                      </div>
+                    </div>
+                    {/* Player rows - use inline player stats from fixture statistics endpoint */}
+                    <div className="flex flex-col gap-5">
+                    {((statsData as any)?.players || []).map((p: any, idx: number) => {
+                      const ts = p.statistics?.top_stats || {};
+                      const atk = p.statistics?.attack || {};
+                      const pas = p.statistics?.passes || {};
+                      const def = p.statistics?.defence || {};
+                      const duel = p.statistics?.duels || {};
+                      const name = `Player ${p.player_id}`;
+                      const position = p.location === 'home' ? fixture?.home_team_short_code : fixture?.away_team_short_code;
+                      const rating = ts.rating;
+                      const ratingNum = typeof rating === 'number' ? rating.toFixed(1) : null;
                       const ratingColor = ratingNum == null ? '#7c8a9c' : parseFloat(ratingNum) >= 7 ? '#27ae60' : parseFloat(ratingNum) >= 5 ? '#f39c12' : '#e74c3c';
+                      const v = (val: any) => val != null ? val : '—';
 
                       return (
-                        <div key={featuredPlayerIds[idx]} className={`flex items-center px-4 py-3 ${idx < playerDetailsResults.length - 1 ? 'border-b border-[#e1e4eb]' : ''}`}>
-                          <div className="flex items-center gap-3 flex-1 min-w-0">
-                            {imgUrl
-                              ? <img src={imgUrl} alt={name} className="w-9 h-9 rounded-full object-cover flex-shrink-0 bg-[#f7f8fa]" />
-                              : <div className="w-9 h-9 rounded-full bg-[#f7f8fa] flex-shrink-0 flex items-center justify-center text-xs font-bold text-[#7c8a9c]">{name.slice(0,2).toUpperCase()}</div>
-                            }
+                        <div key={`${p.player_id}-${idx}`} className="flex items-center px-[1px] h-[50px]" style={{ gap: '55px' }}>
+                          {/* Player info */}
+                          <div className="flex items-center gap-[10px] min-w-[158px]">
+                            <div className="w-8 h-8 rounded-full bg-[#f7f8fa] flex items-center justify-center text-[10px] font-bold text-[#7c8a9c]">{String(p.player_id).slice(-2)}</div>
                             <div className="min-w-0">
-                              <p className="text-sm font-semibold text-[#0a0a0a] truncate">{name}</p>
-                              <p className="text-xs text-[#7c8a9c]">{position}</p>
+                              <p className="text-[14px] font-semibold text-[#0a0a0a] truncate" style={{ fontFamily: 'Montserrat, sans-serif' }}>{name}</p>
+                              <p className="text-[12px] text-[#7c8a9c]" style={{ fontFamily: 'Montserrat, sans-serif' }}>{position}</p>
                             </div>
                           </div>
-                          {playerStatsTab === 'summary' && <>
-                            <div className="w-14 text-center text-sm font-semibold" style={{ color: ratingColor }}>{ratingNum ?? '—'}</div>
-                            <div className="w-12 text-center text-sm text-[#0a0a0a]">—</div>
-                            <div className="w-12 text-center text-sm text-[#0a0a0a]">—</div>
-                            <div className="w-14 text-center text-sm text-[#0a0a0a]">—</div>
-                            <div className="w-12 text-center text-sm text-[#0a0a0a]">—</div>
-                            <div className="w-12 text-center text-sm text-[#0a0a0a]">—</div>
-                          </>}
-                          {playerStatsTab === 'attacking' && <>
-                            <div className="w-14 text-center text-sm text-[#0a0a0a]">—</div>
-                            <div className="w-14 text-center text-sm text-[#0a0a0a]">—</div>
-                            <div className="w-14 text-center text-sm text-[#0a0a0a]">—</div>
-                            <div className="w-14 text-center text-sm text-[#0a0a0a]">—</div>
-                            <div className="w-14 text-center text-sm text-[#0a0a0a]">—</div>
-                          </>}
-                          {playerStatsTab === 'passing' && <>
-                            <div className="w-14 text-center text-sm text-[#0a0a0a]">—</div>
-                            <div className="w-14 text-center text-sm text-[#0a0a0a]">—</div>
-                            <div className="w-16 text-center text-sm text-[#0a0a0a]">—</div>
-                            <div className="w-14 text-center text-sm text-[#0a0a0a]">—</div>
-                          </>}
-                          {playerStatsTab === 'defensive' && <>
-                            <div className="w-14 text-center text-sm text-[#0a0a0a]">—</div>
-                            <div className="w-16 text-center text-sm text-[#0a0a0a]">—</div>
-                            <div className="w-14 text-center text-sm text-[#0a0a0a]">—</div>
-                            <div className="w-14 text-center text-sm text-[#0a0a0a]">—</div>
-                            <div className="w-14 text-center text-sm text-[#0a0a0a]">—</div>
-                          </>}
-                          {playerStatsTab === 'discipline' && <>
-                            <div className="w-14 text-center text-sm text-[#0a0a0a]">—</div>
-                            <div className="w-14 text-center text-sm text-[#0a0a0a]">—</div>
-                            <div className="w-14 text-center text-sm text-[#0a0a0a]">—</div>
-                            <div className="w-16 text-center text-sm text-[#0a0a0a]">—</div>
-                          </>}
+                          {/* Stats */}
+                          <div className="flex flex-1 justify-end">
+                            {playerStatsTab === 'summary' && <>
+                              <div className="w-[150px] text-right">
+                                {ratingNum ? (
+                                  <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-[6px] text-[14px] font-bold text-white" style={{ backgroundColor: ratingColor }}>{ratingNum}</span>
+                                ) : <span className="text-[16px] font-medium text-[#7c8a9c]">—</span>}
+                              </div>
+                              <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>{v(ts['minutes-played'])}</div>
+                              <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>{v(ts.goals ?? atk.goals)}</div>
+                              <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>{v(ts.assists ?? pas.assists)}</div>
+                              <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>{v(ts.xg ?? atk.xg)}</div>
+                              <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>{v(ts.xa ?? pas.xa)}</div>
+                            </>}
+                            {playerStatsTab === 'attacking' && <>
+                              <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>{v(atk.goals)}</div>
+                              <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>{v(pas.assists)}</div>
+                              <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>{v(atk['shots-total'])}</div>
+                              <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>{v(atk['shots-on-target'])}</div>
+                              <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>{v(pas['key-passes'])}</div>
+                            </>}
+                            {playerStatsTab === 'passing' && <>
+                              <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>{v(pas.touches)}</div>
+                              <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>{v(pas['accurate-passes'])}</div>
+                              <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>{pas['accurate-passes-percentage'] != null ? `${pas['accurate-passes-percentage']}%` : '—'}</div>
+                              <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>{v(pas['key-passes'])}</div>
+                            </>}
+                            {playerStatsTab === 'defensive' && <>
+                              <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>{v(def.tackles)}</div>
+                              <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>{v(def['blocked-shots'])}</div>
+                              <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>{v(duel['duels-lost'])}</div>
+                              <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>{v(duel['ground-duels-won'])}</div>
+                              <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>{v(def.clearances)}</div>
+                            </>}
+                            {playerStatsTab === 'discipline' && <>
+                              <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>{v(duel.fouls)}</div>
+                              <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>—</div>
+                              <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>—</div>
+                              <div className="w-[150px] text-right text-[16px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>{v(duel['fouls-drawn'])}</div>
+                            </>}
+                          </div>
                         </div>
                       );
                     })}
+                    </div>
+                    </div>
                   </div>
                 </div>
               )}
