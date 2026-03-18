@@ -7,7 +7,7 @@ import { SmartCombo } from '@/components/SmartCombo';
 import { Calendar } from '@/components/ui/Calendar';
 import { FilterPanel, FilterValues, SortOption } from '@/components/ui/FilterPanel';
 import { useFixtures } from '@/hooks/useFixtures';
-import { useLeagues, useLeagueNames } from '@/hooks/useLeagues';
+import { useLeagues } from '@/hooks/useLeagues';
 import { useAuth } from '@/contexts/AuthContext';
 
 type TabType = 'live' | 'all';
@@ -84,13 +84,12 @@ function SkeletonLeagueSection() {
 // Upcoming match card component (simpler design)
 function UpcomingMatchCard({ fixture, leagueName }: { fixture: any; leagueName?: string }) {
   const navigate = useNavigate();
-  const match = fixture.fixture;
 
   // Format date and time display
   const getDateTimeDisplay = () => {
-    if (!match.starting_at) return 'TBD';
+    if (!fixture.starting_at) return 'TBD';
 
-    const matchDate = new Date(match.starting_at);
+    const matchDate = new Date(fixture.starting_at);
     const today = new Date();
 
     const isToday =
@@ -104,29 +103,22 @@ function UpcomingMatchCard({ fixture, leagueName }: { fixture: any; leagueName?:
       return `Today, ${time}`;
     }
 
-    // Format: "Mon 23, 16:15"
     const dayName = matchDate.toLocaleDateString('en-GB', { weekday: 'short' });
     const dayNum = matchDate.getDate();
     return `${dayName} ${dayNum}, ${time}`;
   };
 
-  const handleClick = () => {
-    navigate(`/match/${match.fixture_id}`);
-  };
-
   return (
     <div
-      onClick={handleClick}
+      onClick={() => navigate(`/match/${fixture.fixture_id}`)}
       className="bg-white rounded-xl p-4 transition-shadow min-w-[260px] md:min-w-0 cursor-pointer"
-      style={{
-        boxShadow: '0 0 12px rgba(0, 0, 0, 0.08)'
-      }}
+      style={{ boxShadow: '0 0 12px rgba(0, 0, 0, 0.08)' }}
       onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 0 20px rgba(0, 0, 0, 0.12)'}
       onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 0 12px rgba(0, 0, 0, 0.08)'}
     >
       {/* League Name */}
       <div className="text-center text-gray-400 text-xs font-medium mb-1">
-        {leagueName || match.league_name || 'League'}
+        {leagueName || fixture.league_name || 'League'}
       </div>
 
       {/* Date/Time */}
@@ -138,21 +130,15 @@ function UpcomingMatchCard({ fixture, leagueName }: { fixture: any; leagueName?:
       <div className="flex items-center justify-center gap-4 mb-4">
         {/* Home Team */}
         <div className="flex flex-col items-center">
-          {match.home_team_image_path ? (
-            <img
-              src={match.home_team_image_path}
-              alt={match.home_team_name}
-              className="w-12 h-12 object-contain mb-1"
-            />
+          {fixture.home_team_image_path ? (
+            <img src={fixture.home_team_image_path} alt={fixture.home_team_name} className="w-12 h-12 object-contain mb-1" />
           ) : (
             <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-1">
-              <span className="text-xs font-bold text-gray-500">
-                {match.home_team_short_code?.slice(0, 3) || 'HOM'}
-              </span>
+              <span className="text-xs font-bold text-gray-500">{fixture.home_team_short_code?.slice(0, 3) || 'HOM'}</span>
             </div>
           )}
           <span className="text-xs font-semibold text-gray-700">
-            {match.home_team_short_code || match.home_team_name?.slice(0, 3).toUpperCase() || 'HOM'}
+            {fixture.home_team_short_code || fixture.home_team_name?.slice(0, 3).toUpperCase() || 'HOM'}
           </span>
         </div>
 
@@ -165,21 +151,15 @@ function UpcomingMatchCard({ fixture, leagueName }: { fixture: any; leagueName?:
 
         {/* Away Team */}
         <div className="flex flex-col items-center">
-          {match.away_team_image_path ? (
-            <img
-              src={match.away_team_image_path}
-              alt={match.away_team_name}
-              className="w-12 h-12 object-contain mb-1"
-            />
+          {fixture.away_team_image_path ? (
+            <img src={fixture.away_team_image_path} alt={fixture.away_team_name} className="w-12 h-12 object-contain mb-1" />
           ) : (
             <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-1">
-              <span className="text-xs font-bold text-gray-500">
-                {match.away_team_short_code?.slice(0, 3) || 'AWY'}
-              </span>
+              <span className="text-xs font-bold text-gray-500">{fixture.away_team_short_code?.slice(0, 3) || 'AWY'}</span>
             </div>
           )}
           <span className="text-xs font-semibold text-gray-700">
-            {match.away_team_short_code || match.away_team_name?.slice(0, 3).toUpperCase() || 'AWY'}
+            {fixture.away_team_short_code || fixture.away_team_name?.slice(0, 3).toUpperCase() || 'AWY'}
           </span>
         </div>
       </div>
@@ -319,12 +299,21 @@ function LeagueScrollRow({ league, leagueId, navigate, isPremium, transformToMat
           </>
         )}
         {/* Scrollable cards */}
-        <div ref={scrollRef} className="flex gap-[16px] overflow-x-auto scrollbar-hide scroll-smooth">
-          {league.fixtures.map((fixture: any) => (
-            <div key={fixture.fixture.fixture_id} className="flex-shrink-0 w-[280px]">
-              <MatchCard {...transformToMatchCard(fixture)} isPremium={isPremium} variant="minimal" />
-            </div>
-          ))}
+        <div ref={scrollRef} className="flex gap-[16px] overflow-x-auto scrollbar-hide scroll-smooth px-[2px] pb-[8px]" style={{ marginBottom: '-8px' }}>
+          {league.fixtures.map((fixture: any) => {
+            const match = fixture;
+            const matchStart = match.starting_at ? new Date(match.starting_at).getTime() : 0;
+            const isCurrentlyLive = match.minutes_elapsed != null;
+            const isFinished = match.status === 'FT' || (!isCurrentlyLive && matchStart > 0 && Date.now() - matchStart > 2 * 60 * 60 * 1000);
+            return (
+              <div key={match.fixture_id} className="flex-shrink-0 w-[280px]">
+                {isFinished
+                  ? <MatchCard {...transformToMatchCard(fixture)} isPremium={isPremium} variant="minimal" />
+                  : <UpcomingMatchCard fixture={fixture} leagueName={league.leagueName} />
+                }
+              </div>
+            );
+          })}
         </div>
         {/* Right fade + chevron */}
         {canScrollRight && (
@@ -397,62 +386,51 @@ export function MatchesPage() {
         }),
     ...(activeLeagues.length > 0 && { leagues: activeLeagues }),
     sort_by: sortBy,
-    return_all: true,
+    group_by_league: true,
   };
 
   const { data: fixturesResponse, isLoading } = useFixtures(fixtureParams);
 
-  // Get fixtures directly from response (return_all gives us all fixture details)
-  const fixtures = fixturesResponse?.data?.fixtures || [];
+  // Data comes grouped by league in data.leagues[]
+  const leaguesData: any[] = fixturesResponse?.data?.leagues || [];
 
-  // Fetch league names and images to fill in missing data from fixtures
-  const { getLeagueName, getLeagueImage } = useLeagueNames();
-
-  // Separate live and upcoming fixtures, group all by league
+  // Build fixturesByLeague directly from API response, extract live fixtures
   const { liveFixtures, fixturesByLeague } = useMemo(() => {
     const live: any[] = [];
-    const upcoming: any[] = [];
     const byLeague: Record<string, { leagueName: string; country: string; logo?: string; fixtures: any[] }> = {};
 
-    fixtures.forEach((fixture: any) => {
-      const match = fixture.fixture;
-      const isLive = match.minutes_elapsed !== null && match.minutes_elapsed !== undefined;
+    leaguesData.forEach((league: any) => {
+      const leagueId = league.league_id.toString();
+      // Normalize: some fixtures may be wrapped as {fixture: {...}, predictions: [...]}
+      const rawFixtures = league.fixtures || [];
+      const fixtures = rawFixtures.map((f: any) =>
+        f.fixture_id != null ? f : { ...(f.fixture || f), prediction: f.prediction ?? (f.predictions?.[0] ?? null) }
+      );
 
-      // Group ALL fixtures by league (not just upcoming)
-      const leagueId = match.league_id || 'unknown';
-      // Use league_name from fixture if available, otherwise look up from leagues endpoint
-      const leagueName = match.league_name || (match.league_id ? getLeagueName(match.league_id) : 'Unknown League');
-      // Use league_logo from fixture if available, otherwise look up from leagues endpoint
-      const leagueLogo = match.league_logo || (match.league_id ? getLeagueImage(match.league_id) : undefined);
+      byLeague[leagueId] = {
+        leagueName: league.league_name,
+        country: '',
+        logo: league.league_image_path,
+        fixtures,
+      };
 
-      if (!byLeague[leagueId]) {
-        byLeague[leagueId] = {
-          leagueName,
-          country: match.country_name || '',
-          logo: leagueLogo,
-          fixtures: []
-        };
-      }
-      byLeague[leagueId].fixtures.push(fixture);
-
-      if (isLive) {
-        live.push(fixture);
-      } else {
-        upcoming.push(fixture);
-      }
+      fixtures.forEach((fixture: any) => {
+        if (fixture.minutes_elapsed != null) {
+          live.push({ ...fixture, _leagueName: league.league_name });
+        }
+      });
     });
 
     return { liveFixtures: live, fixturesByLeague: byLeague };
-  }, [fixtures, getLeagueName, getLeagueImage]);
+  }, [leaguesData]);
 
-  // Transform fixture to MatchCard format
-  const transformToMatchCard = (fixtureItem: any) => {
-    const fixture = fixtureItem.fixture;
-    const predictions = fixtureItem.predictions || [];
+  // Transform fixture to MatchCard format (flat fixture object from group_by_league response)
+  const transformToMatchCard = (fixtureItem: any, leagueName?: string) => {
+    const fixture = fixtureItem;
 
     return {
       id: fixture.fixture_id.toString(),
-      competition: fixture.league_name || (fixture.league_id ? getLeagueName(fixture.league_id) : 'League'),
+      competition: leagueName || fixture._leagueName || fixture.league_name || 'League',
       homeTeam: {
         id: fixture.home_team_id?.toString() || 'home',
         name: fixture.home_team_name || 'Home',
@@ -465,26 +443,28 @@ export function MatchesPage() {
         shortName: fixture.away_team_short_code || fixture.away_team_name?.slice(0, 3).toUpperCase() || 'AWY',
         logo: fixture.away_team_image_path,
       },
-      score: fixture.home_team_score != null ? {
-        home: fixture.home_team_score,
-        away: fixture.away_team_score,
+      score: (fixture.home_team_score ?? fixture.home_score) != null ? {
+        home: fixture.home_team_score ?? fixture.home_score,
+        away: fixture.away_team_score ?? fixture.away_score,
       } : undefined,
-      status: fixture.minutes_elapsed !== null ? 'live' as const : 'upcoming' as const,
+      status: fixture.minutes_elapsed != null ? 'live' as const
+        : fixture.status === 'FT' ? 'finished' as const
+        : 'upcoming' as const,
       currentMinute: fixture.minutes_elapsed,
       kickoffTime: fixture.starting_at
         ? new Date(fixture.starting_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
         : 'TBD',
-      predictions: predictions.slice(0, 4).map((pred: any, index: number) => ({
-        id: pred.prediction_id?.toString() || index.toString(),
-        label: pred.prediction_display_name || 'Prediction',
-        percentage: Math.round(pred.prediction || pred.pre_game_prediction || 0),
+      predictions: fixture.prediction ? [{
+        id: '0',
+        label: fixture.prediction.prediction_display_name || 'Prediction',
+        percentage: Math.round(fixture.prediction.prediction || fixture.prediction.pre_game_prediction || 0),
         trend: {
-          direction: (pred.pct_change_value || 0) >= 0 ? 'up' as const : 'down' as const,
-          value: Math.abs(pred.pct_change_value || 0),
+          direction: (fixture.prediction.pct_change_value || 0) >= 0 ? 'up' as const : 'down' as const,
+          value: Math.abs(fixture.prediction.pct_change_value || 0),
           timeframe: '13 min',
         },
-      })),
-      totalPredictions: fixture.number_of_predictions || predictions.length || 5,
+      }] : [],
+      totalPredictions: fixture.number_of_predictions || 1,
       lastUpdated: '2 mins ago',
     };
   };
@@ -616,9 +596,9 @@ export function MatchesPage() {
                         <div className="flex gap-3">
                           {liveFixtures.map((fixture) => (
                             <UpcomingMatchCard
-                              key={fixture.fixture.fixture_id}
+                              key={fixture.fixture_id}
                               fixture={fixture}
-                              leagueName={fixture.fixture.league_name || (fixture.fixture.league_id ? getLeagueName(fixture.fixture.league_id) : undefined)}
+                              leagueName={fixture._leagueName || fixture.league_name}
                             />
                           ))}
                         </div>
@@ -663,7 +643,7 @@ export function MatchesPage() {
                           <div className="flex gap-3">
                             {league.fixtures.map((fixture) => (
                               <UpcomingMatchCard
-                                key={fixture.fixture.fixture_id}
+                                key={fixture.fixture_id}
                                 fixture={fixture}
                                 leagueName={league.leagueName}
                               />
@@ -696,8 +676,8 @@ export function MatchesPage() {
           {/* LEFT SIDEBAR — 341x581, rounded-12, p-16, gap-16, white bg */}
           <div className="w-[341px] shrink-0 bg-white rounded-[12px] p-[16px] flex flex-col gap-[16px] self-start" style={{ fontFamily: 'Montserrat, sans-serif' }}>
             <h2 className="text-[16px] font-semibold text-[#0a0a0a]">Top leagues</h2>
-            {/* League list — rounded-8, p-8, gap-8, #f7f8fa bg */}
-            <div className="rounded-[8px] bg-[#f7f8fa] p-[8px] flex flex-col gap-[8px]">
+            {/* League list — single solid bg, hover highlights */}
+            <div className="rounded-[8px] bg-[#f7f8fa] p-[4px] flex flex-col">
               {leagues.slice(0, 9).map((league) => {
                 const isSelected = selectedLeagueId === league.league_id;
                 return (
@@ -705,7 +685,7 @@ export function MatchesPage() {
                     key={league.league_id}
                     onClick={() => setSelectedLeagueId(isSelected ? null : league.league_id)}
                     className={`flex items-center gap-[10px] px-[8px] py-[12px] rounded-[8px] transition-colors ${
-                      isSelected ? 'bg-[#0d1a67]' : 'bg-white hover:bg-[#f0f1f5]'
+                      isSelected ? 'bg-[#0d1a67]' : 'hover:bg-[#0d1a67]/10'
                     }`}
                   >
                     {league.image_path ? (
@@ -803,7 +783,7 @@ export function MatchesPage() {
                 {liveFixtures.length > 0 ? (
                   <div className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth pb-2">
                     {liveFixtures.map((fixture) => (
-                      <div key={fixture.fixture.fixture_id} className="flex-shrink-0 w-[calc(50%-8px)]">
+                      <div key={fixture.fixture_id} className="flex-shrink-0 w-[calc(50%-8px)]">
                         <MatchCard {...transformToMatchCard(fixture)} isPremium={isPremium} variant="minimal" />
                       </div>
                     ))}
@@ -832,9 +812,15 @@ export function MatchesPage() {
                       <button onClick={() => navigate(`/league/${leagueId}`)} className="text-[14px] font-medium text-[#0d1a67] hover:underline">Live Table</button>
                     </div>
                     <div className="grid grid-cols-2 gap-[16px]">
-                      {league.fixtures.map((fixture) => (
-                        <MatchCard key={fixture.fixture.fixture_id} {...transformToMatchCard(fixture)} isPremium={isPremium} variant="minimal" />
-                      ))}
+                      {league.fixtures.map((fixture) => {
+                        const match = fixture;
+                        const matchStart = match.starting_at ? new Date(match.starting_at).getTime() : 0;
+                        const isCurrentlyLive = match.minutes_elapsed != null;
+            const isFinished = match.status === 'FT' || (!isCurrentlyLive && matchStart > 0 && Date.now() - matchStart > 2 * 60 * 60 * 1000);
+                        return isFinished
+                          ? <MatchCard key={match.fixture_id} {...transformToMatchCard(fixture)} isPremium={isPremium} variant="minimal" />
+                          : <UpcomingMatchCard key={match.fixture_id} fixture={fixture} leagueName={league.leagueName} />;
+                      })}
                     </div>
                   </div>
                 ))}

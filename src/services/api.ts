@@ -556,7 +556,14 @@ export interface FixtureWithPredictions {
 
 export interface FixturesResponse {
   fixtures: FixtureWithPredictions[];
-  fixture_ids?: number[];
+  fixture_ids?: number[] | null;
+  fixture_ids_by_league?: Record<string, number[]> | null;
+  leagues?: Array<{
+    league_id: number;
+    league_name: string;
+    league_image_path: string;
+    fixtures: any[];
+  }> | null;
 }
 
 // ==================== Device ID ====================
@@ -800,6 +807,7 @@ class ApiClient {
     season_id?: number;      // Season ID filter
     has_predictions?: boolean; // Filter fixtures with predictions
     return_all?: boolean;    // Return all fixtures instead of default 6 (requires a filter)
+    group_by_league?: boolean; // Group fixtures by league in response
   } = {}): Promise<ApiResponse<FixturesResponse>> {
     // Build query string with correct parameter names for backend
     const query = new URLSearchParams();
@@ -830,6 +838,9 @@ class ApiClient {
     }
     if (params.return_all) {
       query.append('return_all', 'true');
+    }
+    if (params.group_by_league) {
+      query.append('group_by_league', 'true');
     }
 
     const queryString = query.toString() ? `?${query.toString()}` : '';

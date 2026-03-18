@@ -13,6 +13,7 @@ export interface UseFixturesParams {
   season_id?: number;      // Season ID filter
   has_predictions?: boolean; // Filter fixtures with predictions
   return_all?: boolean;    // Return all fixtures instead of default 6 (requires a filter like date, league, or sort)
+  group_by_league?: boolean; // Group fixtures by league in response
 }
 
 export function useFixtures(
