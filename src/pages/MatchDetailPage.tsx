@@ -820,7 +820,7 @@ function MobileBottomNav() {
 }
 
 // AI Analysis panel - shown when a prediction card is clicked
-function AIAnalysisPanel({ prediction, fixture: _fixture, statsData: _statsData, onClose }: { prediction: any; fixture: any; statsData: any; onClose: () => void }) {
+function AIAnalysisPanel({ prediction, fixture: _fixture, statsData: _statsData, onClose: _onClose }: { prediction: any; fixture: any; statsData: any; onClose: () => void }) {
   const [formTab, setFormTab] = useState<'home' | 'away'>('home');
 
   // Real data from prediction.detail (from /fixtures/{id}/predictions endpoint)
