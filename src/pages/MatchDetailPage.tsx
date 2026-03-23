@@ -953,34 +953,36 @@ function AIAnalysisPanel({ prediction, fixture: _fixture, statsData: _statsData,
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-1">
                 <h4 className="text-[16px] font-semibold text-[#0a0a0a]">Performance vs. Similar Teams</h4>
-                <p className="text-xs font-medium text-[#7c8a9c]">Comparing {predTitle} performance</p>
+                <p className="text-xs font-medium text-[#7c8a9c]">Comparing {predTitle} vs Top 6{'\n'}Teams vs Bottom 6</p>
               </div>
               <div className="rounded-[8px] bg-white p-4 flex flex-col gap-4">
                 <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-4 h-6">
-                    <span className="text-[12px] font-semibold text-[#7c8a9c] flex-1" style={{ letterSpacing: '-0.5px' }}>vs Top 6</span>
-                    <span className="text-[14px] font-semibold text-black whitespace-nowrap" style={{ letterSpacing: '-0.5px' }}>{preGamePct > 0 ? `${(preGamePct / 100 * 5).toFixed(1)} Avg SOT` : '-'}</span>
-                    <div className="w-px h-4 bg-[#e1e4eb]" />
-                    <div className="relative w-[204px] h-[6px] rounded-full bg-[#ebebeb]">
-                      <div className="absolute top-0 left-0 h-[6px] rounded-full bg-[#858585] transition-all" style={{ width: `${Math.min(preGamePct, 100)}%` }} />
+                  {/* vs Top 6 row — h-24, gap-16 */}
+                  <div className="flex items-center h-[24px]" style={{ gap: '16px' }}>
+                    <span className="text-[12px] font-semibold text-[#7c8a9c] w-[94px] shrink-0">vs Top 6</span>
+                    <span className="text-[14px] font-semibold text-[#0a0a0a] whitespace-nowrap" style={{ lineHeight: '150%' }}>{preGamePct > 0 ? `${(preGamePct / 100 * 5).toFixed(1)} Avg SOT` : '-'}</span>
+                    <div className="w-px h-4 bg-[#e1e4eb] shrink-0" />
+                    <div className="relative w-[90px] h-[6px] rounded-full bg-[#f7f8fa] shrink-0">
+                      <div className="absolute top-0 left-0 h-[6px] rounded-full bg-[#7c8a9c] transition-all" style={{ width: `${Math.min(preGamePct, 100)}%` }} />
                     </div>
                   </div>
-                  <div className="flex items-center gap-4 h-6">
-                    <span className="text-[12px] font-semibold text-[#7c8a9c] flex-1" style={{ letterSpacing: '-0.5px' }}>vs Bottom 6</span>
-                    <span className="text-[14px] font-semibold text-black whitespace-nowrap" style={{ letterSpacing: '-0.5px' }}>{percentage > 0 ? `${(percentage / 100 * 5).toFixed(1)} Avg SOT` : '-'}</span>
-                    <div className="w-px h-4 bg-[#e1e4eb]" />
-                    <div className="relative w-[204px] h-[6px] rounded-full bg-[#ebebeb]">
+                  {/* vs Bottom 6 row — h-24, gap-16 */}
+                  <div className="flex items-center h-[24px]" style={{ gap: '16px' }}>
+                    <span className="text-[12px] font-semibold text-[#7c8a9c] w-[94px] shrink-0">vs Bottom 6</span>
+                    <span className="text-[14px] font-semibold text-[#0a0a0a] whitespace-nowrap" style={{ lineHeight: '150%' }}>{percentage > 0 ? `${(percentage / 100 * 5).toFixed(1)} Avg SOT` : '-'}</span>
+                    <div className="w-px h-4 bg-[#e1e4eb] shrink-0" />
+                    <div className="relative w-[90px] h-[6px] rounded-full bg-[#f7f8fa] shrink-0">
                       <div className="absolute top-0 left-0 h-[6px] rounded-full bg-[#27ae60] transition-all" style={{ width: `${Math.min(percentage, 100)}%` }} />
                     </div>
                   </div>
                 </div>
                 {pctChange !== 0 && (
-                  <div className="rounded-[8px] px-2 py-1 flex items-center justify-center gap-2" style={{ backgroundColor: '#ddefe7' }}>
-                    <img src="/trend.svg" width="14" height="14" alt="" style={{
+                  <div className="rounded-[4px] px-2 py-1 flex items-center gap-2" style={{ backgroundColor: '#e6f4ec' }}>
+                    <img src="/trend.svg" width="18" height="18" alt="" style={{
                       filter: 'brightness(0) saturate(100%) invert(52%) sepia(79%) saturate(409%) hue-rotate(95deg) brightness(93%) contrast(91%)',
                       transform: pctChange > 0 ? 'none' : 'scaleY(-1)',
                     }} />
-                    <span className="text-[12px] font-semibold" style={{ color: '#27ae60', letterSpacing: '-0.5px' }}>
+                    <span className="text-[12px] font-semibold text-[#27ae60]">
                       {Math.abs(pctChange).toFixed(0)}% Performance {pctChange > 0 ? 'Increase' : 'Decrease'} vs Weak Teams
                     </span>
                   </div>
