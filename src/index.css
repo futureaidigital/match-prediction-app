@@ -105,3 +105,16 @@
 .animate-slide-up {
   animation: slideUp 0.3s ease-out;
 }
+
+@keyframes slideDownOut {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+
+.animate-slide-down {
+  animation: slideDownOut 0.25s ease-in forwards;
+}

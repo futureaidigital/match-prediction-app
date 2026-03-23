@@ -647,14 +647,10 @@ function StatBar({
             <span className="text-white text-[12px] font-semibold">{awayValue}%</span>
           </div>
         </div>
-        {/* Bars below */}
-        <div className="flex w-full">
-          <div className="flex-1 h-[10px] rounded-l-[10px] bg-[#0a0a0a1a] overflow-hidden flex justify-end">
-            <div className="h-full rounded-l-[10px]" style={{ width: `${homePercent}%`, backgroundColor: homeBarColor }} />
-          </div>
-          <div className="flex-1 h-[10px] rounded-r-[10px] bg-[#0a0a0a1a] overflow-hidden">
-            <div className="h-full rounded-r-[10px]" style={{ width: `${awayPercent}%`, backgroundColor: awayBarColor }} />
-          </div>
+        {/* Single full bar — home fills left, away fills right */}
+        <div className="flex w-full h-[10px] rounded-[10px] overflow-hidden">
+          <div className="h-full rounded-l-[10px]" style={{ width: `${homePercent}%`, backgroundColor: homeBarColor }} />
+          <div className="h-full rounded-r-[10px]" style={{ width: `${awayPercent}%`, backgroundColor: awayBarColor }} />
         </div>
       </div>
     );
@@ -1208,6 +1204,14 @@ export function MatchDetailPage() {
   const [predictionCategory, setPredictionCategory] = useState<string>('all');
   const [commentaryFilter] = useState<'all' | 'goals' | 'cards' | 'important'>('all');
   const [selectedPrediction, setSelectedPrediction] = useState<any>(null);
+  const [drawerClosing, setDrawerClosing] = useState(false);
+  const closeMobileDrawer = () => {
+    setDrawerClosing(true);
+    setTimeout(() => {
+      setSelectedPrediction(null);
+      setDrawerClosing(false);
+    }, 250);
+  };
   const [playerStatsTab, setPlayerStatsTab] = useState<'summary' | 'attacking' | 'passing' | 'defensive' | 'discipline'>('summary');
   const [expandedStatCards, setExpandedStatCards] = useState<Set<string>>(new Set());
   const [h2hModalFixture, setH2hModalFixture] = useState<any>(null);
@@ -1622,24 +1626,18 @@ export function MatchDetailPage() {
                   </div>
                 ) : filteredPredictions.length > 0 ? (
                   <>
-                    <div className="flex flex-col gap-[20px] max-h-[70vh] overflow-y-auto scrollbar-hide p-1">
-                      {filteredPredictions.map((prediction: any, index: number) => (
-                        <div key={prediction.prediction_id || index} id={`pred-card-${index}`}>
+                    <div className="flex flex-col gap-[12px]">
+                      {filteredPredictions.slice(0, 5).map((prediction: any, index: number) => (
+                        <div key={prediction.prediction_id || index} id={`pred-card-mobile-${index}`}>
                         <PredictionCard
                           prediction={prediction}
                           index={index}
                           isLive={fixture?.minutes_elapsed !== null && fixture?.minutes_elapsed !== undefined}
-                          isBlurred={!isAuthenticated && index >= 6}
+                          isBlurred={!isAuthenticated && index >= 3}
                           isSelected={selectedPrediction === prediction}
                           onClick={() => {
                             const next = selectedPrediction === prediction ? null : prediction;
                             setSelectedPrediction(next);
-                            if (next) {
-                              const idx = filteredPredictions.indexOf(prediction);
-                              setTimeout(() => {
-                                document.getElementById(`pred-card-${idx}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                              }, 50);
-                            }
                           }}
                         />
                         </div>
@@ -1647,12 +1645,12 @@ export function MatchDetailPage() {
                     </div>
                     {/* Mobile AI Analysis — Bottom Drawer */}
                     {selectedPrediction && (
-                      <div className="md:hidden fixed inset-0 z-[100]" onClick={() => setSelectedPrediction(null)}>
+                      <div className="md:hidden fixed inset-0 z-[100]" onClick={closeMobileDrawer}>
                         {/* Backdrop */}
-                        <div className="absolute inset-0 bg-black/50 transition-opacity" />
+                        <div className={`absolute inset-0 bg-black/50 transition-opacity ${drawerClosing ? 'opacity-0' : 'opacity-100'}`} />
                         {/* Drawer */}
                         <div
-                          className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[20px] max-h-[85vh] overflow-y-auto animate-slide-up"
+                          className={`absolute bottom-0 left-0 right-0 bg-white rounded-t-[20px] max-h-[85vh] overflow-y-auto ${drawerClosing ? 'animate-slide-down' : 'animate-slide-up'}`}
                           style={{ fontFamily: 'Montserrat, sans-serif' }}
                           onClick={(e) => e.stopPropagation()}
                         >
@@ -1660,7 +1658,7 @@ export function MatchDetailPage() {
                           <div className="sticky top-0 z-10 bg-white rounded-t-[20px] px-4 pt-4 pb-3 flex items-center justify-between border-b border-[#e1e4eb]">
                             <h3 className="text-[18px] font-semibold text-[#0a0a0a]">Details</h3>
                             <button
-                              onClick={() => setSelectedPrediction(null)}
+                              onClick={closeMobileDrawer}
                               className="w-6 h-6 flex items-center justify-center"
                             >
                               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1674,7 +1672,7 @@ export function MatchDetailPage() {
                               prediction={selectedPredictionWithDetail || selectedPrediction}
                               fixture={fixture}
                               statsData={statsData}
-                              onClose={() => setSelectedPrediction(null)}
+                              onClose={closeMobileDrawer}
                             />
                           </div>
                         </div>
@@ -1856,8 +1854,8 @@ export function MatchDetailPage() {
                   <span className="text-white text-[14px] font-medium">Stats Updating in Real-Time</span>
                 </div>
               )}
-              {/* ═══ SECTION 1: MATCH HEADER ═══ 1440x514, horizontal, 30px gap */}
-              <div className="flex gap-[30px]">
+              {/* ═══ SECTION 1: MATCH HEADER ═══ stacks on mobile, horizontal on desktop */}
+              <div className="flex flex-col xl:flex-row gap-[30px]">
 
               {/* LEFT PANEL: Match Stats — 950x514, rounded-10, white, shadow */}
               <div className="w-[950px] max-w-full h-[514px] bg-white rounded-[10px] shadow-[0_0_20px_0_rgba(0,0,0,0.10)] pt-[24px] px-[16px] pb-[16px] flex flex-col gap-[16px]">
@@ -1913,8 +1911,8 @@ export function MatchDetailPage() {
                 )}
               </div>
 
-              {/* RIGHT PANEL: Team Analysis — 460x514, rounded-10, white, shadow */}
-              <div className="hidden xl:flex w-[460px] h-[514px] shrink-0 bg-white rounded-[10px] shadow-[0_0_20px_0_rgba(0,0,0,0.10)] pt-[16px] pb-[16px] px-[24px] flex-col items-center gap-[30px]">
+              {/* RIGHT PANEL (desktop) / BELOW STATS (mobile): Team Analysis */}
+              <div className="flex w-full xl:w-[460px] h-auto xl:h-[514px] shrink-0 bg-white rounded-[10px] shadow-[0_0_20px_0_rgba(0,0,0,0.10)] pt-[16px] pb-[16px] px-[16px] xl:px-[24px] flex-col items-center gap-[20px] xl:gap-[30px]">
                 {/* Header — title left, See Previous button right */}
                 <div className="w-full flex items-start justify-between">
                   <div className="flex flex-col" style={{ gap: '4px' }}>
@@ -1985,40 +1983,53 @@ export function MatchDetailPage() {
                   }).join(' ');
 
                   const labels = [
-                    { name: 'ATT', homeVal: homeScores[0], awayVal: awayScores[0], style: { top: '0px', left: '50%', transform: 'translateX(-50%)' } },
-                    { name: 'TEC', homeVal: homeScores[1], awayVal: awayScores[1], style: { top: '90px', right: '0px' } },
-                    { name: 'TAC', homeVal: homeScores[2], awayVal: awayScores[2], style: { bottom: '10px', right: '40px' } },
-                    { name: 'DEF', homeVal: homeScores[3], awayVal: awayScores[3], style: { bottom: '10px', left: '40px' } },
-                    { name: 'CRE', homeVal: homeScores[4], awayVal: awayScores[4], style: { top: '90px', left: '0px' } },
+                    { name: 'ATT', homeVal: homeScores[0], awayVal: awayScores[0], style: { top: '0%', left: '50%', transform: 'translateX(-50%)' } },
+                    { name: 'TEC', homeVal: homeScores[1], awayVal: awayScores[1], style: { top: '28%', right: '0%' } },
+                    { name: 'TAC', homeVal: homeScores[2], awayVal: awayScores[2], style: { bottom: '3%', right: '10%' } },
+                    { name: 'DEF', homeVal: homeScores[3], awayVal: awayScores[3], style: { bottom: '3%', left: '10%' } },
+                    { name: 'CRE', homeVal: homeScores[4], awayVal: awayScores[4], style: { top: '28%', left: '0%' } },
                   ];
 
                   return (
                     <div className="flex-1 flex items-center justify-center">
-                      <div className="relative" style={{ width: '415px', height: '325px' }}>
-                        <svg viewBox="0 0 264 247" className="absolute" style={{ left: '76px', top: '39px', width: '264px', height: '247px' }}>
-                          {/* Background pentagon */}
-                          <polygon points={toPoints([100,100,100,100,100])} fill="#f7f8fa" stroke="none" />
-                          {/* Grid lines */}
-                          {[0.3, 0.5, 0.7, 0.9].map((scale, i) => (
-                            <polygon key={i} points={toPoints([scale*100,scale*100,scale*100,scale*100,scale*100])} fill="none" stroke="#e1e4eb" strokeWidth="0.5" />
+                      <div className="relative w-[280px] h-[220px] xl:w-[415px] xl:h-[325px] group">
+                        <svg viewBox="0 0 264 247" className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[200px] h-[187px] xl:w-[264px] xl:h-[247px]">
+                          {/* 100% reference pentagon */}
+                          <polygon points={toPoints([100,100,100,100,100])} fill="#f7f8fa" stroke="#f7f8fa" strokeWidth="0.85" />
+                          {/* Interval grid pentagons — dashed at 20%, 40%, 60%, 80% */}
+                          {[0.2, 0.4, 0.6, 0.8].map((scale, i) => (
+                            <polygon key={i} points={toPoints([scale*100,scale*100,scale*100,scale*100,scale*100])} fill="none" stroke="#e1e4eb" strokeWidth="0.5" strokeDasharray="4 3" />
                           ))}
-                          {/* Axis lines */}
+                          {/* Axis lines from center to each vertex */}
                           {[0, 1, 2, 3, 4].map(j => {
                             const angle = (Math.PI * 2 * j / 5) - Math.PI / 2;
                             return <line key={j} x1={cx} y1={cy} x2={cx + maxR * Math.cos(angle)} y2={cy + maxR * Math.sin(angle)} stroke="#e1e4eb" strokeWidth="0.5" />;
                           })}
+                          {/* Interval % labels along top-left axis (always visible) */}
+                          {[20, 40, 60, 80, 100].map(pct => {
+                            const r = (pct / 100) * maxR;
+                            const angle = -Math.PI / 2; // top axis
+                            const x = cx + r * Math.cos(angle);
+                            const y = cy + r * Math.sin(angle);
+                            return (
+                              <text key={pct} x={x + 5} y={y + 3} fontSize="7" fill="#b0b8c4" fontWeight="500">{pct}%</text>
+                            );
+                          })}
                           {/* Home team shape */}
-                          <polygon points={toPoints(homeScores)} fill={homeTeamColourLight} stroke={homeTeamColour} strokeWidth="2" opacity="0.85" />
+                          <polygon points={toPoints(homeScores)} fill={homeTeamColourLight} stroke={homeTeamColour} strokeWidth="1.7" opacity="0.85" />
                           {/* Away team shape */}
-                          <polygon points={toPoints(awayScores)} fill={awayTeamColourLight} stroke={awayTeamColour} strokeWidth="2" />
+                          <polygon points={toPoints(awayScores)} fill={awayTeamColourLight} stroke={awayTeamColour} strokeWidth="1.7" />
                         </svg>
                         {/* Labels with value pills */}
                         {labels.map(lbl => (
-                          <div key={lbl.name} className="absolute flex items-center gap-1" style={lbl.style as any}>
-                            <span className="text-[10px] font-semibold text-[#8c99a9]" style={{ letterSpacing: '-0.5px', lineHeight: '18px' }}>{lbl.name}</span>
-                            <div className="flex gap-[2px]">
-                              <span className="px-1 py-[6px] rounded-[4px] bg-[#f7f8fa] text-[10px] font-medium" style={{ lineHeight: '7px', color: homeTeamColour }}>{lbl.homeVal}</span>
-                              <span className="px-1 py-[6px] rounded-[4px] bg-[#f7f8fa] text-[10px] font-medium" style={{ lineHeight: '7px', color: awayTeamColour }}>{lbl.awayVal}</span>
+                          <div key={lbl.name} className="absolute flex flex-col items-center gap-[2px]" style={lbl.style as any}>
+                            {/* Label + score pills */}
+                            <div className="flex items-center gap-1">
+                              <span className="text-[10px] font-semibold text-[#8c99a9]" style={{ letterSpacing: '-0.5px', lineHeight: '18px' }}>{lbl.name}</span>
+                              <div className="flex gap-[2px]">
+                                <span className="px-1 py-[6px] rounded-[4px] bg-[#f7f8fa] text-[10px] font-medium" style={{ lineHeight: '7px', color: homeTeamColour }}>{lbl.homeVal}</span>
+                                <span className="px-1 py-[6px] rounded-[4px] bg-[#f7f8fa] text-[10px] font-medium" style={{ lineHeight: '7px', color: awayTeamColour }}>{lbl.awayVal}</span>
+                              </div>
                             </div>
                           </div>
                         ))}
@@ -2030,11 +2041,11 @@ export function MatchDetailPage() {
                 <div className="flex flex-col items-center gap-[4px]">
                   <div className="flex items-center gap-2">
                     <div className="w-[24px] h-[6px] rounded-full" style={{ backgroundColor: homeTeamColour }} />
-                    <span className="text-[10px] font-semibold text-[#8c99a9]" style={{ letterSpacing: '-0.5px', lineHeight: '18px' }}>{fixture?.home_team_name || 'Home'}</span>
+                    <span className="text-[10px] font-semibold" style={{ letterSpacing: '-0.5px', lineHeight: '18px', color: homeTeamColour }}>{fixture?.home_team_name || 'Home'}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-[24px] h-[6px] rounded-full" style={{ backgroundColor: awayTeamColour }} />
-                    <span className="text-[10px] font-semibold text-[#8c99a9]" style={{ letterSpacing: '-0.5px', lineHeight: '18px' }}>{fixture?.away_team_name || 'Away'}</span>
+                    <span className="text-[10px] font-semibold" style={{ letterSpacing: '-0.5px', lineHeight: '18px', color: awayTeamColour }}>{fixture?.away_team_name || 'Away'}</span>
                   </div>
                 </div>
               </div>
