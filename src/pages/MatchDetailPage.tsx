@@ -372,6 +372,8 @@ function SubstitutionRow({
 function H2HMatchModal({ h2hMatch, onClose }: { h2hMatch: any; onClose: () => void }) {
   const { data: statsResponse, isLoading } = useFixtureStatistics(String(h2hMatch.fixture_id));
   const modalStatsData = statsResponse?.data?.statistics;
+  const homeTeamColour = modalStatsData?.home_team_colour || '#27ae60';
+  const awayTeamColour = modalStatsData?.away_team_colour || '#0d1a67';
   const [modalExpandedCards, setModalExpandedCards] = useState<Set<string>>(new Set());
 
   // Lock body scroll when modal is open
@@ -467,7 +469,7 @@ function H2HMatchModal({ h2hMatch, onClose }: { h2hMatch: any; onClose: () => vo
                   ];
                 })().map((s, i) => (
                   <div key={`${s.label}-${i}`} className="w-full">
-                    <StatBar label={s.label} homeValue={s.home ?? 0} awayValue={s.away ?? 0} isPercentage={s.isPct} />
+                    <StatBar label={s.label} homeValue={s.home ?? 0} awayValue={s.away ?? 0} isPercentage={s.isPct} homeColour={homeTeamColour} awayColour={awayTeamColour} />
                   </div>
                 ))}
               </div>
@@ -523,6 +525,8 @@ function H2HMatchModal({ h2hMatch, onClose }: { h2hMatch: any; onClose: () => vo
                       rows={card.rows}
                       isExpanded={modalExpandedCards.has(card.id)}
                       onToggle={() => setModalExpandedCards(prev => { const next = new Set(prev); if (next.has(card.id)) next.delete(card.id); else next.add(card.id); return next; })}
+                      homeColour={homeTeamColour}
+                      awayColour={awayTeamColour}
                     />
                   ))}
                 </div>
@@ -541,11 +545,15 @@ function StatComparisonCard({
   rows,
   isExpanded,
   onToggle,
+  homeColour = '#0a0a0a',
+  awayColour = '#0a0a0a',
 }: {
   title: string;
   rows: { label: string; home: any; away: any }[];
   isExpanded: boolean;
   onToggle: () => void;
+  homeColour?: string;
+  awayColour?: string;
 }) {
   const font = { fontFamily: 'Montserrat, sans-serif' } as const;
   return (
@@ -564,7 +572,7 @@ function StatComparisonCard({
             <div key={i} className="flex items-center justify-between h-[24px]" style={{ gap: '10px' }}>
               {/* Home value + left indicator (only show bar if home wins) */}
               <div className="flex items-center gap-[7px] min-w-[60px]">
-                <div className="w-[3px] h-[24px]" style={{ borderRadius: '99px 0 0 99px', backgroundColor: h > a ? '#0a0a0a' : 'transparent' }} />
+                <div className="w-[3px] h-[24px]" style={{ borderRadius: '99px 0 0 99px', backgroundColor: h > a ? homeColour : 'transparent' }} />
                 <span className={`text-[16px] font-semibold ${h >= a ? 'text-[#0a0a0a]' : 'text-[#0a0a0a60]'}`} style={{ lineHeight: '24px' }}>{row.home ?? '—'}</span>
               </div>
               {/* Center label — 14px Medium #7c8a9c */}
@@ -572,7 +580,7 @@ function StatComparisonCard({
               {/* Away value + right indicator (only show bar if away wins) */}
               <div className="flex items-center justify-end gap-[7px] min-w-[60px]">
                 <span className={`text-[16px] font-semibold ${a >= h ? 'text-[#0a0a0a]' : 'text-[#0a0a0a60]'}`} style={{ lineHeight: '24px' }}>{row.away ?? '—'}</span>
-                <div className="w-[3px] h-[24px]" style={{ borderRadius: '0 99px 99px 0', backgroundColor: a > h ? '#0a0a0a' : 'transparent' }} />
+                <div className="w-[3px] h-[24px]" style={{ borderRadius: '0 99px 99px 0', backgroundColor: a > h ? awayColour : 'transparent' }} />
               </div>
             </div>
           );
@@ -603,12 +611,16 @@ function StatBar({
   label,
   homeValue,
   awayValue,
-  isPercentage = false
+  isPercentage = false,
+  homeColour = '#27ae60',
+  awayColour = '#0d1a67',
 }: {
   label: string;
   homeValue: number;
   awayValue: number;
   isPercentage?: boolean;
+  homeColour?: string;
+  awayColour?: string;
 }) {
   const total = homeValue + awayValue;
   const homePercent = total > 0 ? (homeValue / total) * 100 : 50;
@@ -617,8 +629,8 @@ function StatBar({
   const font = { fontFamily: 'Montserrat, sans-serif' } as const;
   const homeWins = homeValue > awayValue;
   const awayWins = awayValue > homeValue;
-  const homeBarColor = homeWins ? '#27ae60' : '#27ae6040';
-  const awayBarColor = awayWins ? '#0d1a67' : '#0d1a6740';
+  const homeBarColor = homeWins ? homeColour : `${homeColour}40`;
+  const awayBarColor = awayWins ? awayColour : `${awayColour}40`;
 
   // Ball Possession — pills + label row on top, 10px bars below
   if (isPercentage) {
@@ -626,11 +638,11 @@ function StatBar({
       <div className="flex flex-col items-center" style={{ gap: '10px', ...font }}>
         {/* Top: home pill — label — away pill */}
         <div className="flex items-center justify-between w-full">
-          <div className="h-[24px] px-[6px] rounded-[50px] flex items-center justify-center" style={{ backgroundColor: homeWins ? '#27ae60' : '#27ae6060' }}>
+          <div className="h-[24px] px-[6px] rounded-[50px] flex items-center justify-center" style={{ backgroundColor: homeWins ? homeColour : `${homeColour}60` }}>
             <span className="text-white text-[12px] font-semibold">{homeValue}%</span>
           </div>
           <span className="text-[14px] font-medium text-[#0a0a0a]" style={{ lineHeight: '135%' }}>{label}</span>
-          <div className="h-[24px] px-[6px] rounded-[50px] flex items-center justify-center" style={{ backgroundColor: awayWins ? '#0d1a67' : '#0d1a6760' }}>
+          <div className="h-[24px] px-[6px] rounded-[50px] flex items-center justify-center" style={{ backgroundColor: awayWins ? awayColour : `${awayColour}60` }}>
             <span className="text-white text-[12px] font-semibold">{awayValue}%</span>
           </div>
         </div>
@@ -1257,6 +1269,13 @@ export function MatchDetailPage() {
   // Backend returns { statistics: { basic: {...}, advanced: {...}, players: [...] } }
   const statsData = statsResponse?.data?.statistics;
 
+  // Team colours from fixture statistics — used for radar chart, stat bars, and comparison cards
+  const homeTeamColour = statsData?.home_team_colour || '#27ae60';
+  const awayTeamColour = statsData?.away_team_colour || '#0d1a67';
+  // Lighter versions for radar fill (append 40-80 hex opacity)
+  const homeTeamColourLight = `${homeTeamColour}60`;
+  const awayTeamColourLight = `${awayTeamColour}40`;
+
   // Resolve player names/images from player IDs in stats
   const statsPlayerIds = useMemo(() => {
     return ((statsData as any)?.players || []).map((p: any) => p.player_id as number);
@@ -1785,7 +1804,7 @@ export function MatchDetailPage() {
                       ];
                     })().map((s, i) => (
                       <div key={`${s.label}-${i}`} className="w-full">
-                        <StatBar label={s.label} homeValue={s.home ?? 0} awayValue={s.away ?? 0} isPercentage={s.isPct} />
+                        <StatBar label={s.label} homeValue={s.home ?? 0} awayValue={s.away ?? 0} isPercentage={s.isPct} homeColour={homeTeamColour} awayColour={awayTeamColour} />
                       </div>
                     ))}
                   </div>
@@ -1886,18 +1905,18 @@ export function MatchDetailPage() {
                             const angle = (Math.PI * 2 * j / 5) - Math.PI / 2;
                             return <line key={j} x1={cx} y1={cy} x2={cx + maxR * Math.cos(angle)} y2={cy + maxR * Math.sin(angle)} stroke="#e1e4eb" strokeWidth="0.5" />;
                           })}
-                          {/* Home team shape (blue) */}
-                          <polygon points={toPoints(homeScores)} fill="#ccd3fc" stroke="#0d1a67" strokeWidth="2" opacity="0.85" />
-                          {/* Away team shape (green) */}
-                          <polygon points={toPoints(awayScores)} fill="#c8e9d080" stroke="#27ae60" strokeWidth="2" />
+                          {/* Home team shape */}
+                          <polygon points={toPoints(homeScores)} fill={homeTeamColourLight} stroke={homeTeamColour} strokeWidth="2" opacity="0.85" />
+                          {/* Away team shape */}
+                          <polygon points={toPoints(awayScores)} fill={awayTeamColourLight} stroke={awayTeamColour} strokeWidth="2" />
                         </svg>
                         {/* Labels with value pills */}
                         {labels.map(lbl => (
                           <div key={lbl.name} className="absolute flex items-center gap-1" style={lbl.style as any}>
                             <span className="text-[10px] font-semibold text-[#8c99a9]" style={{ letterSpacing: '-0.5px', lineHeight: '18px' }}>{lbl.name}</span>
                             <div className="flex gap-[2px]">
-                              <span className="px-1 py-[6px] rounded-[4px] bg-[#f7f8fa] text-[10px] font-medium text-[#0d1a67]" style={{ lineHeight: '7px' }}>{lbl.homeVal}</span>
-                              <span className="px-1 py-[6px] rounded-[4px] bg-[#f7f8fa] text-[10px] font-medium text-[#27ae60]" style={{ lineHeight: '7px' }}>{lbl.awayVal}</span>
+                              <span className="px-1 py-[6px] rounded-[4px] bg-[#f7f8fa] text-[10px] font-medium" style={{ lineHeight: '7px', color: homeTeamColour }}>{lbl.homeVal}</span>
+                              <span className="px-1 py-[6px] rounded-[4px] bg-[#f7f8fa] text-[10px] font-medium" style={{ lineHeight: '7px', color: awayTeamColour }}>{lbl.awayVal}</span>
                             </div>
                           </div>
                         ))}
@@ -1908,11 +1927,11 @@ export function MatchDetailPage() {
                 {/* Legend — 103x40, vertical, 4px gap */}
                 <div className="flex flex-col items-center gap-[4px]">
                   <div className="flex items-center gap-2">
-                    <div className="w-[24px] h-[6px] rounded-full bg-[#0d1a67]" />
+                    <div className="w-[24px] h-[6px] rounded-full" style={{ backgroundColor: homeTeamColour }} />
                     <span className="text-[10px] font-semibold text-[#8c99a9]" style={{ letterSpacing: '-0.5px', lineHeight: '18px' }}>{fixture?.home_team_name || 'Home'}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-[24px] h-[6px] rounded-full bg-[#27ae60]" />
+                    <div className="w-[24px] h-[6px] rounded-full" style={{ backgroundColor: awayTeamColour }} />
                     <span className="text-[10px] font-semibold text-[#8c99a9]" style={{ letterSpacing: '-0.5px', lineHeight: '18px' }}>{fixture?.away_team_name || 'Away'}</span>
                   </div>
                 </div>
@@ -1978,6 +1997,8 @@ export function MatchDetailPage() {
                       rows={card.rows}
                       isExpanded={expandedStatCards.has(card.id)}
                       onToggle={() => setExpandedStatCards(prev => { const next = new Set(prev); if (next.has(card.id)) next.delete(card.id); else next.add(card.id); return next; })}
+                      homeColour={homeTeamColour}
+                      awayColour={awayTeamColour}
                     />
                   ))}
                 </div>

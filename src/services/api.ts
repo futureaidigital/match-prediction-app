@@ -186,6 +186,9 @@ export interface FixtureStatisticsData {
   head_to_head?: any[];  // H2H match history
   home_team_id?: number;
   away_team_id?: number;
+  home_team_colour?: string;  // e.g. "#E30613"
+  away_team_colour?: string;  // e.g. "#004170"
+  backup_colour?: string;     // fallback when team colours are too similar
   created_at?: string;
   updated_at?: string;
 }
