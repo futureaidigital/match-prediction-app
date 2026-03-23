@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
-import { SmartCombo } from '@/components/SmartCombo';
+import { TrendingNews } from '@/components/TrendingNews';
 import { useLeagues, useLeaguePlayerRankings } from '@/hooks/useLeagues';
 import { useLeagueCurrent, useLeagueStandings, useLeagueFixtures } from '@/hooks/useLeagueStandings';
 import { LeagueStandingTeam, LeagueSeason, LeaguePlayerRanking } from '@/services/api';
@@ -176,20 +176,24 @@ function PlayerRankingCard({
               <div className="w-4 h-4 bg-gray-100 rounded text-xs flex items-center justify-center text-gray-500 font-medium">
                 {index + 1}
               </div>
+              {/* Player avatar — use club logo as fallback when player image is null */}
               {player.player_image_url ? (
                 <img
                   src={player.player_image_url}
                   alt={player.player_name}
                   className="w-7 h-7 rounded-full object-cover bg-gray-100"
                   onError={(e) => {
-                    // Hide broken image and show fallback
                     e.currentTarget.style.display = 'none';
                     e.currentTarget.nextElementSibling?.classList.remove('hidden');
                   }}
                 />
               ) : null}
-              <div className={`w-7 h-7 bg-gray-200 rounded-full flex items-center justify-center ${player.player_image_url ? 'hidden' : ''}`}>
-                <span className="text-xs text-gray-400">{player.player_name?.charAt(0) || '?'}</span>
+              <div className={`w-7 h-7 rounded-full flex items-center justify-center bg-gray-100 overflow-hidden ${player.player_image_url ? 'hidden' : ''}`}>
+                {player.club_image_url ? (
+                  <img src={player.club_image_url} alt={player.club_name} className="w-5 h-5 object-contain" />
+                ) : (
+                  <span className="text-xs text-gray-400">{player.player_name?.charAt(0) || '?'}</span>
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-900 truncate">{player.player_name}</p>
@@ -224,7 +228,7 @@ export function LeaguePage() {
   // Auth context
   const { subscriptionStatus } = useAuth();
   // The API returns has_subscription, not has_access - check both for compatibility
-  const isPremium = (subscriptionStatus as any)?.has_subscription || subscriptionStatus?.has_access || false;
+  void subscriptionStatus; // kept for future use
 
   // League scroll refs and state
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -965,9 +969,9 @@ export function LeaguePage() {
                       </div>
                     </div>
 
-                    {/* Right Column - Smart Combo */}
+                    {/* Right Column - Trending News */}
                     <div className="lg:w-[460px] shrink-0">
-                      <SmartCombo isPremium={isPremium} />
+                      {selectedLeagueId && <TrendingNews leagueId={selectedLeagueId} limit={8} />}
                     </div>
                   </div>
                 </div>

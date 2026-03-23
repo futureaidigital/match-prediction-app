@@ -106,6 +106,17 @@ export const queryKeys = {
       ['players', 'statistics', params] as const,
   },
 
+  // Carousel keys
+  carousel: {
+    current: ['carousel', 'current'] as const,
+  },
+
+  // News keys
+  news: {
+    byLeague: (leagueId: number, limit?: number) =>
+      ['news', 'by-league', leagueId, limit] as const,
+  },
+
   // Leagues keys
   leagues: {
     all: () => ['leagues'] as const,

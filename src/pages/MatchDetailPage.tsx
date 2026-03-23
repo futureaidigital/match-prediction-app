@@ -11,7 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 type TabType = 'predictions' | 'commentary' | 'stats' | 'lineups';
 
 // Prediction card component with expand/collapse - Figma specs: 358x350 expanded
-function PredictionCard({ prediction, index: _index, isLive: _isLive, isBlurred = false, isSelected = false, onClick, compact = false }: { prediction: any; index: number; isLive: boolean; isBlurred?: boolean; isSelected?: boolean; onClick?: () => void; compact?: boolean }) {
+function PredictionCard({ prediction, index: _index, isLive: _isLive, isBlurred = false, isSelected = false, onClick, compact: _compact = false }: { prediction: any; index: number; isLive: boolean; isBlurred?: boolean; isSelected?: boolean; onClick?: () => void; compact?: boolean }) {
   const rawValue = prediction.value ?? prediction.prediction ?? prediction.pre_game_value ?? prediction.pre_game_prediction ?? 0;
   const percentage = rawValue > 1 ? Math.round(rawValue) : Math.round(rawValue * 100);
   const rawPreGame = prediction.pre_game_value ?? prediction.pre_game_prediction ?? 0;
@@ -48,7 +48,7 @@ function PredictionCard({ prediction, index: _index, isLive: _isLive, isBlurred 
   return (
     <div
       onClick={!isBlurred ? onClick : undefined}
-      className={`rounded-[14px] md:rounded-[20px] p-3 md:p-5 flex flex-col gap-[10px] md:gap-5 bg-white w-full ${!compact ? 'md:w-[calc(33.333%-14px)] md:max-w-[440px]' : ''} ${isBlurred ? 'relative select-none pointer-events-none' : 'cursor-pointer'}`}
+      className={`rounded-[14px] md:rounded-[20px] p-3 md:p-5 flex flex-col gap-[10px] md:gap-5 bg-white w-full ${isBlurred ? 'relative select-none pointer-events-none' : 'cursor-pointer'}`}
       style={{
         boxShadow: isSelected ? 'none' : '0 2px 15px rgba(0,0,0,0.1)',
         fontFamily: 'Montserrat, sans-serif',
@@ -372,8 +372,8 @@ function SubstitutionRow({
 function H2HMatchModal({ h2hMatch, onClose }: { h2hMatch: any; onClose: () => void }) {
   const { data: statsResponse, isLoading } = useFixtureStatistics(String(h2hMatch.fixture_id));
   const modalStatsData = statsResponse?.data?.statistics;
-  const homeTeamColour = modalStatsData?.home_team_colour || '#27ae60';
-  const awayTeamColour = modalStatsData?.away_team_colour || '#0d1a67';
+  const homeTeamColour = modalStatsData?.home_team_color || '#27ae60';
+  const awayTeamColour = modalStatsData?.away_team_color || '#0d1a67';
   const [modalExpandedCards, setModalExpandedCards] = useState<Set<string>>(new Set());
 
   // Lock body scroll when modal is open
@@ -838,11 +838,24 @@ function AIAnalysisPanel({ prediction, fixture: _fixture, statsData: _statsData,
   // Real data from prediction.detail (from /fixtures/{id}/predictions endpoint)
   const detail = prediction.detail || null;
   const aiAnalysis: string = detail?.ai_analysis || '';
-  const matchHistory: any[] = detail?.match_history || [];
+  // match_history can be a flat array OR { home_last_5: [...], away_last_5: [...] }
+  const rawMatchHistory = detail?.match_history;
+  const matchHistory: any[] = Array.isArray(rawMatchHistory)
+    ? rawMatchHistory
+    : (rawMatchHistory?.home_last_5 || rawMatchHistory?.away_last_5)
+      ? [...(rawMatchHistory.home_last_5 || []), ...(rawMatchHistory.away_last_5 || [])]
+      : [];
+  const homeMatchHistory: any[] = Array.isArray(rawMatchHistory) ? rawMatchHistory : (rawMatchHistory?.home_last_5 || []);
+  void (Array.isArray(rawMatchHistory) ? [] : (rawMatchHistory?.away_last_5 || [])); // away_last_5 available for future use
   const modelConfidence = detail?.model_confidence || null;
   const seasonContext = detail?.season_context || null;
+  // season_context can be { home_form: {...}, away_form: {...} } OR flat keys like "TeamName_stat: value"
   const homeForm = seasonContext?.home_form || null;
   const awayForm = seasonContext?.away_form || null;
+  // If no home_form/away_form, build from flat season_context keys
+  const flatSeasonEntries = seasonContext && !homeForm && !awayForm
+    ? Object.entries(seasonContext).filter(([, v]) => v != null)
+    : [];
   const activeForm = formTab === 'home' ? homeForm : awayForm;
 
   const rawValue = prediction.value ?? prediction.prediction ?? prediction.pre_game_value ?? prediction.pre_game_prediction ?? 0;
@@ -865,51 +878,37 @@ function AIAnalysisPanel({ prediction, fixture: _fixture, statsData: _statsData,
 
   const title = prediction.title || prediction.prediction_display_name || 'Prediction';
 
-  // Dynamic stat columns derived from match_history data
-  const labelMap: Record<string, string> = {
-    rating: 'RTG', shots_on_target: 'SOT', 'shots on target': 'SOT',
-    total_shots: 'SHOT', 'total shots': 'SHOT', shots_off_target: 'OFF',
-    chances_created: 'CRE', goals: 'GLS', xG: 'xG',
-    big_chances: 'BIG', tackles: 'TKL', fouls: 'FLS',
-    cards: 'CRD', tackle_to_interception_ratio: 'T/I',
-    // prefixed variants (home_* / away_*)
-    home_rating: 'RTG', home_shots_on_target: 'SOT', home_total_shots: 'SHOT',
-    home_shots_off_target: 'OFF', home_chances_created: 'CRE', home_goals: 'GLS',
-    home_xG: 'xG', home_big_chances: 'BIG', home_tackles: 'TKL', home_fouls: 'FLS',
-    home_cards: 'CRD',
-    away_rating: 'RTG', away_shots_on_target: 'SOT', away_total_shots: 'SHOT',
-    away_shots_off_target: 'OFF', away_chances_created: 'CRE', away_goals: 'GLS',
-    away_xG: 'xG', away_big_chances: 'BIG', away_tackles: 'TKL', away_fouls: 'FLS',
-    away_cards: 'CRD',
+  // Detect match_history data shape and build appropriate columns
+  const sampleMatch = homeMatchHistory[0] || matchHistory[0];
+  const isNewFormat = sampleMatch && ('goals_for' in sampleMatch || 'result' in sampleMatch);
+  // New format columns: GF, GA, BTTS, Result
+  // Old format columns: RTG, SOT, SHOT, OFF, CRE, GLS
+  const resolveKey = (key: string, data: any): string | null => {
+    if (!data) return null;
+    if (key in data) return key;
+    const kebab = key.replace(/_/g, '-');
+    if (kebab in data) return kebab;
+    return null;
   };
-  // Exclude non-stat keys from match_history entries
-  const excludeKeys = new Set(['fixture_id', 'home_team_name', 'away_team_name', 'home_team_logo_url', 'away_team_logo_url', 'starting_at']);
-  // Derive label: use map, else strip home_/away_ prefix and abbreviate the remainder
-  const deriveLabel = (k: string) => {
-    if (labelMap[k]) return labelMap[k];
-    const stripped = k.replace(/^(home_|away_)/, '');
-    return stripped.split('_').map(w => w.slice(0, 3)).join('').toUpperCase().slice(0, 4);
-  };
-  const statCols = matchHistory.length > 0
-    ? (() => {
-        const seen = new Set<string>();
-        return Object.keys(matchHistory[0])
-          .filter(k => !excludeKeys.has(k))
-          .map(k => ({ key: k, label: deriveLabel(k) }))
-          .filter(col => {
-            if (seen.has(col.label)) return false;
-            seen.add(col.label);
-            return true;
-          });
-      })()
-    : [
-        { key: 'rating', label: 'RTG' },
-        { key: 'shots_on_target', label: 'SOT' },
-        { key: 'total_shots', label: 'SHOT' },
-        { key: 'shots_off_target', label: 'OFF' },
-        { key: 'chances_created', label: 'CRE' },
-        { key: 'goals', label: 'GLS' },
-      ];
+  const statCols = isNewFormat
+    ? [
+        { key: 'goals_for', label: 'GF' },
+        { key: 'goals_against', label: 'GA' },
+        { key: 'btts', label: 'BTTS' },
+      ]
+    : (sampleMatch
+        ? [
+            { key: 'rating', label: 'RTG' },
+            { key: 'shots_on_target', label: 'SOT' },
+            { key: 'total_shots', label: 'SHOT' },
+            { key: 'shots_off_target', label: 'OFF' },
+            { key: 'chances_created', label: 'CRE' },
+            { key: 'goals', label: 'GLS' },
+          ].map(col => {
+            const resolved = resolveKey(col.key, sampleMatch);
+            return resolved ? { key: resolved, label: col.label } : null;
+          }).filter((col): col is { key: string; label: string } => col !== null)
+        : []);
 
   return (
     <div
@@ -936,40 +935,15 @@ function AIAnalysisPanel({ prediction, fixture: _fixture, statsData: _statsData,
               <polyline points="6 9 12 15 18 9" />
             </svg>
           </button>
-          <div id={`ai-analysis-${prediction.prediction_id || prediction._id || 'detail'}`} className="rounded-[20px] bg-white shadow-[0_2px_15px_rgba(0,0,0,0.08)] p-4 flex flex-col gap-3">
+          <div id={`ai-analysis-${prediction.prediction_id || prediction._id || 'detail'}`} className="rounded-[20px] bg-white shadow-[0_2px_15px_rgba(0,0,0,0.08)] p-5 flex flex-col gap-3">
             {(() => {
-              if (!aiAnalysis) return <p className="text-sm font-medium text-[#7c8a9c]">No analysis available for this prediction.</p>;
-              // Parse "Component N (Label): Text." pattern — split on component headers
-              const splitRegex = /Component\s+\d+\s*\(([^)]+)\):\s*/gi;
-              const components: { label: string; text: string }[] = [];
-              const parts = aiAnalysis.split(/Component\s+\d+\s*\([^)]+\):\s*/i).slice(1);
-              const labels = [...aiAnalysis.matchAll(/Component\s+\d+\s*\(([^)]+)\):/gi)].map(m => m[1].trim());
-              void splitRegex;
-              parts.forEach((text, i) => {
-                if (labels[i]) components.push({ label: labels[i], text: text.trim() });
-              });
-              if (components.length === 0) {
-                return <p className="text-sm font-medium text-[#7c8a9c] leading-[1.6]">{aiAnalysis}</p>;
-              }
-              const labelColors: Record<string, { bg: string; color: string }> = {
-                Player:   { bg: '#e8eef8', color: '#0d1a67' },
-                Opponent: { bg: '#fdeaea', color: '#e74c3c' },
-                Context:  { bg: '#e6f4ec', color: '#27ae60' },
-              };
-              return components.map((c, i) => {
-                const style = labelColors[c.label] || { bg: '#f0f0f0', color: '#555' };
-                return (
-                  <div key={i} className="flex flex-col gap-[6px]">
-                    <span
-                      className="self-start text-[11px] font-bold uppercase px-2 py-[2px] rounded-[4px]"
-                      style={{ backgroundColor: style.bg, color: style.color }}
-                    >
-                      {c.label}
-                    </span>
-                    <p className="text-[13px] font-medium text-[#3a3f47] leading-[1.6]">{c.text}</p>
-                  </div>
-                );
-              });
+              if (!aiAnalysis) return <p className="text-[13px] font-medium text-[#7c8a9c]">No analysis available for this prediction.</p>;
+              // Strip "Component N (Label):" prefixes and split into clean sentences
+              const cleaned = aiAnalysis.replace(/Component\s+\d+\s*\([^)]+\):\s*/gi, '').trim();
+              const sentences = cleaned.split(/(?<=\.)\s+/).filter(s => s.trim().length > 0);
+              return sentences.map((sentence, i) => (
+                <p key={i} className="text-[13px] font-medium text-[#3a3f47] leading-[1.7]">{sentence.trim()}</p>
+              ));
             })()}
           </div>
         </div>
@@ -1026,77 +1000,76 @@ function AIAnalysisPanel({ prediction, fixture: _fixture, statsData: _statsData,
             <h4 className="text-[16px] font-semibold text-[#0a0a0a]" style={{ letterSpacing: '-1%' }}>Detailed Match Stats</h4>
             <p className="text-[12px] font-semibold text-[#7c8a9c]" style={{ letterSpacing: '-0.5px' }}>Last 5 matches</p>
           </div>
-          <div className="flex flex-col">
-            {/* Table header row */}
-            <div className="flex items-center px-2 h-[30px] bg-white rounded-[8px] mb-4">
-              <span className="text-[12px] font-semibold text-[#7c8a9c] flex-1" style={{ letterSpacing: '-0.5px' }}>MATCH</span>
-              {statCols.map((col, idx) => (
-                <div key={col.key} className="flex items-center">
-                  {idx > 0 && <div className="w-px h-4 bg-[#e1e4eb] mx-3" />}
-                  <span className="w-10 h-[30px] flex items-center justify-center text-[12px] font-semibold text-[#7c8a9c]" style={{ letterSpacing: '-0.5px' }}>{col.label}</span>
-                </div>
-              ))}
-            </div>
-            {/* Data rows with dividers */}
-            {matchHistory.length > 0 ? matchHistory.slice(0, 5).map((match: any, i: number) => {
-              const date = match.starting_at ? new Date(match.starting_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '';
-              const oppName = match.away_team_name || match.home_team_name || '';
-              const shortOpp = oppName.length > 12 ? oppName.slice(0, 10) + '…' : oppName;
-              const oppLogo = match.away_team_logo_url || match.home_team_logo_url || '';
-              const goals = match.goals ?? 0;
-              const result = goals > 0 ? 'W' : goals === 0 ? 'D' : 'L';
-              const resultColor = result === 'W' ? '#27ae60' : result === 'L' ? '#e74c3c' : '#f39c12';
-              const rtg = match.rating;
-              const rtgColor = rtg != null && rtg >= 7.5 ? '#00ca68' : rtg != null && rtg >= 6.5 ? '#f39c12' : '#e74c3c';
-              return (
-                <div key={i}>
-                  {i > 0 && <div className="w-full h-px bg-[#e1e4eb] my-[10px]" />}
-                  <div className="flex items-center px-2 h-[38px]">
-                    {/* Match info */}
-                    <div className="flex-1 flex items-center gap-2 min-w-0">
-                      {/* Logo with W/D/L badge overlaid */}
-                      <div className="relative shrink-0 w-7 h-7">
-                        {oppLogo ? (
-                          <img src={oppLogo} alt="" className="w-7 h-7 rounded-full" />
-                        ) : (
-                          <div className="w-7 h-7 rounded-full bg-[#e1e4eb]" />
-                        )}
-                        <span
-                          className="absolute -bottom-1 -right-1 w-[14px] h-[14px] rounded-[3px] flex items-center justify-center text-[8px] font-bold text-white"
-                          style={{ backgroundColor: resultColor }}
-                        >
-                          {result}
-                        </span>
-                      </div>
-                      <div className="flex flex-col min-w-0">
-                        <span className="text-[12px] font-semibold text-[#0a0a0a] leading-tight truncate" style={{ letterSpacing: '-0.5px' }}>Vs {shortOpp}</span>
-                        <span className="text-[10px] font-medium text-[#27ae60]" style={{ letterSpacing: '-0.5px' }}>{date}</span>
-                      </div>
-                    </div>
-                    {/* Stat columns */}
-                    {statCols.map((col, colIdx) => {
-                      const val = match[col.key];
-                      return (
-                        <div key={col.key} className="flex items-center">
-                          {colIdx > 0 && <div className="w-px h-4 bg-[#e1e4eb] mx-3" />}
-                          {colIdx === 0 ? (
-                            <span className="w-10 h-[20px] rounded-[4px] flex items-center justify-center text-[12px] font-bold" style={{ backgroundColor: val != null ? rtgColor : '#f7f8fa', color: val != null ? '#fff' : '#7c8a9c' }}>
-                              {val != null ? (typeof val === 'number' ? val.toFixed(1) : val) : '-'}
-                            </span>
+          <div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
+            <table className="w-full border-collapse">
+              {/* Table header */}
+              <thead>
+                <tr>
+                  <th colSpan={2} className="text-left text-[12px] font-semibold text-[#7c8a9c] bg-white rounded-l-[8px] px-3 h-[30px]" style={{ letterSpacing: '-0.5px' }}>MATCH</th>
+                  {statCols.map((col, idx) => (
+                    <th key={col.key} className={`text-center text-[12px] font-semibold text-[#7c8a9c] bg-white px-1 h-[30px] ${idx === statCols.length - 1 ? 'rounded-r-[8px]' : ''}`} style={{ letterSpacing: '-0.5px', width: '56px' }}>{col.label}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {homeMatchHistory.length > 0 ? homeMatchHistory.slice(0, 5).map((match: any, i: number) => {
+                  const dateStr = match.date || match.starting_at;
+                  const date = dateStr ? new Date(dateStr).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '';
+                  const oppName = match.opponent || match.away_team_name || match.home_team_name || '';
+                  const oppLogo = match.opponent_logo || match.away_team_logo_url || match.home_team_logo_url || '';
+                  const result = match.result || (match.goals > 0 ? 'W' : match.goals === 0 ? 'D' : 'L');
+                  const resultColor = result === 'W' ? '#00ca68' : result === 'L' ? '#e74c3c' : '#f39c12';
+                  const rtg = match.rating;
+                  const rtgColor = rtg != null && rtg >= 7.5 ? '#00ca68' : rtg != null && rtg >= 6.5 ? '#f39c12' : '#e74c3c';
+                  return (
+                    <tr key={i} className={i > 0 ? 'border-t border-[#e1e4eb]' : ''}>
+                      {/* Team logo with W/D/L badge overlapping bottom-right */}
+                      <td className="px-3 py-3 w-[50px]">
+                        <div className="relative w-[30px] h-[30px]">
+                          {oppLogo ? (
+                            <img src={oppLogo} alt="" className="w-[30px] h-[30px] rounded-full object-contain" />
                           ) : (
-                            <span className="w-10 h-[30px] rounded-[4px] bg-[#f7f8fa] flex items-center justify-center text-[12px] font-medium text-[#3a3f47]">
-                              {val != null ? val : '-'}
-                            </span>
+                            <div className="w-[30px] h-[30px] rounded-full bg-[#e1e4eb]" />
                           )}
+                          <div className="absolute -bottom-[2px] -right-[2px] w-[16px] h-[16px] rounded-full flex items-center justify-center border-[1.5px] border-white" style={{ backgroundColor: resultColor }}>
+                            <span className="text-[8px] font-semibold text-white leading-none">{result}</span>
+                          </div>
                         </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            }) : (
-              <div className="px-4 py-6 text-[12px] text-[#7c8a9c] text-center">No match history available</div>
-            )}
+                      </td>
+                      {/* Name + date */}
+                      <td className="py-3 pr-3">
+                        <div className="flex flex-col">
+                          <span className="text-[12px] font-semibold text-[#000] whitespace-nowrap" style={{ letterSpacing: '-0.5px', lineHeight: '18px' }}>Vs {oppName}</span>
+                          <span className="text-[12px] font-semibold text-[#7c8a9c]" style={{ letterSpacing: '-0.5px', lineHeight: '18px' }}>{date}</span>
+                        </div>
+                      </td>
+                      {/* Stat columns */}
+                      {statCols.map((col, colIdx) => {
+                        const val = match[col.key];
+                        return (
+                          <td key={col.key} className="text-center px-1 py-3">
+                            <div className="flex items-center justify-center gap-3">
+                              <div className="w-px h-4 bg-[#e1e4eb]" />
+                              {colIdx === 0 && !isNewFormat ? (
+                                <span className="inline-flex items-center justify-center w-[40px] h-[20px] rounded-[4px] text-[12px] font-bold" style={{ backgroundColor: val != null ? rtgColor : '#f7f8fa', color: val != null ? '#f7f8fa' : '#7c8a9c' }}>
+                                  {val != null ? (typeof val === 'number' ? val.toFixed(1) : val) : '-'}
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center justify-center w-[40px] h-[30px] rounded-[4px] bg-[#f7f8fa] text-[12px] font-semibold text-[#7c8a9c]" style={{ letterSpacing: '-0.5px' }}>
+                                  {val === true ? 'Yes' : val === false ? 'No' : val != null ? val : '-'}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                }) : (
+                  <tr><td colSpan={2 + statCols.length} className="px-4 py-6 text-[12px] text-[#7c8a9c] text-center">No match history available</td></tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -1127,54 +1100,59 @@ function AIAnalysisPanel({ prediction, fixture: _fixture, statsData: _statsData,
         </div>
 
         {/* 5. Season Context */}
-        {seasonContext && (
+        {seasonContext && (homeForm || awayForm || flatSeasonEntries.length > 0) && (
           <div className="flex flex-col gap-4">
-            {/* Header: title + tab switcher */}
+            {/* Header: title + tab switcher (only show tabs if home_form/away_form exist) */}
             <div className="flex items-center justify-between h-[56px]">
               <h4 className="text-[16px] font-semibold text-[#0a0a0a]" style={{ letterSpacing: '-1%', lineHeight: '24px' }}>Season Context</h4>
-              <div className="flex rounded-[10px] bg-white p-[6px] gap-[6px]">
-                <button onClick={() => setFormTab('home')}
-                  className={`h-[44px] px-6 rounded-[8px] text-[14px] font-semibold transition-colors ${formTab === 'home' ? 'bg-[#0d1a67] text-white' : 'text-[#7c8a9c]'}`}>
-                  Home Form
-                </button>
-                <button onClick={() => setFormTab('away')}
-                  className={`h-[44px] px-6 rounded-[8px] text-[14px] font-semibold transition-colors ${formTab === 'away' ? 'bg-[#0d1a67] text-white' : 'text-[#7c8a9c]'}`}>
-                  Away Form
-                </button>
-              </div>
+              {(homeForm || awayForm) && (
+                <div className="flex rounded-[10px] bg-white p-[6px] gap-[6px]">
+                  <button onClick={() => setFormTab('home')}
+                    className={`h-[44px] px-6 rounded-[8px] text-[14px] font-semibold transition-colors ${formTab === 'home' ? 'bg-[#0d1a67] text-white' : 'text-[#7c8a9c]'}`}>
+                    Home Form
+                  </button>
+                  <button onClick={() => setFormTab('away')}
+                    className={`h-[44px] px-6 rounded-[8px] text-[14px] font-semibold transition-colors ${formTab === 'away' ? 'bg-[#0d1a67] text-white' : 'text-[#7c8a9c]'}`}>
+                    Away Form
+                  </button>
+                </div>
+              )}
             </div>
-            {/* Stats card - dynamic fields from activeForm */}
-            {activeForm && (() => {
-              // Map known keys to display labels
+            {/* Stats card - from home_form/away_form or flat season_context */}
+            {(() => {
               const formLabelMap: Record<string, string> = {
                 total_matches: 'Matches', goals: 'Goals', xG: 'xG',
                 conversions: 'Conv. Rate', average_shots_on_target: 'Avg SOT',
                 average_rating: 'Avg Rating', shots_per_90: 'Shots/90',
                 cards: 'Cards', fouls_per_90: 'Fouls/90', tackles_per_90: 'Tackles/90',
+                dangerous_attacks_pg: 'Dangerous Atk/G', volatility: 'Volatility',
+                h2h_goal_trend: 'H2H Goal Trend', h2h_avg_first_goal_min: 'H2H Avg 1st Goal',
+                league_goals_per_game: 'League Goals/G',
               };
-              const formEntries = Object.entries(activeForm)
-                .filter(([, v]) => v != null && typeof v === 'number')
-                .map(([k, v]) => ({
-                  key: k,
-                  label: formLabelMap[k] || k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
-                  value: v as number,
-                }));
-              // Color: first stat = navy, middle = green, rest = navy
-              const colors = formEntries.map((_, i) => i === 1 ? '#27ae60' : '#0d1a67');
+              // Clean label from flat keys like "Newcastle United_dangerous_attacks_pg"
+              const cleanLabel = (k: string) => {
+                const stripped = k.replace(/^[^_]+_/, ''); // remove team name prefix
+                return formLabelMap[stripped] || formLabelMap[k] || stripped.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+              };
+              const entries = activeForm
+                ? Object.entries(activeForm)
+                    .filter(([, v]) => v != null && typeof v === 'number')
+                    .map(([k, v]) => ({ key: k, label: formLabelMap[k] || k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), value: v as number }))
+                : flatSeasonEntries
+                    .filter(([, v]) => typeof v === 'number')
+                    .map(([k, v]) => ({ key: k, label: cleanLabel(k), value: v as number }));
+
+              if (entries.length === 0) return null;
+              const colors = entries.map((_, i) => i % 3 === 1 ? '#27ae60' : '#0d1a67');
               return (
-                <div className="rounded-[14px] bg-white shadow-[0_2px_15px_rgba(0,0,0,0.08)] px-[14px] pt-[14px] pb-[20px] flex items-center justify-center">
-                  <div className="flex items-center gap-[60px]">
-                    {formEntries.map((entry, i) => (
-                      <div key={entry.key} className="flex items-center gap-[60px]">
-                        {i > 0 && (
-                          <div className="h-[36px] w-px" style={{ background: 'linear-gradient(to bottom, transparent, #0d1a67, transparent)' }} />
-                        )}
-                        <div className="flex flex-col items-center">
-                          <span className="text-[40px] font-normal" style={{ color: colors[i], lineHeight: '135%' }}>
-                            {typeof entry.value === 'number' ? (Number.isInteger(entry.value) ? entry.value : entry.value.toFixed(1)) : entry.value}
-                          </span>
-                          <span className="text-[16px] font-medium text-[#7c8a9c]" style={{ lineHeight: '135%', marginTop: '-5px' }}>{entry.label}</span>
-                        </div>
+                <div className="rounded-[14px] bg-white shadow-[0_2px_15px_rgba(0,0,0,0.08)] px-[20px] py-[20px]">
+                  <div className="grid grid-cols-3 gap-y-6">
+                    {entries.slice(0, 6).map((entry, i) => (
+                      <div key={entry.key} className={`flex flex-col items-center ${i % 3 !== 0 ? 'border-l border-[#d9d9d9]' : ''}`}>
+                        <span className="text-[28px] font-bold" style={{ color: colors[i], lineHeight: '130%' }}>
+                          {typeof entry.value === 'number' ? (Number.isInteger(entry.value) ? entry.value : entry.value.toFixed(1)) : entry.value}
+                        </span>
+                        <span className="text-[12px] font-medium text-[#7c8a9c] text-center mt-1">{entry.label}</span>
                       </div>
                     ))}
                   </div>
@@ -1193,7 +1171,7 @@ export function MatchDetailPage() {
   const { isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('predictions');
   const [predictionCategory, setPredictionCategory] = useState<string>('all');
-  const [commentaryFilter, setCommentaryFilter] = useState<'all' | 'goals' | 'cards' | 'important'>('all');
+  const [commentaryFilter] = useState<'all' | 'goals' | 'cards' | 'important'>('all');
   const [selectedPrediction, setSelectedPrediction] = useState<any>(null);
   const [playerStatsTab, setPlayerStatsTab] = useState<'summary' | 'attacking' | 'passing' | 'defensive' | 'discipline'>('summary');
   const [expandedStatCards, setExpandedStatCards] = useState<Set<string>>(new Set());
@@ -1216,7 +1194,7 @@ export function MatchDetailPage() {
 
   // Fetch full predictions (with detail) from /fixtures/{id}/predictions
   const { data: fullPredictionsResponse } = useFixturePredictions(
-    { fixture_id: fixtureId ? parseInt(fixtureId, 10) : undefined, limit: 50, sort_by: 'pct_change', sort_order: 'desc' },
+    { fixture_id: fixtureId ? parseInt(fixtureId, 10) : undefined, limit: 500, sort_by: 'pct_change', sort_order: 'desc' },
     { enabled: !!fixtureId }
   );
   const fullPredictions: any[] = (fullPredictionsResponse?.data as any)?.predictions || (fullPredictionsResponse?.data as any) || [];
@@ -1270,8 +1248,8 @@ export function MatchDetailPage() {
   const statsData = statsResponse?.data?.statistics;
 
   // Team colours from fixture statistics — used for radar chart, stat bars, and comparison cards
-  const homeTeamColour = statsData?.home_team_colour || '#27ae60';
-  const awayTeamColour = statsData?.away_team_colour || '#0d1a67';
+  const homeTeamColour = statsData?.home_team_color || '#27ae60';
+  const awayTeamColour = statsData?.away_team_color || '#0d1a67';
   // Lighter versions for radar fill (append 40-80 hex opacity)
   const homeTeamColourLight = `${homeTeamColour}60`;
   const awayTeamColourLight = `${awayTeamColour}40`;
@@ -1336,9 +1314,9 @@ export function MatchDetailPage() {
   // Loading skeleton
   if (isLoadingFixtures) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-[100vh] flex flex-col bg-gray-50">
         <Header />
-        <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-6 pb-32 md:pb-6">
+        <div className="flex-1 max-w-[1400px] mx-auto px-4 md:px-6 py-6 pb-32 md:pb-6 w-full">
           {/* Banner Skeleton */}
           <div className="rounded-xl overflow-hidden bg-gradient-to-b from-[#1a2a4a] to-[#0d1829] animate-pulse mb-6">
             <div className="px-8 py-12">
@@ -1420,31 +1398,6 @@ export function MatchDetailPage() {
                 </button>
               ))}
             </div>
-            {activeTab === 'commentary' && (
-              <div className="relative hidden md:block shrink-0">
-                <select
-                  value={commentaryFilter}
-                  onChange={(e) => setCommentaryFilter(e.target.value as 'all' | 'goals' | 'cards' | 'important')}
-                  className="appearance-none bg-white border border-gray-200 rounded-lg px-3 py-1.5 pr-8 text-sm font-medium text-gray-600 cursor-pointer hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#0d1a67]/20"
-                >
-                  <option value="all">All Events</option>
-                  <option value="goals">Goals</option>
-                  <option value="cards">Cards</option>
-                  <option value="important">Important</option>
-                </select>
-                <svg
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500"
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </div>
-            )}
           </div>
 
           {/* Predictions Tab */}
@@ -1554,17 +1507,27 @@ export function MatchDetailPage() {
                   </div>
                 ) : filteredPredictions.length > 0 ? (
                   <>
-                    <div className="flex flex-col gap-[20px]">
-                      {filteredPredictions.slice(0, 9).map((prediction: any, index: number) => (
+                    <div className="flex flex-col gap-[20px] max-h-[70vh] overflow-y-auto scrollbar-hide p-1">
+                      {filteredPredictions.map((prediction: any, index: number) => (
+                        <div key={prediction.prediction_id || index} id={`pred-card-${index}`}>
                         <PredictionCard
-                          key={prediction.prediction_id || index}
                           prediction={prediction}
                           index={index}
                           isLive={fixture?.minutes_elapsed !== null && fixture?.minutes_elapsed !== undefined}
                           isBlurred={!isAuthenticated && index >= 6}
                           isSelected={selectedPrediction === prediction}
-                          onClick={() => setSelectedPrediction(selectedPrediction === prediction ? null : prediction)}
+                          onClick={() => {
+                            const next = selectedPrediction === prediction ? null : prediction;
+                            setSelectedPrediction(next);
+                            if (next) {
+                              const idx = filteredPredictions.indexOf(prediction);
+                              setTimeout(() => {
+                                document.getElementById(`pred-card-${idx}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                              }, 50);
+                            }
+                          }}
                         />
+                        </div>
                       ))}
                     </div>
                     {/* Mobile AI Analysis Panel */}
@@ -1622,18 +1585,27 @@ export function MatchDetailPage() {
                   </div>
                 ) : filteredPredictions.length > 0 ? (
                   <>
-                    <div className={`${selectedPrediction ? 'flex flex-col' : 'flex flex-row flex-wrap'} items-start gap-[20px] min-h-[300px]`}>
-                      {filteredPredictions.slice(0, 9).map((prediction: any, index: number) => (
+                    <div className={`${selectedPrediction ? 'flex flex-col' : 'flex flex-row flex-wrap'} items-start gap-[20px] min-h-[300px] max-h-[75vh] overflow-y-auto scrollbar-hide p-1`}>
+                      {filteredPredictions.map((prediction: any, index: number) => (
+                        <div key={prediction.prediction_id || index} id={`pred-card-desktop-${index}`} className={selectedPrediction ? 'w-full' : 'w-[calc(33.333%-14px)]'}>
                         <PredictionCard
-                          key={prediction.prediction_id || index}
                           prediction={prediction}
                           index={index}
                           isLive={fixture?.minutes_elapsed !== null && fixture?.minutes_elapsed !== undefined}
                           isBlurred={!isAuthenticated && index >= 6}
                           isSelected={selectedPrediction === prediction}
-                          onClick={() => setSelectedPrediction(selectedPrediction === prediction ? null : prediction)}
+                          onClick={() => {
+                            const next = selectedPrediction === prediction ? null : prediction;
+                            setSelectedPrediction(next);
+                            if (next) {
+                              setTimeout(() => {
+                                document.getElementById(`pred-card-desktop-${index}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                              }, 50);
+                            }
+                          }}
                           compact={!!selectedPrediction}
                         />
+                        </div>
                       ))}
                     </div>
                     {!isAuthenticated && filteredPredictions.length > 6 && (

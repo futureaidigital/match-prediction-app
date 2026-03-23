@@ -186,9 +186,10 @@ export interface FixtureStatisticsData {
   head_to_head?: any[];  // H2H match history
   home_team_id?: number;
   away_team_id?: number;
-  home_team_colour?: string;  // e.g. "#E30613"
-  away_team_colour?: string;  // e.g. "#004170"
-  backup_colour?: string;     // fallback when team colours are too similar
+  home_team_color?: string;  // e.g. "#EF0107"
+  home_team_color_secondary?: string;  // e.g. "#063672"
+  away_team_color?: string;  // e.g. "#6CABDD"
+  away_team_color_secondary?: string;  // e.g. "#1C2C5B"
   created_at?: string;
   updated_at?: string;
 }
@@ -238,13 +239,22 @@ export interface SmartComboSummary {
 
 export interface SmartComboFixtureSummary {
   fixture_id: number;
+  league_id?: number;
   league_name?: string;
+  home_team_id?: number;
   home_team_name?: string;
-  away_team_name?: string;
-  starting_at?: string;
-  // Logo fields (may need backend update to include these)
+  home_team_short_code?: string;
   home_team_image_path?: string;
+  away_team_id?: number;
+  away_team_name?: string;
+  away_team_short_code?: string;
   away_team_image_path?: string;
+  starting_at?: string;
+  home_team_score?: number | null;
+  away_team_score?: number | null;
+  minutes_elapsed?: number | null;
+  minutes_added?: number | null;
+  number_of_predictions?: number;
   home_team_logo_location?: string;
   away_team_logo_location?: string;
 }
@@ -422,9 +432,42 @@ export interface SmartComboFixturePredictions {
   predictions: SmartComboPrediction[];
 }
 
+// News Types
+export interface NewsArticle {
+  _id: string;
+  url: string;
+  title: string;
+  description?: string;
+  published_at: string;
+  source: string;
+  image_url?: string;
+  author?: string;
+  primary_league_id?: number;
+  news_type?: string;
+  news_category?: string | null;
+  feed_name?: string;
+  matches?: {
+    teams?: { team_id: number; team_name: string; confidence: number }[];
+    players?: any[];
+    leagues?: any[];
+  };
+}
+
+export interface NewsResponse {
+  articles: NewsArticle[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
 export interface SmartComboCurrentResponse {
   combo: SmartComboSummary;
   fixtures: SmartComboFixturePredictions[];
+}
+
+// Carousel Types — returns fixtures in same shape as /fixtures endpoint
+export interface CarouselResponse {
+  fixtures: FixtureWithPredictions[];
 }
 
 // League Types
@@ -917,6 +960,25 @@ class ApiClient {
 
   async getCurrentSmartCombo(): Promise<ApiResponse<SmartComboCurrentResponse>> {
     return this.request<SmartComboCurrentResponse>('/smart-combos/current');
+  }
+
+  async getCurrentCarousel(): Promise<ApiResponse<CarouselResponse>> {
+    return this.request<CarouselResponse>('/carousel/current');
+  }
+
+  // News endpoints
+  async getNewsByLeague(leagueId: number, limit = 5): Promise<ApiResponse<NewsResponse>> {
+    return this.request<NewsResponse>(`/news/by-league/${leagueId}?limit=${limit}`);
+  }
+
+  async getNews(params: { league_id?: number; team_id?: number; player_id?: number; limit?: number; offset?: number } = {}): Promise<ApiResponse<NewsResponse>> {
+    const query = new URLSearchParams();
+    if (params.league_id) query.append('league_id', params.league_id.toString());
+    if (params.team_id) query.append('team_id', params.team_id.toString());
+    if (params.player_id) query.append('player_id', params.player_id.toString());
+    if (params.limit) query.append('limit', params.limit.toString());
+    if (params.offset) query.append('offset', params.offset.toString());
+    return this.request<NewsResponse>(`/news?${query.toString()}`);
   }
 
   async getSmartComboPredictions(params: {

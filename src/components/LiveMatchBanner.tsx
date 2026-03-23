@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useFixtures } from '@/hooks/useFixtures';
+import { useCarouselWithFallback } from '@/hooks/useCarousel';
 import { MatchBanner } from '@/components/MatchBanner';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -23,30 +24,25 @@ export function LiveMatchBanner({ isPremium = false }: LiveMatchBannerProps) {
     sort_by: 'kickoff_asc',
   });
 
-  // Fetch featured fixtures as fallback when no live matches
+  // Fetch carousel/featured fixtures with day-fallback as fallback when no live matches
   const {
-    data: featuredResponse,
-    isLoading: isLoadingFeatured,
-    refetch: refetchFeatured,
-  } = useFixtures({
-    sort_by: 'kickoff_asc',
-  });
+    fixtures: carouselFixtures,
+    isLoading: isLoadingCarousel,
+  } = useCarouselWithFallback();
 
-  // Refetch fixtures when authentication state changes
+  // Refetch live fixtures when authentication state changes
   useEffect(() => {
     if (isAuthenticated) {
       refetchLive();
-      refetchFeatured();
     }
-  }, [isAuthenticated, refetchLive, refetchFeatured]);
+  }, [isAuthenticated, refetchLive]);
 
   const liveFixtures = liveResponse?.data?.fixtures || [];
-  const featuredFixtures = featuredResponse?.data?.fixtures || [];
 
-  // Use live fixtures if available, otherwise fall back to featured
+  // Use live fixtures if available, otherwise fall back to carousel with day-fallback
   const isLive = liveFixtures.length > 0;
-  const fixtures = isLive ? liveFixtures : featuredFixtures;
-  const isLoading = isLoadingLive || (liveFixtures.length === 0 && isLoadingFeatured);
+  const fixtures = isLive ? liveFixtures : carouselFixtures;
+  const isLoading = isLoadingLive || (liveFixtures.length === 0 && isLoadingCarousel);
 
   const fixtureData = fixtures[activeIndex];
   const fixture = fixtureData?.fixture;

@@ -108,10 +108,15 @@ export function MatchCard({
             <span className="text-[11px] font-semibold text-[#0a0a0a] mt-1">{homeTeam.shortName}</span>
           </div>
           <div className="flex flex-col items-center">
-            {status === 'live' && score ? (
+            {score ? (
               <>
-                <span className="text-[12px] font-semibold text-[#e74c3c]">{currentMinute}'</span>
                 <span className="text-[18px] font-bold text-[#0a0a0a]">{score.home} - {score.away}</span>
+                {status === 'live' && currentMinute && (
+                  <span className="text-[12px] font-semibold text-[#e74c3c]">{currentMinute}'</span>
+                )}
+                {status === 'finished' && (
+                  <span className="text-[11px] font-semibold text-[#7c8a9c]">FT</span>
+                )}
               </>
             ) : (
               <>
@@ -149,7 +154,7 @@ export function MatchCard({
     return (
       <div
         onClick={handleCardClick}
-        className="bg-white rounded-xl p-3 md:p-4 cursor-pointer transition-shadow w-[318px] md:w-[412px] h-[295px] md:h-auto mx-auto flex flex-col"
+        className="bg-white rounded-xl p-3 md:p-4 cursor-pointer transition-shadow w-full max-w-[412px] h-[295px] md:h-auto mx-auto flex flex-col"
         style={{
           boxShadow: '0 0 12px rgba(0, 0, 0, 0.08)'
         }}
@@ -162,7 +167,7 @@ export function MatchCard({
         </div>
 
         {/* Teams and Time Row - Mobile: 288x63px with 20px gap, Desktop: 382x66px with original spacing */}
-        <div className="flex items-center justify-between w-[288px] md:w-[382px] h-[63px] md:h-[66px] mx-auto mb-[20px] md:mb-4 pb-[20px] md:pb-4 border-b border-gray-100">
+        <div className="flex items-center justify-between w-full h-[63px] md:h-[66px] mx-auto mb-[20px] md:mb-4 pb-[20px] md:pb-4 border-b border-gray-100">
           {/* Home Team - Vertical, Mobile: 40x40 logo, Desktop: 34x34 logo */}
           <div className="md:hidden">
             <TeamAvatar
@@ -217,7 +222,7 @@ export function MatchCard({
         </div>
 
         {/* Predictions - Only show 2 in compact variant, Mobile: 288x134px box, stuck to bottom */}
-        <div className="w-[288px] h-[134px] md:w-[382px] md:h-auto mx-auto space-y-3 flex flex-col justify-start mb-2 md:mb-0">
+        <div className="w-full h-[134px] md:h-auto mx-auto space-y-3 flex flex-col justify-start mb-2 md:mb-0">
           {/* Visible Predictions (max 2) */}
           {compactVisiblePredictions.map((prediction) => (
             <PredictionBar

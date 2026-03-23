@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { MatchCard } from '@/components/MatchCard';
 import { SmartCombo } from '@/components/SmartCombo';
 import { Pagination } from '@/components/Pagination';
@@ -15,6 +15,9 @@ import { MatchCardSkeleton } from '@/components/ui/skeletons/MatchCardSkeleton';
 import { fixtureToMatchCard } from '@/lib/transformers';
 import { DEFAULTS } from '@/config/defaults';
 import { COLORS } from '@/config/theme';
+
+// Persist the last successful day offset across navigations (module-level)
+let _lastGoodDayOffset = 0;
 
 export function DemoPage() {
   const { hasAccess, isAuthenticated } = useAuth();
@@ -40,6 +43,10 @@ export function DemoPage() {
     sortBy: sortBy,
   };
 
+  // Day fallback: if today has no fixtures, go back up to 7 days
+  // Start from the last successful offset so we don't re-cascade on navigation back
+  const [dayOffset, setDayOffset] = useState(_lastGoodDayOffset);
+
   // Check if any filters are active (leagues or date changed from today)
   const isDateFiltered = selectedDate.toDateString() !== new Date().toDateString();
   const hasActiveFilters = filterLeagues.length > 0 || isDateFiltered;
@@ -52,17 +59,21 @@ export function DemoPage() {
     return `${year}-${month}-${day}`;
   };
 
-  // Build fixture params based on filters
+  // The effective date to query (selected date minus dayOffset for auto-fallback)
+  const effectiveDate = useMemo(() => {
+    const d = new Date(selectedDate);
+    d.setDate(d.getDate() - dayOffset);
+    return d;
+  }, [selectedDate, dayOffset]);
+
+  // Build fixture params based on filters — always send single day
   const fixtureParams = useMemo(() => {
+    const dateStr = formatDateForApi(effectiveDate);
     const params: any = {
       sort_by: sortBy,
+      date_from: dateStr,
+      date_to: dateStr,
     };
-
-    // Add date filter
-    if (isDateFiltered) {
-      params.date_from = formatDateForApi(selectedDate);
-      params.date_to = formatDateForApi(selectedDate);
-    }
 
     // Add league filter
     if (filterLeagues.length > 0) {
@@ -75,7 +86,7 @@ export function DemoPage() {
     }
 
     return params;
-  }, [selectedDate, filterLeagues, sortBy, hasActiveFilters, isDateFiltered]);
+  }, [effectiveDate, filterLeagues, sortBy, hasActiveFilters]);
 
   // Step 1: Fetch initial fixtures (returns all fixture_ids + first 6 with details)
   const { data: fixturesResponse, isLoading: isLoadingInitial, error, refetch: refetchFixtures } = useFixtures(fixtureParams);
@@ -83,6 +94,35 @@ export function DemoPage() {
   // All fixture IDs from the initial response (used for pagination)
   const allFixtureIds = fixturesResponse?.data?.fixture_ids ?? [];
   const initialFixtures = fixturesResponse?.data?.fixtures ?? [];
+
+  // Track whether fallback is allowed (only on initial load, not user date picks)
+  const [fallbackAllowed, setFallbackAllowed] = useState(true);
+
+  // Auto-fallback: only on initial load — find closest date with matches
+  useEffect(() => {
+    if (!fallbackAllowed || isLoadingInitial || error) return;
+    if (!fixturesResponse?.data) return;
+    const hasData = (fixturesResponse.data.fixtures?.length ?? 0) > 0 || (fixturesResponse.data.fixture_ids?.length ?? 0) > 0;
+    if (hasData) {
+      _lastGoodDayOffset = dayOffset;
+      setFallbackAllowed(false); // Stop fallback once we found data
+    } else if (dayOffset < 7) {
+      setDayOffset(prev => prev + 1);
+    } else {
+      setFallbackAllowed(false); // Give up after 7 days
+    }
+  }, [fixturesResponse, isLoadingInitial, dayOffset, error, fallbackAllowed]);
+
+  // When user manually picks a date, disable fallback and reset offset
+  const isInitialMount = useRef(true);
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    setDayOffset(0);
+    setFallbackAllowed(false);
+  }, [selectedDate]);
 
   // Step 2: Determine which fixture IDs we need for the current page
   const pageFixtureIds = useMemo(() => {

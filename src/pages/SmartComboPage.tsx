@@ -61,8 +61,8 @@ export function SmartComboPage() {
     return map;
   }, [sortedPredictions]);
 
-  const accuracy = combo?.previous_week_combo_accuracy
-    ? Math.round(combo.previous_week_combo_accuracy)
+  const accuracy = combo?.previous_week_combo_accuracy != null
+    ? Math.round(combo.previous_week_combo_accuracy > 0 && combo.previous_week_combo_accuracy <= 1 ? combo.previous_week_combo_accuracy * 100 : combo.previous_week_combo_accuracy)
     : 85;
 
   const isLoading = isAuthLoading || isLoadingCombo || isLoadingPredictions;
@@ -487,8 +487,10 @@ export function SmartComboPage() {
                           {predictions.slice(0, 3).map((pred, idx) => {
                             // For free users: blur predictions after the first one (only in first fixture)
                             const isPredictionBlurred = !isPremium && fixtureIndex === 0 && idx > 0;
-                            const percentage = Math.round(pred.prediction || pred.pre_game_prediction);
-                            const preGamePercentage = Math.round(pred.pre_game_prediction || 0);
+                            const rawPct = pred.prediction ?? pred.pre_game_prediction ?? 0;
+                            const percentage = Math.round(rawPct > 0 && rawPct <= 1 ? rawPct * 100 : rawPct);
+                            const rawPreGame = pred.pre_game_prediction ?? 0;
+                            const preGamePercentage = Math.round(rawPreGame > 0 && rawPreGame <= 1 ? rawPreGame * 100 : rawPreGame);
                             const category = pred.prediction_type?.includes('goal') ? 'Goals' : pred.prediction_type?.includes('card') ? 'Cards' : 'Match';
                             const predType = pred.prediction_type === 'player' ? 'Player' : 'Match';
                             const isExpanded = expandedPredictions.has(pred.prediction_id);

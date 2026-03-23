@@ -10,7 +10,7 @@ import { useFixtures } from '@/hooks/useFixtures';
 import { useLeagues } from '@/hooks/useLeagues';
 import { useAuth } from '@/contexts/AuthContext';
 
-type TabType = 'live' | 'all';
+// Tab type kept for future use
 
 // Skeleton card for loading state
 function SkeletonMatchCard() {
@@ -332,12 +332,16 @@ function LeagueScrollRow({ league, leagueId, navigate, isPremium, transformToMat
   );
 }
 
+// Persist the last successful day offset across navigations
+let _matchesLastGoodDayOffset = 0;
+
 export function MatchesPage() {
   const navigate = useNavigate();
   const { hasAccess } = useAuth();
   const isPremium = hasAccess();
-  const [activeTab, setActiveTab] = useState<TabType>('all');
+  const activeTab = 'all'; // Live tab removed
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [dayOffset, setDayOffset] = useState(_matchesLastGoodDayOffset);
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [selectedLeagueId, setSelectedLeagueId] = useState<number | null>(null);
 
@@ -372,30 +376,62 @@ export function MatchesPage() {
     return `${year}-${month}-${day}`;
   };
 
+  // Effective date with day-fallback offset
+  const effectiveDate = useMemo(() => {
+    const d = new Date(currentDate);
+    d.setDate(d.getDate() - dayOffset);
+    return d;
+  }, [currentDate, dayOffset]);
+
+  // Track whether fallback is allowed (only on initial load)
+  const [fallbackAllowed, setFallbackAllowed] = useState(true);
+
+  // When user manually changes date, disable fallback and reset offset
+  const isInitialMount = useRef(true);
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    setDayOffset(0);
+    setFallbackAllowed(false);
+  }, [currentDate]);
+
   // Fetch fixtures with filters - use return_all to get all fixtures in single request
   // When on "live" tab, fetch live matches; otherwise fetch by date
   // Use selectedLeagueId from sidebar, or filterLeagues from filter panel
   const activeLeagues = selectedLeagueId ? [selectedLeagueId] : filterLeagues;
 
   const fixtureParams = {
-    ...(activeTab === 'live'
-      ? { match_type: 'live' as const }
-      : {
-          date_from: formatDateForApi(currentDate),
-          date_to: formatDateForApi(currentDate),
-        }),
+    date_from: formatDateForApi(effectiveDate),
+    date_to: formatDateForApi(effectiveDate),
     ...(activeLeagues.length > 0 && { leagues: activeLeagues }),
     sort_by: sortBy,
     group_by_league: true,
   };
 
-  const { data: fixturesResponse, isLoading } = useFixtures(fixtureParams);
+  const { data: fixturesResponse, isLoading, error: fixturesError } = useFixtures(fixtureParams);
 
   // Data comes grouped by league in data.leagues[]
   const leaguesData: any[] = fixturesResponse?.data?.leagues || [];
 
+  // Auto-fallback: only on initial load — find closest date with matches
+  useEffect(() => {
+    if (!fallbackAllowed || isLoading || fixturesError) return;
+    if (!fixturesResponse?.data) return;
+    const hasData = leaguesData.length > 0 || (fixturesResponse.data.fixtures?.length ?? 0) > 0;
+    if (hasData) {
+      _matchesLastGoodDayOffset = dayOffset;
+      setFallbackAllowed(false);
+    } else if (dayOffset < 7) {
+      setDayOffset(prev => prev + 1);
+    } else {
+      setFallbackAllowed(false);
+    }
+  }, [fixturesResponse, isLoading, activeTab, dayOffset, leaguesData.length, fixturesError, fallbackAllowed]);
+
   // Build fixturesByLeague directly from API response, extract live fixtures
-  const { liveFixtures, fixturesByLeague } = useMemo(() => {
+  const { fixturesByLeague } = useMemo(() => {
     const live: any[] = [];
     const byLeague: Record<string, { leagueName: string; country: string; logo?: string; fixtures: any[] }> = {};
 
@@ -421,7 +457,7 @@ export function MatchesPage() {
       });
     });
 
-    return { liveFixtures: live, fixturesByLeague: byLeague };
+    return { fixturesByLeague: byLeague };
   }, [leaguesData]);
 
   // Transform fixture to MatchCard format (flat fixture object from group_by_league response)
@@ -456,12 +492,15 @@ export function MatchesPage() {
         : 'TBD',
       predictions: fixture.prediction ? [{
         id: '0',
-        label: fixture.prediction.prediction_display_name || 'Prediction',
-        percentage: Math.round(fixture.prediction.prediction || fixture.prediction.pre_game_prediction || 0),
+        label: fixture.prediction.prediction_display_name || fixture.prediction.name || 'Prediction',
+        percentage: Math.round((() => {
+          const raw = fixture.prediction.prediction ?? fixture.prediction.value ?? fixture.prediction.pre_game_prediction ?? 0;
+          return raw > 0 && raw <= 1 ? raw * 100 : raw;
+        })()),
         trend: {
           direction: (fixture.prediction.pct_change_value || 0) >= 0 ? 'up' as const : 'down' as const,
           value: Math.abs(fixture.prediction.pct_change_value || 0),
-          timeframe: '13 min',
+          timeframe: fixture.prediction.pct_change_interval ? `${fixture.prediction.pct_change_interval} min` : '13 min',
         },
       }] : [],
       totalPredictions: fixture.number_of_predictions || 1,
@@ -476,34 +515,8 @@ export function MatchesPage() {
       <main className="flex-1 pb-32 md:pb-0">
         {/* Mobile Layout */}
         <div className="md:hidden">
-          {/* Mobile Tabs - Full Width */}
-          <div className="px-4 pt-4">
-            <div className="flex bg-gray-100 rounded-full p-1">
-              <button
-                onClick={() => setActiveTab('all')}
-                className={`flex-1 py-2.5 text-sm font-semibold rounded-full transition-colors ${
-                  activeTab === 'all'
-                    ? 'bg-[#0d1a67] text-white'
-                    : 'text-gray-500'
-                }`}
-              >
-                All Matches
-              </button>
-              <button
-                onClick={() => setActiveTab('live')}
-                className={`flex-1 py-2.5 text-sm font-semibold rounded-full transition-colors ${
-                  activeTab === 'live'
-                    ? 'bg-[#0d1a67] text-white'
-                    : 'text-gray-500'
-                }`}
-              >
-                Live Matches
-              </button>
-            </div>
-          </div>
-
-          {/* Mobile: Matches header with Filter (hidden on live tab) */}
-          {activeTab !== 'live' && (
+          {/* Mobile: Matches header with Filter */}
+          {(
             <div className="flex items-center justify-between px-4 pt-6 pb-4">
               <h1 className="text-xl font-bold text-gray-900">Matches</h1>
               <div className="relative">
@@ -534,7 +547,7 @@ export function MatchesPage() {
           )}
 
           {/* Mobile: Date Navigation Bar (hidden on live tab) */}
-          {activeTab !== 'live' && (
+          {(
             <div className="mx-4 mb-4 flex items-center gap-2">
               {/* Arrows and Date in one grey bar */}
               <div className="flex-1 bg-gray-100 rounded-xl flex items-center justify-between px-3 py-2">
@@ -550,9 +563,9 @@ export function MatchesPage() {
 
                 {/* Date display */}
                 <span className="text-base font-semibold text-gray-900">
-                  {currentDate.toDateString() === new Date().toDateString()
+                  {effectiveDate.toDateString() === new Date().toDateString()
                     ? 'Today'
-                    : currentDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
+                    : effectiveDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
                 </span>
 
                 {/* Right arrow */}
@@ -587,38 +600,8 @@ export function MatchesPage() {
           {/* Mobile: Matches by League */}
           {!isLoading && (
             <div className="py-4 space-y-6">
-              {/* Live Tab - Show only live matches or empty state */}
-              {activeTab === 'live' && (
-                <>
-                  {liveFixtures.length > 0 ? (
-                    <div className="mx-4 bg-gray-100 rounded-xl p-3">
-                      <div className="overflow-x-auto scrollbar-hide">
-                        <div className="flex gap-3">
-                          {liveFixtures.map((fixture) => (
-                            <UpcomingMatchCard
-                              key={fixture.fixture_id}
-                              fixture={fixture}
-                              leagueName={fixture._leagueName || fixture.league_name}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-300px)] mx-4 bg-white rounded-xl border border-gray-200">
-                      <img
-                        src="/404.svg"
-                        alt="No live matches"
-                        className="w-24 h-24 mb-4 opacity-60"
-                      />
-                      <p className="text-gray-500 font-medium">No matches are currently being played</p>
-                    </div>
-                  )}
-                </>
-              )}
-
-              {/* All Tab - Show matches grouped by league */}
-              {activeTab === 'all' && (
+              {/* Matches grouped by league */}
+              {(
                 <>
                   {Object.entries(fixturesByLeague).map(([leagueId, league]) => (
                     <div key={leagueId}>
@@ -671,7 +654,7 @@ export function MatchesPage() {
         </div>
 
         {/* Desktop Layout — 3-column: Sidebar + Center + Smart Combo */}
-        <div className="hidden md:flex max-w-[1440px] mx-auto px-6 py-6 gap-6" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+        <div className="hidden md:flex max-w-[1540px] mx-auto px-6 py-6 gap-6" style={{ fontFamily: 'Montserrat, sans-serif' }}>
 
           {/* LEFT SIDEBAR — 341x581, rounded-12, p-16, gap-16, white bg */}
           <div className="w-[341px] shrink-0 bg-white rounded-[12px] p-[16px] flex flex-col gap-[16px] self-start" style={{ fontFamily: 'Montserrat, sans-serif' }}>
@@ -711,28 +694,15 @@ export function MatchesPage() {
             <div className="flex items-center gap-[10px]">
               {/* Tabs — 264x44, #f7f8fa, rounded-10, p-4 */}
               <div className="flex bg-[#f7f8fa] rounded-[10px] p-[4px] h-[44px]">
-                <button
-                  onClick={() => setActiveTab('all')}
-                  className={`h-[36px] px-[20px] py-[6px] text-[14px] font-semibold rounded-[8px] transition-colors ${
-                    activeTab === 'all' ? 'bg-[#0d1a67] text-white' : 'text-[#7c8a9c]'
-                  }`}
-                >
+                <div className="h-[36px] px-[20px] py-[6px] text-[14px] font-semibold rounded-[8px] bg-[#0d1a67] text-white flex items-center">
                   All Matches
-                </button>
-                <button
-                  onClick={() => setActiveTab('live')}
-                  className={`h-[36px] px-[20px] py-[6px] text-[14px] font-semibold rounded-[8px] transition-colors ${
-                    activeTab === 'live' ? 'bg-[#0d1a67] text-white' : 'text-[#7c8a9c]'
-                  }`}
-                >
-                  Live Matches
-                </button>
+                </div>
               </div>
 
               <div className="flex-1" />
 
               {/* Date Navigation — 180x44, white bg, rounded-8, p-6, gap-16 */}
-              {activeTab !== 'live' && (
+              {(
                 <div className="flex items-center h-[44px] px-[6px] gap-[16px] bg-white rounded-[8px]">
                   <button
                     onClick={() => setCurrentDate(new Date(currentDate.getTime() - 86400000))}
@@ -741,10 +711,10 @@ export function MatchesPage() {
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" strokeWidth="2"><polyline points="15 18 9 12 15 6" /></svg>
                   </button>
                   <div className="flex items-center gap-[8px]">
-                    <Calendar selectedDate={currentDate} onDateSelect={setCurrentDate} />
+                    <Calendar selectedDate={effectiveDate} onDateSelect={setCurrentDate} />
                     <span className="text-[14px] font-semibold text-[#0a0a0a] whitespace-nowrap">
-                      {currentDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' })}{' '}
-                      {currentDate.toLocaleDateString('en-GB', { weekday: 'short' })}
+                      {effectiveDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' })}{' '}
+                      {effectiveDate.toLocaleDateString('en-GB', { weekday: 'short' })}
                     </span>
                   </div>
                   <button
@@ -777,28 +747,8 @@ export function MatchesPage() {
               </div>
             )}
 
-            {/* Live Matches Tab */}
-            {activeTab === 'live' && !isLoading && (
-              <>
-                {liveFixtures.length > 0 ? (
-                  <div className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth pb-2">
-                    {liveFixtures.map((fixture) => (
-                      <div key={fixture.fixture_id} className="flex-shrink-0 w-[calc(50%-8px)]">
-                        <MatchCard {...transformToMatchCard(fixture)} isPremium={isPremium} variant="minimal" />
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center min-h-[400px] bg-white rounded-xl border border-[#e1e4eb]">
-                    <img src="/404.svg" alt="No live matches" className="w-24 h-24 mb-4 opacity-60" />
-                    <p className="text-[#7c8a9c] font-medium">No matches are currently being played</p>
-                  </div>
-                )}
-              </>
-            )}
-
-            {/* All Matches Tab */}
-            {activeTab === 'all' && !isLoading && (
+            {/* Matches by League */}
+            {!isLoading && (
               <div className="space-y-8">
                 {/* When a league is selected — 2-column scrollable grid */}
                 {selectedLeagueId && Object.entries(fixturesByLeague).map(([leagueId, league]) => (
@@ -840,9 +790,9 @@ export function MatchesPage() {
             )}
           </div>
 
-          {/* RIGHT SIDEBAR — Smart Combo */}
-          <div className="w-[460px] shrink-0">
-            <SmartCombo isPremium={isPremium} />
+          {/* RIGHT SIDEBAR — Smart Combo (mobile-sized) */}
+          <div className="w-[358px] shrink-0">
+            <SmartCombo isPremium={isPremium} compact />
           </div>
         </div>
       </main>
