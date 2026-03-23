@@ -373,8 +373,8 @@ function SubstitutionRow({
 function H2HMatchModal({ h2hMatch, onClose }: { h2hMatch: any; onClose: () => void }) {
   const { data: statsResponse, isLoading } = useFixtureStatistics(String(h2hMatch.fixture_id));
   const modalStatsData = statsResponse?.data?.statistics;
-  const homeTeamColour = modalStatsData?.home_team_color || '#27ae60';
-  const awayTeamColour = modalStatsData?.away_team_color || '#0d1a67';
+  const homeTeamColour = modalStatsData?.home_team_color || '#0a0a0a';
+  const awayTeamColour = modalStatsData?.away_team_color || '#0a0a0a';
   const [modalExpandedCards, setModalExpandedCards] = useState<Set<string>>(new Set());
 
   // Lock body scroll when modal is open
@@ -861,10 +861,6 @@ function AIAnalysisPanel({ prediction, fixture: _fixture, statsData: _statsData,
 
   const rawValue = prediction.value ?? prediction.prediction ?? prediction.pre_game_value ?? prediction.pre_game_prediction ?? 0;
   const percentage = rawValue > 1 ? Math.round(rawValue) : Math.round(rawValue * 100);
-  const rawPreGame = prediction.pre_game_value ?? prediction.pre_game_prediction ?? 0;
-  const preGamePercentage = rawPreGame > 1 ? Math.round(rawPreGame) : Math.round(rawPreGame * 100);
-  const pctChange = prediction.pct_change_value ?? 0;
-
   const getConfidence = () => {
     const cat = (prediction.model_confidence_category || modelConfidence?.category || '').toLowerCase();
     if (cat === 'high') return { label: 'High Confidence', color: '#27ae60', bg: '#e6f4ec' };
@@ -876,8 +872,6 @@ function AIAnalysisPanel({ prediction, fixture: _fixture, statsData: _statsData,
   };
   const conf = getConfidence();
   const modelScore = modelConfidence?.score ?? (percentage / 100);
-
-  const title = prediction.title || prediction.prediction_display_name || 'Prediction';
 
   // Detect match_history data shape and build appropriate columns
   const sampleMatch = homeMatchHistory[0] || matchHistory[0];
@@ -950,47 +944,58 @@ function AIAnalysisPanel({ prediction, fixture: _fixture, statsData: _statsData,
         </div>
 
         {/* 2. Performance vs. Similar Teams */}
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1">
-            <h4 className="text-[16px] font-semibold text-[#0a0a0a]">Performance vs. Similar Teams</h4>
-            <p className="text-xs font-medium text-[#7c8a9c]">Comparing {title} performance</p>
-          </div>
-          <div className="rounded-[8px] bg-white p-4 flex flex-col gap-4">
-            {/* Bars container */}
-            <div className="flex flex-col gap-2">
-              {/* vs Top 6 row */}
-              <div className="flex items-center gap-4 h-6">
-                <span className="text-[12px] font-semibold text-[#7c8a9c] flex-1" style={{ letterSpacing: '-0.5px' }}>vs Top 6</span>
-                <span className="text-[14px] font-semibold text-black whitespace-nowrap" style={{ letterSpacing: '-0.5px' }}>{preGamePercentage > 0 ? `${(preGamePercentage / 100 * 5).toFixed(1)} Avg SOT` : '-'}</span>
-                <div className="w-px h-4 bg-[#e1e4eb]" />
-                <div className="relative w-[204px] h-[6px] rounded-full bg-[#ebebeb]">
-                  <div className="absolute top-0 left-0 h-[6px] rounded-full bg-[#858585] transition-all" style={{ width: `${Math.min(preGamePercentage, 100)}%` }} />
-                </div>
+        {(() => {
+          const rawPreGame = prediction.pre_game_value ?? prediction.pre_game_prediction ?? 0;
+          const preGamePct = rawPreGame > 1 ? Math.round(rawPreGame) : Math.round(rawPreGame * 100);
+          const pctChange = prediction.pct_change_value ?? 0;
+          const predTitle = prediction.title || prediction.prediction_display_name || 'Prediction';
+          return (
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1">
+                <h4 className="text-[16px] font-semibold text-[#0a0a0a]">Performance vs. Similar Teams</h4>
+                <p className="text-xs font-medium text-[#7c8a9c]">Comparing {predTitle} performance</p>
               </div>
-              {/* vs Bottom 6 row */}
-              <div className="flex items-center gap-4 h-6">
-                <span className="text-[12px] font-semibold text-[#7c8a9c] flex-1" style={{ letterSpacing: '-0.5px' }}>vs Bottom 6</span>
-                <span className="text-[14px] font-semibold text-black whitespace-nowrap" style={{ letterSpacing: '-0.5px' }}>{percentage > 0 ? `${(percentage / 100 * 5).toFixed(1)} Avg SOT` : '-'}</span>
-                <div className="w-px h-4 bg-[#e1e4eb]" />
-                <div className="relative w-[204px] h-[6px] rounded-full bg-[#ebebeb]">
-                  <div className="absolute top-0 left-0 h-[6px] rounded-full bg-[#27ae60] transition-all" style={{ width: `${Math.min(percentage, 100)}%` }} />
+              <div className="rounded-[8px] bg-white p-4 flex flex-col gap-4">
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-4 h-6">
+                    <span className="text-[12px] font-semibold text-[#7c8a9c] flex-1" style={{ letterSpacing: '-0.5px' }}>vs Top 6</span>
+                    <span className="text-[14px] font-semibold text-black whitespace-nowrap" style={{ letterSpacing: '-0.5px' }}>{preGamePct > 0 ? `${(preGamePct / 100 * 5).toFixed(1)} Avg SOT` : '-'}</span>
+                    <div className="w-px h-4 bg-[#e1e4eb]" />
+                    <div className="relative w-[204px] h-[6px] rounded-full bg-[#ebebeb]">
+                      <div className="absolute top-0 left-0 h-[6px] rounded-full bg-[#858585] transition-all" style={{ width: `${Math.min(preGamePct, 100)}%` }} />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 h-6">
+                    <span className="text-[12px] font-semibold text-[#7c8a9c] flex-1" style={{ letterSpacing: '-0.5px' }}>vs Bottom 6</span>
+                    <span className="text-[14px] font-semibold text-black whitespace-nowrap" style={{ letterSpacing: '-0.5px' }}>{percentage > 0 ? `${(percentage / 100 * 5).toFixed(1)} Avg SOT` : '-'}</span>
+                    <div className="w-px h-4 bg-[#e1e4eb]" />
+                    <div className="relative w-[204px] h-[6px] rounded-full bg-[#ebebeb]">
+                      <div className="absolute top-0 left-0 h-[6px] rounded-full bg-[#27ae60] transition-all" style={{ width: `${Math.min(percentage, 100)}%` }} />
+                    </div>
+                  </div>
                 </div>
+                {pctChange !== 0 && (
+                  <div className="rounded-[8px] px-2 py-1 flex items-center justify-center gap-2" style={{ backgroundColor: '#ddefe7' }}>
+                    <img src="/trend.svg" width="14" height="14" alt="" style={{
+                      filter: 'brightness(0) saturate(100%) invert(52%) sepia(79%) saturate(409%) hue-rotate(95deg) brightness(93%) contrast(91%)',
+                      transform: pctChange > 0 ? 'none' : 'scaleY(-1)',
+                    }} />
+                    <span className="text-[12px] font-semibold" style={{ color: '#27ae60', letterSpacing: '-0.5px' }}>
+                      {Math.abs(pctChange).toFixed(0)}% Performance {pctChange > 0 ? 'Increase' : 'Decrease'} vs Weak Teams
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
-            {/* Insight badge */}
-            {pctChange !== 0 && (
-              <div className="rounded-[8px] px-2 py-1 flex items-center justify-center gap-2" style={{ backgroundColor: '#ddefe7' }}>
-                <img src="/trend.svg" width="14" height="14" alt="" style={{
-                  filter: 'brightness(0) saturate(100%) invert(52%) sepia(79%) saturate(409%) hue-rotate(95deg) brightness(93%) contrast(91%)',
-                  transform: pctChange > 0 ? 'none' : 'scaleY(-1)',
-                }} />
-                <span className="text-[12px] font-semibold" style={{ color: '#27ae60', letterSpacing: '-0.5px' }}>
-                  {Math.abs(pctChange).toFixed(0)}% Performance {pctChange > 0 ? 'Increase' : 'Decrease'} vs Weak Teams
-                </span>
-              </div>
-            )}
+          );
+        })()}
+
+        {/* Prediction Summary */}
+        {detail?.prediction_summary && (
+          <div className="rounded-[8px] bg-white p-4">
+            <p className="text-[13px] font-medium text-[#3a3f47] leading-[1.7]">{detail.prediction_summary}</p>
           </div>
-        </div>
+        )}
 
         {/* Divider */}
         <div className="w-full h-px bg-[#e1e4eb]" />
@@ -1122,18 +1127,45 @@ function AIAnalysisPanel({ prediction, fixture: _fixture, statsData: _statsData,
             {/* Stats card - from home_form/away_form or flat season_context */}
             {(() => {
               const formLabelMap: Record<string, string> = {
-                total_matches: 'Matches', goals: 'Goals', xG: 'xG',
-                conversions: 'Conv. Rate', average_shots_on_target: 'Avg SOT',
+                // General
+                total_matches: 'Matches', appearances: 'Apps', total: 'Total', minutes: 'Minutes',
+                // Goals / Scoring
+                goals: 'Goals', goals_total: 'Goals', avg_goals_per_game: 'Goals/G',
+                goal_conversion_rate: 'Conv. Rate', xG: 'xG',
+                // Shots
+                average_shots_on_target: 'Avg SOT', avg_sot_per_game: 'SOT/G',
+                avg_shots_per_game: 'Shots/G', avg_shots_insidebox_per_game: 'Box Shots/G',
+                avg_big_chances_per_game: 'Big Ch./G', avg_minutes: 'Avg Min',
+                // Cards / Discipline
+                yellowcards_total: 'Yellows', avg_yellowcards_per_game: 'Yellow/G',
+                avg_fouls_per_game: 'Fouls/G', avg_tackles_per_game: 'Tackles/G',
+                avg_duels_per_game: 'Duels/G', league_ref_cards_baseline: 'Ref Baseline',
+                // Team context
+                dangerous_attacks_pg: 'Dang. Atk/G', volatility: 'Volatility',
+                h2h_goal_trend: 'H2H Goals', h2h_avg_first_goal_min: 'H2H 1st Goal',
+                league_goals_per_game: 'League G/G',
+                // Legacy
                 average_rating: 'Avg Rating', shots_per_90: 'Shots/90',
-                cards: 'Cards', fouls_per_90: 'Fouls/90', tackles_per_90: 'Tackles/90',
-                dangerous_attacks_pg: 'Dangerous Atk/G', volatility: 'Volatility',
-                h2h_goal_trend: 'H2H Goal Trend', h2h_avg_first_goal_min: 'H2H Avg 1st Goal',
-                league_goals_per_game: 'League Goals/G',
+                fouls_per_90: 'Fouls/G', tackles_per_90: 'Tackles/G',
               };
               // Clean label from flat keys like "Newcastle United_dangerous_attacks_pg"
               const cleanLabel = (k: string) => {
-                const stripped = k.replace(/^[^_]+_/, ''); // remove team name prefix
-                return formLabelMap[stripped] || formLabelMap[k] || stripped.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                // Try direct lookup first
+                if (formLabelMap[k]) return formLabelMap[k];
+                // Strip team name prefix (everything before the last known stat key)
+                const knownKeys = Object.keys(formLabelMap);
+                for (const known of knownKeys) {
+                  if (k.endsWith(known)) return formLabelMap[known];
+                }
+                // Fallback: strip "TeamName_" prefix (team names can have spaces)
+                const parts = k.split('_');
+                // Try progressively removing leading parts until we find a match
+                for (let i = 1; i < parts.length; i++) {
+                  const remainder = parts.slice(i).join('_');
+                  if (formLabelMap[remainder]) return formLabelMap[remainder];
+                }
+                // Last resort: humanize the whole key
+                return k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
               };
               const entries = activeForm
                 ? Object.entries(activeForm)
@@ -1177,6 +1209,14 @@ export function MatchDetailPage() {
   const [playerStatsTab, setPlayerStatsTab] = useState<'summary' | 'attacking' | 'passing' | 'defensive' | 'discipline'>('summary');
   const [expandedStatCards, setExpandedStatCards] = useState<Set<string>>(new Set());
   const [h2hModalFixture, setH2hModalFixture] = useState<any>(null);
+
+  // Lock body scroll when mobile drawer is open
+  useEffect(() => {
+    if (selectedPrediction && window.innerWidth < 768) {
+      document.body.style.overflow = 'hidden';
+      return () => { document.body.style.overflow = ''; };
+    }
+  }, [selectedPrediction]);
 
   // Fetch specific fixture by ID (backend returns fixture with predictions)
   const { data: fixturesResponse, isLoading: isLoadingFixtures } = useFixtures(
@@ -1229,8 +1269,8 @@ export function MatchDetailPage() {
   const staticStatsData = statsResponse?.data?.statistics;
 
   // Team colours from fixture statistics — used for radar chart, stat bars, and comparison cards
-  const homeTeamColour = staticStatsData?.home_team_color || '#27ae60';
-  const awayTeamColour = staticStatsData?.away_team_color || '#0d1a67';
+  const homeTeamColour = staticStatsData?.home_team_color || '#0a0a0a';
+  const awayTeamColour = staticStatsData?.away_team_color || '#0a0a0a';
   // Lighter versions for radar fill (append 40-80 hex opacity)
   const homeTeamColourLight = `${homeTeamColour}60`;
   const awayTeamColourLight = `${awayTeamColour}40`;
@@ -1248,7 +1288,7 @@ export function MatchDetailPage() {
 
   // ==================== SSE Live Streaming ====================
   // Only subscribe to streams when the match is live
-  const isLiveMatch = !!(fixture?.is_live || fixture?.minutes_elapsed != null);
+  const isLiveMatch = !!fixture?.is_live;
 
   // Track previous tab to detect tab changes and apply the 1.5s delay
   const prevTabRef = useRef<TabType>(activeTab);
@@ -1271,21 +1311,21 @@ export function MatchDetailPage() {
   }, [sseDelay]);
 
   // Predictions SSE stream (no delay on initial landing since predictions is the default tab)
-  const { data: streamedPredictions } = useSSEStream<any>({
+  const { data: streamedPredictions, isConnected: isPredictionsStreaming } = useSSEStream<any>({
     path: fixtureId ? `/fixtures/${fixtureId}/predictions/stream` : null,
     enabled: isLiveMatch && !!fixtureId && activeTab === 'predictions',
     delay: activeTab === 'predictions' && sseDelay === 0 ? 0 : sseDelay,
   });
 
   // Commentary SSE stream
-  const { data: streamedCommentary } = useSSEStream<any>({
+  const { data: streamedCommentary, isConnected: isCommentaryStreaming } = useSSEStream<any>({
     path: fixtureId ? `/fixtures/${fixtureId}/commentary/stream` : null,
     enabled: isLiveMatch && !!fixtureId && activeTab === 'commentary',
     delay: sseDelay,
   });
 
   // Statistics SSE stream
-  const { data: streamedStats } = useSSEStream<any>({
+  const { data: streamedStats, isConnected: isStatsStreaming } = useSSEStream<any>({
     path: fixtureId ? `/fixtures/${fixtureId}/statistics/stream` : null,
     enabled: isLiveMatch && !!fixtureId && activeTab === 'stats',
     delay: sseDelay,
@@ -1484,9 +1524,9 @@ export function MatchDetailPage() {
                 >
                   {predictions.length} Predictions Available
                 </h2>
-                {fixture?.is_live && (
+                {isPredictionsStreaming && (
                   <div
-                    className="flex items-center gap-[5px] pl-2 pr-4 py-3 rounded-lg border border-[#d9d9d9]"
+                    className="flex items-center gap-[5px] pl-2 pr-4 h-[40px] rounded-[8px] border border-[#d9d9d9]"
                     style={{
                       backgroundColor: '#27ae60',
                       boxShadow: '0 7px 4px -3px rgba(0,0,0,0.05)',
@@ -1494,7 +1534,7 @@ export function MatchDetailPage() {
                     }}
                   >
                     <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                    <span className="text-white text-sm font-medium">Predictions Updating in Real-Time</span>
+                    <span className="text-white text-[14px] font-medium">Predictions Updating in Real-Time</span>
                   </div>
                 )}
               </div>
@@ -1603,14 +1643,40 @@ export function MatchDetailPage() {
                         </div>
                       ))}
                     </div>
-                    {/* Mobile AI Analysis Panel */}
+                    {/* Mobile AI Analysis — Bottom Drawer */}
                     {selectedPrediction && (
-                      <AIAnalysisPanel
-                        prediction={selectedPredictionWithDetail || selectedPrediction}
-                        fixture={fixture}
-                        statsData={statsData}
-                        onClose={() => setSelectedPrediction(null)}
-                      />
+                      <div className="md:hidden fixed inset-0 z-[100]" onClick={() => setSelectedPrediction(null)}>
+                        {/* Backdrop */}
+                        <div className="absolute inset-0 bg-black/50 transition-opacity" />
+                        {/* Drawer */}
+                        <div
+                          className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[20px] max-h-[85vh] overflow-y-auto animate-slide-up"
+                          style={{ fontFamily: 'Montserrat, sans-serif' }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {/* Header */}
+                          <div className="sticky top-0 z-10 bg-white rounded-t-[20px] px-4 pt-4 pb-3 flex items-center justify-between border-b border-[#e1e4eb]">
+                            <h3 className="text-[18px] font-semibold text-[#0a0a0a]">Details</h3>
+                            <button
+                              onClick={() => setSelectedPrediction(null)}
+                              className="w-6 h-6 flex items-center justify-center"
+                            >
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                              </svg>
+                            </button>
+                          </div>
+                          {/* Content */}
+                          <div className="p-4">
+                            <AIAnalysisPanel
+                              prediction={selectedPredictionWithDetail || selectedPrediction}
+                              fixture={fixture}
+                              statsData={statsData}
+                              onClose={() => setSelectedPrediction(null)}
+                            />
+                          </div>
+                        </div>
+                      </div>
                     )}
                     {!isAuthenticated && filteredPredictions.length > 6 && (
                       <button
@@ -1724,6 +1790,12 @@ export function MatchDetailPage() {
           {/* Commentary Tab */}
           {activeTab === 'commentary' && (
             <div className="bg-white rounded-[14px] md:rounded-xl border border-[#e1e4eb] shadow-sm p-4 md:p-5">
+              {isCommentaryStreaming && (
+                <div className="flex items-center gap-[5px] pl-2 pr-4 h-[40px] rounded-[8px] border border-[#d9d9d9] w-fit mb-4" style={{ backgroundColor: '#27ae60', boxShadow: '0 7px 4px -3px rgba(0,0,0,0.05)', fontFamily: 'Montserrat, sans-serif' }}>
+                  <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                  <span className="text-white text-[14px] font-medium">Commentary Updating in Real-Time</span>
+                </div>
+              )}
               {isLoadingCommentary ? (
                 <div className="space-y-3 md:space-y-4 animate-pulse">
                   {[1, 2, 3, 4, 5].map((i) => (
@@ -1776,6 +1848,12 @@ export function MatchDetailPage() {
           )}
           {activeTab === 'stats' && (
             <div className="flex flex-col gap-[30px]" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+              {isStatsStreaming && (
+                <div className="flex items-center gap-[5px] pl-2 pr-4 h-[40px] rounded-[8px] border border-[#d9d9d9] w-fit" style={{ backgroundColor: '#27ae60', boxShadow: '0 7px 4px -3px rgba(0,0,0,0.05)', fontFamily: 'Montserrat, sans-serif' }}>
+                  <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                  <span className="text-white text-[14px] font-medium">Stats Updating in Real-Time</span>
+                </div>
+              )}
               {/* ═══ SECTION 1: MATCH HEADER ═══ 1440x514, horizontal, 30px gap */}
               <div className="flex gap-[30px]">
 
