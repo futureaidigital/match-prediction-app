@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
@@ -7,6 +7,7 @@ import { useFixtures, useFixtureStatistics, useFixtureCommentary } from '@/hooks
 import { useFixturePredictions } from '@/hooks/usePredictions';
 import { useMultiplePlayerDetails } from '@/hooks/usePlayers';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSSEStream } from '@/hooks/useSSEStream';
 
 type TabType = 'predictions' | 'commentary' | 'stats' | 'lineups';
 
@@ -563,7 +564,7 @@ function StatComparisonCard({
       {/* Stat rows — 15px gap, animated max-height */}
       <div
         className="overflow-hidden transition-all duration-300 ease-in-out flex flex-col"
-        style={{ gap: '15px', maxHeight: isExpanded ? `${rows.length * 39}px` : `${Math.min(5, rows.length) * 39}px` }}
+        style={{ gap: '15px', height: isExpanded ? `${rows.length * 39}px` : '195px' }}
       >
         {rows.map((row, i) => {
           const h = typeof row.home === 'number' ? row.home : 0;
@@ -1199,9 +1200,6 @@ export function MatchDetailPage() {
   );
   const fullPredictions: any[] = (fullPredictionsResponse?.data as any)?.predictions || (fullPredictionsResponse?.data as any) || [];
 
-  // Use full predictions as primary source, fall back to inline predictions
-  const predictions = fullPredictions.length > 0 ? fullPredictions : inlinePredictions;
-
   // Extract unique player IDs from player predictions for the Player Stats section
   const featuredPlayerIds = useMemo(() => {
     const ids = new Set<number>();
@@ -1225,6 +1223,102 @@ export function MatchDetailPage() {
     return full ? { ...selectedPrediction, ...full } : selectedPrediction;
   }, [selectedPrediction, fullPredictions]);
 
+  // Fetch fixture statistics
+  const { data: statsResponse, isLoading: isLoadingStats } = useFixtureStatistics(fixtureId || '');
+  // Backend returns { statistics: { basic: {...}, advanced: {...}, players: [...] } }
+  const staticStatsData = statsResponse?.data?.statistics;
+
+  // Team colours from fixture statistics — used for radar chart, stat bars, and comparison cards
+  const homeTeamColour = staticStatsData?.home_team_color || '#27ae60';
+  const awayTeamColour = staticStatsData?.away_team_color || '#0d1a67';
+  // Lighter versions for radar fill (append 40-80 hex opacity)
+  const homeTeamColourLight = `${homeTeamColour}60`;
+  const awayTeamColourLight = `${awayTeamColour}40`;
+
+  // Resolve player names/images from player IDs in stats
+  const statsPlayerIds = useMemo(() => {
+    return ((staticStatsData as any)?.players || []).map((p: any) => p.player_id as number);
+  }, [staticStatsData]);
+  const statsPlayerDetails = useMultiplePlayerDetails(statsPlayerIds);
+
+  // Fetch fixture commentary
+  const { data: commentaryResponse, isLoading: isLoadingCommentary, error: commentaryError } = useFixtureCommentary(fixtureId || '');
+  // Backend returns { commentaries: [...], fixture_id, total_commentaries, etc. }
+  const staticCommentaryItems = commentaryResponse?.data?.commentaries;
+
+  // ==================== SSE Live Streaming ====================
+  // Only subscribe to streams when the match is live
+  const isLiveMatch = !!(fixture?.is_live || fixture?.minutes_elapsed != null);
+
+  // Track previous tab to detect tab changes and apply the 1.5s delay
+  const prevTabRef = useRef<TabType>(activeTab);
+  const [sseDelay, setSseDelay] = useState(0);
+
+  // On tab change: set delay so static data loads before stream subscribes
+  useEffect(() => {
+    if (prevTabRef.current !== activeTab) {
+      prevTabRef.current = activeTab;
+      setSseDelay(1500);
+    }
+  }, [activeTab]);
+
+  // Reset delay after it has been consumed
+  useEffect(() => {
+    if (sseDelay > 0) {
+      const timer = setTimeout(() => setSseDelay(0), sseDelay + 100);
+      return () => clearTimeout(timer);
+    }
+  }, [sseDelay]);
+
+  // Predictions SSE stream (no delay on initial landing since predictions is the default tab)
+  const { data: streamedPredictions } = useSSEStream<any>({
+    path: fixtureId ? `/fixtures/${fixtureId}/predictions/stream` : null,
+    enabled: isLiveMatch && !!fixtureId && activeTab === 'predictions',
+    delay: activeTab === 'predictions' && sseDelay === 0 ? 0 : sseDelay,
+  });
+
+  // Commentary SSE stream
+  const { data: streamedCommentary } = useSSEStream<any>({
+    path: fixtureId ? `/fixtures/${fixtureId}/commentary/stream` : null,
+    enabled: isLiveMatch && !!fixtureId && activeTab === 'commentary',
+    delay: sseDelay,
+  });
+
+  // Statistics SSE stream
+  const { data: streamedStats } = useSSEStream<any>({
+    path: fixtureId ? `/fixtures/${fixtureId}/statistics/stream` : null,
+    enabled: isLiveMatch && !!fixtureId && activeTab === 'stats',
+    delay: sseDelay,
+  });
+
+  // Lineups SSE stream
+  const { data: _streamedLineups } = useSSEStream<any>({
+    path: fixtureId ? `/fixtures/${fixtureId}/lineups/stream` : null,
+    enabled: isLiveMatch && !!fixtureId && activeTab === 'lineups',
+    delay: sseDelay,
+  });
+
+  // Merge streamed predictions with static data
+  const predictions = useMemo(() => {
+    const base = fullPredictions.length > 0 ? fullPredictions : inlinePredictions;
+    if (!streamedPredictions) return base;
+    const streamed = Array.isArray(streamedPredictions)
+      ? streamedPredictions
+      : streamedPredictions?.predictions || [];
+    if (streamed.length === 0) return base;
+    // Merge: streamed values take priority, keyed by prediction_type + display name
+    const merged = new Map<string, any>();
+    for (const p of base) {
+      const key = `${p.prediction_type}::${p.prediction_display_name || p.title || ''}`;
+      merged.set(key, p);
+    }
+    for (const p of streamed) {
+      const key = `${p.prediction_type}::${p.prediction_display_name || p.title || ''}`;
+      merged.set(key, { ...merged.get(key), ...p });
+    }
+    return Array.from(merged.values());
+  }, [fullPredictions, inlinePredictions, streamedPredictions]);
+
   // Filter predictions by category
   const filteredPredictions = useMemo(() => {
     if (predictionCategory === 'all') return predictions;
@@ -1242,49 +1336,28 @@ export function MatchDetailPage() {
     });
   }, [predictions, predictionCategory]);
 
-  // Fetch fixture statistics
-  const { data: statsResponse, isLoading: isLoadingStats } = useFixtureStatistics(fixtureId || '');
-  // Backend returns { statistics: { basic: {...}, advanced: {...}, players: [...] } }
-  const statsData = statsResponse?.data?.statistics;
+  // Merge streamed commentary with static data
+  const commentaryItems = useMemo(() => {
+    if (!streamedCommentary) return staticCommentaryItems;
+    const streamed = Array.isArray(streamedCommentary)
+      ? streamedCommentary
+      : streamedCommentary?.commentaries || [];
+    if (streamed.length === 0) return staticCommentaryItems;
+    const existing = staticCommentaryItems || [];
+    const existingKeys = new Set(existing.map((c: any) => `${c.minute}::${c.comment}`));
+    const newItems = streamed.filter((c: any) => !existingKeys.has(`${c.minute}::${c.comment}`));
+    return [...newItems, ...existing].sort((a: any, b: any) => (b.minute ?? 0) - (a.minute ?? 0));
+  }, [staticCommentaryItems, streamedCommentary]);
 
-  // Team colours from fixture statistics — used for radar chart, stat bars, and comparison cards
-  const homeTeamColour = statsData?.home_team_color || '#27ae60';
-  const awayTeamColour = statsData?.away_team_color || '#0d1a67';
-  // Lighter versions for radar fill (append 40-80 hex opacity)
-  const homeTeamColourLight = `${homeTeamColour}60`;
-  const awayTeamColourLight = `${awayTeamColour}40`;
-
-  // Resolve player names/images from player IDs in stats
-  const statsPlayerIds = useMemo(() => {
-    return ((statsData as any)?.players || []).map((p: any) => p.player_id as number);
-  }, [statsData]);
-  const statsPlayerDetails = useMultiplePlayerDetails(statsPlayerIds);
-
-  // Fetch fixture commentary
-  const { data: commentaryResponse, isLoading: isLoadingCommentary } = useFixtureCommentary(fixtureId || '');
-  // Backend returns { commentaries: [...], fixture_id, total_commentaries, etc. }
-  const commentaryItems = commentaryResponse?.data?.commentaries;
+  // Merge streamed stats with static data
+  const statsData = useMemo(() => {
+    if (!streamedStats) return staticStatsData;
+    const streamed = streamedStats?.statistics || streamedStats;
+    if (!streamed || typeof streamed !== 'object') return staticStatsData;
+    return { ...staticStatsData, ...streamed };
+  }, [staticStatsData, streamedStats]);
 
   // Mock commentary data (used when API doesn't return data)
-  const mockCommentary: Array<{
-    minute: string;
-    type: 'whistle' | 'clock' | 'corner' | 'goal' | 'yellow_card' | 'red_card' | 'substitution' | 'chance' | 'general';
-    comment: string;
-    score?: string;
-    isGoal?: boolean;
-  }> = [
-    { minute: "90+6'", type: 'whistle', comment: "The referee checks his watch and blows his whistle to signal the end of this match." },
-    { minute: "90+3'", type: 'general', comment: "Atalanta seem to be finding their feet as they enjoy some possession. Great movement by the offensive players allows the defenders to set up the attack." },
-    { minute: "90'", type: 'clock', comment: "Juan Cuadrado (Pisa) delivers a poor cross from a free kick as one of the defenders comfortably clears it away." },
-    { minute: "90'", type: 'corner', comment: "A quickly taken corner by Pisa." },
-    { minute: "87'", type: 'goal', score: '2 - 1', comment: "G O O O A A A L - Vinicius Junior scores with the right foot!", isGoal: true },
-    { minute: "84'", type: 'yellow_card', comment: "Ivan Juric isn't happy on the touchline after referee Alberto Arena shows him a yellow card." },
-    { minute: "82'", type: 'chance', comment: "Charles De Ketelaere (Atalanta) meets a cross inside the box, but Adrian Semper wins the battle for the ball and the chance is gone." },
-    { minute: "80'", type: 'general', comment: "Atalanta seem to be finding their feet as they enjoy some possession. Great movement by the offensive players allows the defenders to set up the attack." },
-    { minute: "76'", type: 'substitution', comment: "Daniel Denoon (Pisa) is being substituted because of an injury. Alberto Gilardino sends Arturo Calabresi on the pitch." },
-    { minute: "70'", type: 'goal', score: '1 - 1', comment: "Gianluca Scamacca (Atalanta) has acres of space after latching on to a precise pass into the box. He doesn't hesitate to release a low effort which ends up in the bottom right corner.", isGoal: true },
-    { minute: "66'", type: 'general', comment: "Henrik Meister (Pisa) tries to latch onto a through ball, but it's too long." },
-  ];
 
   // Mock weather data for display - dividerAfter specifies what divider comes after this card
   const weatherData: Array<{
@@ -1661,22 +1734,21 @@ export function MatchDetailPage() {
                     </div>
                   ))}
                 </div>
+              ) : (!commentaryItems || commentaryItems.length === 0 || commentaryError) ? (
+                <div className="flex flex-col items-center justify-center py-16">
+                  <img src="/404.svg" alt="No commentary" className="w-28 h-28 mb-4 opacity-60" />
+                  <p className="text-[#7c8a9c] font-semibold text-base">No commentary available</p>
+                  <p className="text-[#7c8a9c] text-sm mt-1">Commentary will appear when the match is live</p>
+                </div>
               ) : (
                 <>
-                  {(!commentaryItems || commentaryItems.length === 0) && (
-                    <div className="mb-4 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg">
-                      <p className="text-amber-700 text-xs md:text-sm text-center">
-                        Using placeholder data - live commentary will appear during the match
-                      </p>
-                    </div>
-                  )}
-                  {(commentaryItems && commentaryItems.length > 0 ? commentaryItems.map((item: any) => ({
+                  {commentaryItems.map((item: any) => ({
                     minute: item.extra_minute ? `${item.minute}+${item.extra_minute}'` : `${item.minute}'`,
                     type: item.type || 'general',
                     comment: item.comment,
                     score: item.score,
                     isGoal: item.is_goal || item.type === 'goal',
-                  })) : mockCommentary)
+                  }))
                     .filter((item: any) => {
                       if (commentaryFilter === 'all') return true;
                       if (commentaryFilter === 'goals') return item.type === 'goal' || item.isGoal;
@@ -1698,28 +1770,6 @@ export function MatchDetailPage() {
                       isGoal={item.isGoal}
                     />
                   ))}
-                  {/* Empty state for filtered results */}
-                  {commentaryFilter !== 'all' && (commentaryItems && commentaryItems.length > 0 ? commentaryItems.map((item: any) => ({
-                    minute: item.extra_minute ? `${item.minute}+${item.extra_minute}'` : `${item.minute}'`,
-                    type: item.type || 'general',
-                    comment: item.comment,
-                    score: item.score,
-                    isGoal: item.is_goal || item.type === 'goal',
-                  })) : mockCommentary)
-                    .filter((item: any) => {
-                      if (commentaryFilter === 'goals') return item.type === 'goal' || item.isGoal;
-                      if (commentaryFilter === 'cards') return item.type === 'yellow_card' || item.type === 'red_card';
-                      if (commentaryFilter === 'important') {
-                        return item.type === 'goal' || item.isGoal ||
-                               item.type === 'yellow_card' || item.type === 'red_card' ||
-                               item.type === 'substitution';
-                      }
-                      return true;
-                    }).length === 0 && (
-                    <div className="py-8 text-center text-gray-500 text-sm">
-                      No {commentaryFilter === 'goals' ? 'goals' : commentaryFilter === 'cards' ? 'cards' : 'important events'} in this match yet
-                    </div>
-                  )}
                 </>
               )}
             </div>
@@ -1916,7 +1966,7 @@ export function MatchDetailPage() {
                 {/* Cards container — rounded-20, p-20, gap-20 */}
                 <div className="rounded-[20px] bg-[#F5F5F5] p-[20px] flex flex-col gap-[20px]">
                 {/* Row 1: 3 cards at 453.33px */}
-                <div className="flex gap-[20px]">
+                <div className="flex gap-[20px] items-start">
                   {(() => {
                     const raw = statsData?.raw_statistics || {} as any;
                     const atk = raw.attacking_threat || {};
@@ -1968,14 +2018,14 @@ export function MatchDetailPage() {
                       title={card.title}
                       rows={card.rows}
                       isExpanded={expandedStatCards.has(card.id)}
-                      onToggle={() => setExpandedStatCards(prev => { const next = new Set(prev); if (next.has(card.id)) next.delete(card.id); else next.add(card.id); return next; })}
+                      onToggle={() => setExpandedStatCards(prev => prev.has(card.id) ? new Set() : new Set([card.id]))}
                       homeColour={homeTeamColour}
                       awayColour={awayTeamColour}
                     />
                   ))}
                 </div>
                 {/* Row 2: 2 cards at 690px */}
-                <div className="flex gap-[20px]">
+                <div className="flex gap-[20px] items-start">
                   {(() => {
                     const raw = statsData?.raw_statistics || {} as any;
                     const def = raw.defence_and_discipline || {};
@@ -2007,7 +2057,7 @@ export function MatchDetailPage() {
                         title={card.title}
                         rows={card.rows}
                         isExpanded={expandedStatCards.has(card.id)}
-                        onToggle={() => setExpandedStatCards(prev => { const next = new Set(prev); if (next.has(card.id)) next.delete(card.id); else next.add(card.id); return next; })}
+                        onToggle={() => setExpandedStatCards(prev => prev.has(card.id) ? new Set() : new Set([card.id]))}
                       />
                     ));
                   })()}
