@@ -299,21 +299,23 @@ function LeagueScrollRow({ league, leagueId, navigate, isPremium, transformToMat
           </>
         )}
         {/* Scrollable cards */}
-        <div ref={scrollRef} className="flex gap-[16px] overflow-x-auto scrollbar-hide scroll-smooth px-[2px] pb-[8px]" style={{ marginBottom: '-8px' }}>
-          {league.fixtures.map((fixture: any) => {
-            const match = fixture;
-            const matchStart = match.starting_at ? new Date(match.starting_at).getTime() : 0;
-            const isCurrentlyLive = match.minutes_elapsed != null;
-            const isFinished = match.status === 'FT' || (!isCurrentlyLive && matchStart > 0 && Date.now() - matchStart > 2 * 60 * 60 * 1000);
-            return (
-              <div key={match.fixture_id} className="flex-shrink-0 w-[280px]">
-                {isFinished
-                  ? <MatchCard {...transformToMatchCard(fixture)} isPremium={isPremium} variant="minimal" />
-                  : <UpcomingMatchCard fixture={fixture} leagueName={league.leagueName} />
-                }
-              </div>
-            );
-          })}
+        <div ref={scrollRef} className="overflow-x-auto scrollbar-hide scroll-smooth">
+          <div className="flex gap-[16px] py-[8px] px-[4px] w-max">
+            {league.fixtures.map((fixture: any) => {
+              const match = fixture;
+              const matchStart = match.starting_at ? new Date(match.starting_at).getTime() : 0;
+              const isCurrentlyLive = match.minutes_elapsed != null;
+              const isFinished = match.status === 'FT' || (!isCurrentlyLive && matchStart > 0 && Date.now() - matchStart > 2 * 60 * 60 * 1000);
+              return (
+                <div key={match.fixture_id} className="flex-shrink-0 w-[280px]">
+                  {isFinished
+                    ? <MatchCard {...transformToMatchCard(fixture)} isPremium={isPremium} variant="minimal" />
+                    : <UpcomingMatchCard fixture={fixture} leagueName={league.leagueName} />
+                  }
+                </div>
+              );
+            })}
+          </div>
         </div>
         {/* Right fade + chevron */}
         {canScrollRight && (
@@ -654,13 +656,13 @@ export function MatchesPage() {
         </div>
 
         {/* Desktop Layout — 3-column: Sidebar + Center + Smart Combo */}
-        <div className="hidden md:flex max-w-[1540px] mx-auto px-6 py-6 gap-6" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+        <div className="hidden md:flex max-w-[1540px] mx-auto px-4 py-4 gap-4" style={{ fontFamily: 'Montserrat, sans-serif' }}>
 
           {/* LEFT SIDEBAR — 341x581, rounded-12, p-16, gap-16, white bg */}
-          <div className="w-[341px] shrink-0 bg-white rounded-[12px] p-[16px] flex flex-col gap-[16px] self-start" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+          <div className="w-[341px] shrink-0 bg-white rounded-[12px] p-[16px] flex flex-col gap-[8px] self-start" style={{ fontFamily: 'Montserrat, sans-serif' }}>
             <h2 className="text-[16px] font-semibold text-[#0a0a0a]">Top leagues</h2>
             {/* League list — single solid bg, hover highlights */}
-            <div className="rounded-[8px] bg-[#f7f8fa] p-[4px] flex flex-col">
+            <div className="rounded-[8px] bg-[#f7f8fa] p-[8px] flex flex-col">
               {leagues.slice(0, 9).map((league) => {
                 const isSelected = selectedLeagueId === league.league_id;
                 return (

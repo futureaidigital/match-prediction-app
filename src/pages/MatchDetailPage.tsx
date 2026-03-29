@@ -36,22 +36,22 @@ function PredictionCard({ prediction, index: _index, isLive: _isLive, isBlurred 
   // Map prediction_type to category label
   const getCategoryLabel = () => {
     const type = (prediction.prediction_type || '').toLowerCase();
-    if (type.includes('goal') || type.includes('scorer')) return 'Player Prediction';
-    if (type.includes('booked') || type.includes('card')) return 'Cards Prediction';
-    if (type.includes('shot')) return 'Shots Prediction';
-    if (type.includes('corner')) return 'Match Prediction';
-    if (type.includes('player')) return 'Player Prediction';
-    return 'Match Prediction';
+    if (type.includes('goal') || type.includes('scorer')) return 'Player Insight';
+    if (type.includes('booked') || type.includes('card')) return 'Cards Insight';
+    if (type.includes('shot')) return 'Shots Insight';
+    if (type.includes('corner')) return 'Match Insight';
+    if (type.includes('player')) return 'Player Insight';
+    return 'Match Insight';
   };
 
-  const title = prediction.title || prediction.prediction_display_name || 'Prediction';
+  const title = prediction.title || prediction.prediction_display_name || 'Insight';
 
   return (
     <div
       onClick={!isBlurred ? onClick : undefined}
       className={`rounded-[14px] md:rounded-[20px] p-3 md:p-5 flex flex-col gap-[10px] md:gap-5 bg-white w-full ${isBlurred ? 'relative select-none pointer-events-none' : 'cursor-pointer'}`}
       style={{
-        boxShadow: isSelected ? 'none' : '0 2px 15px rgba(0,0,0,0.1)',
+        boxShadow: isSelected ? 'none' : '0 2px 10px rgba(0,0,0,0.06)',
         fontFamily: 'Montserrat, sans-serif',
         outline: isSelected ? '4px solid #0d1a67' : 'none',
         outlineOffset: '0px',
@@ -119,7 +119,7 @@ function PredictionCard({ prediction, index: _index, isLive: _isLive, isBlurred 
         {/* Pre-game prediction row */}
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium text-[#7c8a9c] leading-[20px]">
-            Pre-game Prediction {preGamePercentage}%
+            Pre-game Insight {preGamePercentage}%
           </span>
           {pctChange !== 0 && (
             <span
@@ -869,37 +869,22 @@ function AIAnalysisPanel({ prediction, fixture: _fixture, statsData: _statsData,
   const conf = getConfidence();
   const modelScore = modelConfidence?.score ?? (percentage / 100);
 
-  // Detect match_history data shape and build appropriate columns
+  // Dynamically build stat columns from whatever fields the API returns
   const sampleMatch = homeMatchHistory[0] || matchHistory[0];
-  const isNewFormat = sampleMatch && ('goals_for' in sampleMatch || 'result' in sampleMatch);
-  // New format columns: GF, GA, BTTS, Result
-  // Old format columns: RTG, SOT, SHOT, OFF, CRE, GLS
-  const resolveKey = (key: string, data: any): string | null => {
-    if (!data) return null;
-    if (key in data) return key;
-    const kebab = key.replace(/_/g, '-');
-    if (kebab in data) return kebab;
-    return null;
-  };
-  const statCols = isNewFormat
-    ? [
-        { key: 'goals_for', label: 'GF' },
-        { key: 'goals_against', label: 'GA' },
-        { key: 'btts', label: 'BTTS' },
-      ]
-    : (sampleMatch
-        ? [
-            { key: 'rating', label: 'RTG' },
-            { key: 'shots_on_target', label: 'SOT' },
-            { key: 'total_shots', label: 'SHOT' },
-            { key: 'shots_off_target', label: 'OFF' },
-            { key: 'chances_created', label: 'CRE' },
-            { key: 'goals', label: 'GLS' },
-          ].map(col => {
-            const resolved = resolveKey(col.key, sampleMatch);
-            return resolved ? { key: resolved, label: col.label } : null;
-          }).filter((col): col is { key: string; label: string } => col !== null)
-        : []);
+  // Keys to exclude from stat columns (metadata, not stats)
+  const excludedKeys = new Set([
+    'fixture_id', 'opponent', 'opponent_logo', 'date', 'result',
+    'starting_at', 'league_id', 'league_name', 'home_team', 'away_team',
+    'home_team_id', 'away_team_id', 'score', 'is_home', 'match_id',
+  ]);
+  const statCols = sampleMatch
+    ? Object.keys(sampleMatch)
+        .filter(k => !excludedKeys.has(k) && typeof sampleMatch[k] === 'number')
+        .map(k => ({
+          key: k,
+          label: k.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()).slice(0, 4).toUpperCase(),
+        }))
+    : [];
 
   return (
     <div
@@ -926,7 +911,7 @@ function AIAnalysisPanel({ prediction, fixture: _fixture, statsData: _statsData,
               <polyline points="6 9 12 15 18 9" />
             </svg>
           </button>
-          <div id={`ai-analysis-${prediction.prediction_id || prediction._id || 'detail'}`} className="rounded-[20px] bg-white shadow-[0_2px_15px_rgba(0,0,0,0.08)] p-5 flex flex-col gap-3">
+          <div id={`ai-analysis-${prediction.prediction_id || prediction._id || 'detail'}`} className="rounded-[20px] bg-white shadow-[0_2px_10px_rgba(0,0,0,0.06)] p-5 flex flex-col gap-3">
             {(() => {
               if (!aiAnalysis) return <p className="text-[13px] font-medium text-[#7c8a9c]">No analysis available for this prediction.</p>;
               // Strip "Component N (Label):" prefixes and split into clean sentences
@@ -1023,8 +1008,7 @@ function AIAnalysisPanel({ prediction, fixture: _fixture, statsData: _statsData,
                   const oppLogo = match.opponent_logo || match.away_team_logo_url || match.home_team_logo_url || '';
                   const result = match.result || (match.goals > 0 ? 'W' : match.goals === 0 ? 'D' : 'L');
                   const resultColor = result === 'W' ? '#00ca68' : result === 'L' ? '#e74c3c' : '#f39c12';
-                  const rtg = match.rating;
-                  const rtgColor = rtg != null && rtg >= 7.5 ? '#00ca68' : rtg != null && rtg >= 6.5 ? '#f39c12' : '#e74c3c';
+                  // stat values accessed dynamically via statCols
                   return (
                     <tr key={i} className={i > 0 ? 'border-t border-[#e1e4eb]' : ''}>
                       {/* Team logo with W/D/L badge overlapping bottom-right */}
@@ -1054,15 +1038,9 @@ function AIAnalysisPanel({ prediction, fixture: _fixture, statsData: _statsData,
                           <td key={col.key} className="text-center px-1 py-3">
                             <div className="flex items-center justify-center gap-3">
                               <div className="w-px h-4 bg-[#e1e4eb]" />
-                              {colIdx === 0 && !isNewFormat ? (
-                                <span className="inline-flex items-center justify-center w-[40px] h-[20px] rounded-[4px] text-[12px] font-bold" style={{ backgroundColor: val != null ? rtgColor : '#f7f8fa', color: val != null ? '#f7f8fa' : '#7c8a9c' }}>
-                                  {val != null ? (typeof val === 'number' ? val.toFixed(1) : val) : '-'}
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center justify-center w-[40px] h-[30px] rounded-[4px] bg-[#f7f8fa] text-[12px] font-semibold text-[#7c8a9c]" style={{ letterSpacing: '-0.5px' }}>
-                                  {val === true ? 'Yes' : val === false ? 'No' : val != null ? val : '-'}
-                                </span>
-                              )}
+                              <span className="inline-flex items-center justify-center w-[40px] h-[30px] rounded-[4px] bg-[#f7f8fa] text-[12px] font-semibold text-[#7c8a9c]" style={{ letterSpacing: '-0.5px' }}>
+                                {val === true ? 'Yes' : val === false ? 'No' : val != null ? (typeof val === 'number' && !Number.isInteger(val) ? val.toFixed(1) : val) : '-'}
+                              </span>
                             </div>
                           </td>
                         );
@@ -1176,7 +1154,7 @@ function AIAnalysisPanel({ prediction, fixture: _fixture, statsData: _statsData,
               if (entries.length === 0) return null;
               const colors = entries.map((_, i) => i % 3 === 1 ? '#27ae60' : '#0d1a67');
               return (
-                <div className="rounded-[14px] bg-white shadow-[0_2px_15px_rgba(0,0,0,0.08)] px-[20px] py-[20px]">
+                <div className="rounded-[14px] bg-white shadow-[0_2px_10px_rgba(0,0,0,0.06)] px-[20px] py-[20px]">
                   <div className="grid grid-cols-3 gap-y-6">
                     {entries.slice(0, 6).map((entry, i) => (
                       <div key={entry.key} className={`flex flex-col items-center ${i % 3 !== 0 ? 'border-l border-[#d9d9d9]' : ''}`}>
@@ -1205,6 +1183,9 @@ export function MatchDetailPage() {
   const [commentaryFilter] = useState<'all' | 'goals' | 'cards' | 'important'>('all');
   const [selectedPrediction, setSelectedPrediction] = useState<any>(null);
   const [drawerClosing, setDrawerClosing] = useState(false);
+  const aiPanelRef = useRef<HTMLDivElement>(null);
+  const predCardsRef = useRef<HTMLDivElement>(null);
+  const [aiPanelHeight, setAiPanelHeight] = useState(0);
   const closeMobileDrawer = () => {
     setDrawerClosing(true);
     setTimeout(() => {
@@ -1215,6 +1196,14 @@ export function MatchDetailPage() {
   const [playerStatsTab, setPlayerStatsTab] = useState<'summary' | 'attacking' | 'passing' | 'defensive' | 'discipline'>('summary');
   const [expandedStatCards, setExpandedStatCards] = useState<Set<string>>(new Set());
   const [h2hModalFixture, setH2hModalFixture] = useState<any>(null);
+
+  // Sync left card list height with AI panel height
+  useEffect(() => {
+    if (!selectedPrediction || !aiPanelRef.current) { setAiPanelHeight(0); return; }
+    const observer = new ResizeObserver(([entry]) => setAiPanelHeight(entry.contentRect.height));
+    observer.observe(aiPanelRef.current);
+    return () => observer.disconnect();
+  }, [selectedPrediction]);
 
   // Lock body scroll when mobile drawer is open
   useEffect(() => {
@@ -1424,9 +1413,9 @@ export function MatchDetailPage() {
   ];
 
   const tabs = [
-    { id: 'predictions' as TabType, label: 'Predictions' },
-    { id: 'commentary' as TabType, label: 'Commentary' },
+    { id: 'predictions' as TabType, label: 'Insights' },
     { id: 'stats' as TabType, label: 'Stats' },
+    { id: 'commentary' as TabType, label: 'Commentary' },
     { id: 'lineups' as TabType, label: 'Lineups' },
   ];
 
@@ -1521,14 +1510,14 @@ export function MatchDetailPage() {
 
           {/* Predictions Tab */}
           {activeTab === 'predictions' && (
-            <div className="space-y-4 bg-[#F5F5F5] rounded-[20px] p-5">
-              {/* Desktop: Header row: count + live badge */}
+            <div className="space-y-4">
+              {/* Desktop: Header row: count + live badge — on white bg */}
               <div className="hidden md:flex items-center justify-between">
                 <h2
                   className="text-[22px] font-semibold text-[#0a0a0a] leading-[130%]"
                   style={{ fontFamily: 'Montserrat, sans-serif' }}
                 >
-                  {predictions.length} Predictions Available
+                  {predictions.length} Insights Available
                 </h2>
                 {isPredictionsStreaming && (
                   <div
@@ -1540,16 +1529,16 @@ export function MatchDetailPage() {
                     }}
                   >
                     <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                    <span className="text-white text-[14px] font-medium">Predictions Updating in Real-Time</span>
+                    <span className="text-white text-[14px] font-medium">Insights Updating in Real-Time</span>
                   </div>
                 )}
               </div>
 
-              {/* Desktop: Sub-filter bar: category pills + Filters button */}
-              <div className="hidden md:flex items-center justify-between gap-[10px] bg-[#f7f8fa] rounded-[12px] px-[10px] py-[8px]">
+              {/* Desktop: Sub-filter bar: category pills + Filters button — on white bg */}
+              <div className="hidden md:flex items-center justify-between gap-[10px] px-[10px] py-[8px]">
                 <div className="flex items-center gap-[10px]">
                   {[
-                    { id: 'all', label: 'All Predictions' },
+                    { id: 'all', label: 'All Insights' },
                     { id: 'player', label: 'Player' },
                     { id: 'match', label: 'Match' },
                     { id: 'team', label: 'Team' },
@@ -1591,7 +1580,7 @@ export function MatchDetailPage() {
                     }}
                   >
                     <span className="w-[6px] h-[6px] rounded-full bg-white animate-pulse" />
-                    <span className="text-white text-[13px] font-medium leading-[150%]">Predictions updating in real-time</span>
+                    <span className="text-white text-[13px] font-medium leading-[150%]">Insights updating in real-time</span>
                   </div>
                 )}
                 <div className="flex items-center justify-between">
@@ -1599,7 +1588,7 @@ export function MatchDetailPage() {
                     className="text-sm font-semibold text-[#0a0a0a] leading-[150%]"
                     style={{ fontFamily: 'Montserrat, sans-serif' }}
                   >
-                    {predictions.length} Predictions Available
+                    {predictions.length} Insights Available
                   </span>
                   <button
                     className="h-[38px] px-2 py-[7px] rounded-lg bg-[#0d1a67] text-white text-[13px] font-medium transition-colors flex items-center gap-[10px]"
@@ -1612,7 +1601,7 @@ export function MatchDetailPage() {
                 {isLoadingFixtures ? (
                   <div className="flex flex-col gap-[20px]">
                     {[1, 2, 3].map((i) => (
-                      <div key={i} className="bg-white rounded-[14px] p-3 animate-pulse" style={{ boxShadow: '0 2px 15px rgba(0,0,0,0.1)' }}>
+                      <div key={i} className="bg-white rounded-[14px] p-3 animate-pulse" style={{ boxShadow: '0 2px 10px rgba(0,0,0,0.06)' }}>
                         <div className="h-5 bg-gray-200 rounded w-1/4 mb-3" />
                         <div className="h-5 bg-gray-200 rounded w-3/4 mb-2" />
                         <div className="h-4 bg-gray-200 rounded w-1/3 mb-5" />
@@ -1693,7 +1682,7 @@ export function MatchDetailPage() {
                           <path d="M12 18.5C13.1046 18.5 14 17.6046 14 16.5C14 15.3954 13.1046 14.5 12 14.5C10.8954 14.5 10 15.3954 10 16.5C10 17.6046 10.8954 18.5 12 18.5Z" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                           <path d="M17 22H7C3 22 2 21 2 17V15C2 11 3 10 7 10H17C21 10 22 11 22 15V17C22 21 21 22 17 22Z" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
-                        See All Predictions
+                        See All Insights
                       </button>
                     )}
                   </>
@@ -1705,12 +1694,12 @@ export function MatchDetailPage() {
               </div>
 
               {/* Desktop: cards in flex grid + AI Analysis panel */}
-              <div className="hidden md:flex gap-5 items-start">
-                <div className={`${selectedPrediction ? 'w-[400px] flex-shrink-0' : 'flex-1'} transition-all duration-300`}>
+              <div className="hidden md:flex gap-5 items-start bg-[#F5F5F5] rounded-[20px] p-5">
+                <div className={`${selectedPrediction ? 'w-[400px] flex-shrink-0 sticky top-4 self-start' : 'flex-1'} transition-all duration-300`}>
                 {isLoadingFixtures ? (
                   <div className={`${selectedPrediction ? 'flex flex-col' : 'flex flex-row flex-wrap'} items-start gap-[20px]`}>
                     {[1, 2, 3, 4, 5, 6].map((i) => (
-                      <div key={i} className={`bg-white rounded-[20px] p-5 animate-pulse ${selectedPrediction ? 'w-full' : 'w-[calc(33.333%-14px)] max-w-[440px]'}`} style={{ boxShadow: '0 2px 15px rgba(0,0,0,0.1)' }}>
+                      <div key={i} className={`bg-white rounded-[20px] p-5 animate-pulse ${selectedPrediction ? 'w-full' : 'w-[calc(33.333%-14px)] max-w-[440px]'}`} style={{ boxShadow: '0 2px 10px rgba(0,0,0,0.06)' }}>
                         <div className="h-5 bg-gray-200 rounded w-1/4 mb-3" />
                         <div className="h-5 bg-gray-200 rounded w-3/4 mb-2" />
                         <div className="h-4 bg-gray-200 rounded w-1/3 mb-5" />
@@ -1724,9 +1713,9 @@ export function MatchDetailPage() {
                   </div>
                 ) : filteredPredictions.length > 0 ? (
                   <>
-                    <div className={`${selectedPrediction ? 'flex flex-col' : 'flex flex-row flex-wrap'} items-start gap-[20px] min-h-[300px] max-h-[75vh] overflow-y-auto scrollbar-hide p-1`}>
+                    <div ref={selectedPrediction ? predCardsRef : undefined} className={`${selectedPrediction ? 'flex flex-col overflow-y-auto pr-2 prediction-scroll snap-y snap-mandatory' : 'flex flex-row flex-wrap'} items-start gap-[20px] min-h-[300px] p-[12px]`} style={selectedPrediction && aiPanelHeight > 0 ? { maxHeight: aiPanelHeight } : selectedPrediction ? { maxHeight: '80vh' } : undefined}>
                       {filteredPredictions.map((prediction: any, index: number) => (
-                        <div key={prediction.prediction_id || index} id={`pred-card-desktop-${index}`} className={selectedPrediction ? 'w-full' : 'w-[calc(33.333%-14px)]'}>
+                        <div key={prediction.prediction_id || index} id={`pred-card-desktop-${index}`} className={`${selectedPrediction ? 'w-full snap-start scroll-mt-[12px]' : 'w-[calc(33.333%-14px)]'}`}>
                         <PredictionCard
                           prediction={prediction}
                           index={index}
@@ -1762,7 +1751,7 @@ export function MatchDetailPage() {
                           <path d="M12 18.5C13.1046 18.5 14 17.6046 14 16.5C14 15.3954 13.1046 14.5 12 14.5C10.8954 14.5 10 15.3954 10 16.5C10 17.6046 10.8954 18.5 12 18.5Z" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                           <path d="M17 22H7C3 22 2 21 2 17V15C2 11 3 10 7 10H17C21 10 22 11 22 15V17C22 21 21 22 17 22Z" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
-                        See All Predictions
+                        See All Insights
                       </button>
                     )}
                   </>
@@ -1774,7 +1763,7 @@ export function MatchDetailPage() {
                 </div>
                 {/* Desktop AI Analysis Panel */}
                 {selectedPrediction && (
-                  <div className="flex-1 sticky top-4 self-start min-w-0">
+                  <div className="flex-1 sticky top-4 self-start min-w-0" ref={aiPanelRef}>
                     <AIAnalysisPanel
                       prediction={selectedPredictionWithDetail || selectedPrediction}
                       fixture={fixture}
@@ -1789,7 +1778,7 @@ export function MatchDetailPage() {
 
           {/* Commentary Tab */}
           {activeTab === 'commentary' && (
-            <div className="bg-white rounded-[14px] md:rounded-xl border border-[#e1e4eb] shadow-sm p-4 md:p-5">
+            <div className="bg-white rounded-[14px] md:rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.06)] p-4 md:p-5">
               {isCommentaryStreaming && (
                 <div className="flex items-center gap-[5px] pl-2 pr-4 h-[40px] rounded-[8px] border border-[#d9d9d9] w-fit mb-4" style={{ backgroundColor: '#27ae60', boxShadow: '0 7px 4px -3px rgba(0,0,0,0.05)', fontFamily: 'Montserrat, sans-serif' }}>
                   <span className="w-2 h-2 rounded-full bg-white animate-pulse" />

@@ -50,18 +50,23 @@ export function TrendingNews({ leagueId, limit = 8 }: TrendingNewsProps) {
 
   const font = { fontFamily: 'Montserrat, sans-serif' } as const;
 
+  const comboGradient = {
+    backgroundImage: 'linear-gradient(180deg, rgba(9, 17, 67, 0) 0%, rgba(9, 17, 67, 1) 100%), linear-gradient(0deg, rgba(13, 26, 103, 0.55) 0%, rgba(13, 26, 103, 0.55) 100%)',
+    backgroundColor: '#0d1a67',
+  };
+
   if (isLoading) {
     return (
       <div className="w-[358px] md:w-[460px] mx-auto md:mx-0" style={font}>
         <div
-          className="rounded-[12px] overflow-hidden p-[8px]"
-          style={{ background: 'linear-gradient(180deg, #091143 0%, #172ba9 100%)' }}
+          className="rounded-2xl overflow-hidden p-[3px]"
+          style={comboGradient}
         >
-          <div className="flex items-center justify-between px-2 py-[10px]">
+          <div className="flex items-center justify-between px-4 py-3">
             <div className="h-6 bg-white/20 rounded w-36 animate-pulse" />
             <div className="w-5 h-5 bg-white/20 rounded animate-pulse" />
           </div>
-          <div className="bg-white rounded-[10px] p-4 space-y-4">
+          <div className="bg-white rounded-xl mx-1 mb-1 p-4 space-y-4">
             {[1, 2, 3, 4, 5].map(i => (
               <div key={i} className="flex gap-3 animate-pulse">
                 <div className="flex-1">
@@ -82,13 +87,13 @@ export function TrendingNews({ leagueId, limit = 8 }: TrendingNewsProps) {
     return (
       <div className="w-[358px] md:w-[460px] mx-auto md:mx-0" style={font}>
         <div
-          className="rounded-[12px] overflow-hidden p-[8px]"
-          style={{ background: 'linear-gradient(180deg, #091143 0%, #172ba9 100%)' }}
+          className="rounded-2xl overflow-hidden p-[3px]"
+          style={comboGradient}
         >
-          <div className="flex items-center justify-between px-2 py-[10px]">
-            <h2 className="text-[18px] font-semibold text-white" style={{ letterSpacing: '-2%' }}>Trending News</h2>
+          <div className="flex items-center justify-between px-4 py-3">
+            <h2 className="text-[18px] font-semibold text-white">Trending News</h2>
           </div>
-          <div className="bg-white rounded-[10px] p-8 text-center">
+          <div className="bg-white rounded-xl mx-1 mb-1 p-8 text-center">
             <p className="text-[#7c8a9c] font-medium text-sm">No news available</p>
           </div>
         </div>
@@ -99,12 +104,12 @@ export function TrendingNews({ leagueId, limit = 8 }: TrendingNewsProps) {
   return (
     <div className="w-[358px] md:w-[460px] mx-auto md:mx-0" style={font}>
       <div
-        className="rounded-[12px] overflow-hidden p-[8px]"
-        style={{ background: 'linear-gradient(180deg, #091143 0%, #172ba9 100%)' }}
+        className="rounded-2xl overflow-hidden shadow-lg p-[3px]"
+        style={comboGradient}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-2 py-[10px]">
-          <h2 className="text-[18px] font-semibold text-white" style={{ letterSpacing: '-2%' }}>Trending News</h2>
+        {/* Header - On gradient */}
+        <div className="text-white px-4 py-3 flex items-center justify-between">
+          <h2 className="text-[18px] font-semibold">Trending News</h2>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <line x1="7" y1="17" x2="17" y2="7" />
             <polyline points="7 7 17 7 17 17" />
@@ -112,7 +117,7 @@ export function TrendingNews({ leagueId, limit = 8 }: TrendingNewsProps) {
         </div>
 
         {/* White content area */}
-        <div className="bg-white rounded-[10px] p-[16px] flex flex-col gap-[16px]">
+        <div className="bg-white rounded-xl mx-1 mb-1 p-4 flex flex-col gap-4">
           {/* Article list */}
           <div className="flex flex-col">
             {articles.map((article, i) => {
@@ -126,7 +131,7 @@ export function TrendingNews({ leagueId, limit = 8 }: TrendingNewsProps) {
                   href={article.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`flex gap-[12px] py-[12px] hover:bg-[#f7f8fa] -mx-2 px-2 rounded-[8px] transition-colors ${i > 0 ? 'border-t border-[#f0f0f0]' : ''}`}
+                  className={`flex gap-[12px] py-[12px] hover:bg-[#f7f8fa] -mx-2 px-2 rounded-[8px] transition-colors ${i > 0 ? 'border-t border-[#e1e4eb]' : ''}`}
                 >
                   {/* Text content */}
                   <div className="flex-1 min-w-0 flex flex-col gap-[4px]">

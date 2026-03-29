@@ -243,6 +243,19 @@ export function LeaguePage() {
   const [selectedLeagueId, setSelectedLeagueId] = useState<number | null>(null);
   const [selectedSeasonId, setSelectedSeasonId] = useState<number | null>(null);
   const [isSeasonDropdownOpen, setIsSeasonDropdownOpen] = useState(false);
+  const seasonDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close season dropdown on click outside
+  useEffect(() => {
+    if (!isSeasonDropdownOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (seasonDropdownRef.current && !seasonDropdownRef.current.contains(e.target as Node)) {
+        setIsSeasonDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isSeasonDropdownOpen]);
 
   // Fetch leagues from API
   const { data: leaguesResponse, isLoading: isLoadingLeagues } = useLeagues();
@@ -545,7 +558,7 @@ export function LeaguePage() {
                   </div>
 
                   {/* Right side - Season Dropdown as Pill */}
-                  <div className="relative">
+                  <div className="relative" ref={seasonDropdownRef}>
                     <button
                       onClick={() => setIsSeasonDropdownOpen(!isSeasonDropdownOpen)}
                       className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
@@ -623,7 +636,7 @@ export function LeaguePage() {
                   </div>
 
                   {/* Right side - Season Dropdown */}
-                  <div className="relative">
+                  <div className="relative" ref={seasonDropdownRef}>
                     <button
                       onClick={() => setIsSeasonDropdownOpen(!isSeasonDropdownOpen)}
                       className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
@@ -732,14 +745,14 @@ export function LeaguePage() {
                       </div>
                     </div>
                   ) : fixtures.length > 0 ? (
-                    <div className="bg-gray-100 rounded-xl">
+                    <div className="bg-gray-100 rounded-xl p-[16px]">
                       {/* Scrollable Matches */}
                       <div
                         ref={matchesScrollRef}
                         className="overflow-x-auto scrollbar-hide"
                         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                       >
-                        <div className="flex gap-5 py-4 px-4">
+                        <div className="flex gap-5 py-[8px] px-[4px] w-max">
                           {fixtures.map((fixture: any) => (
                             <div key={fixture.fixture.fixture_id} className="w-[280px] shrink-0">
                               <LeagueMatchCard

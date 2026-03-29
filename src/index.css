@@ -78,6 +78,25 @@
     -ms-overflow-style: none;  /* IE and Edge */
     scrollbar-width: none;  /* Firefox */
   }
+
+  /* Prediction scroll — subtle grey scrollbar */
+  .prediction-scroll::-webkit-scrollbar {
+    width: 6px;
+  }
+  .prediction-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .prediction-scroll::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 3px;
+  }
+  .prediction-scroll::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+  }
+  .prediction-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: #d1d5db transparent;
+  }
 }
 
 @keyframes slideDown {

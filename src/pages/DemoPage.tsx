@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { MatchCard } from '@/components/MatchCard';
-import { SmartCombo } from '@/components/SmartCombo';
+import { TrendingNews } from '@/components/TrendingNews';
 import { Pagination } from '@/components/Pagination';
 import { PlayersToWatch } from '@/components/PlayersToWatch';
 import { LiveMatchBanner } from '@/components/LiveMatchBanner';
@@ -242,45 +242,45 @@ export function DemoPage() {
               </div>
             </div>
 
-            {/* Right Side: Smart Combo Skeleton */}
-            <div className="hidden xl:block w-[450px] min-h-[959px]">
-              <div className="rounded-2xl overflow-hidden h-full p-[3px]" style={{ background: `linear-gradient(to top right, ${COLORS.primary.dark} 65%, ${COLORS.primary.light} 100%)` }}>
-                <div className="text-white px-4 py-3">
-                  <div className="h-6 bg-white/20 rounded w-32 animate-pulse" />
+            {/* Right Side: Trending News Skeleton */}
+            <div className="hidden xl:block w-[460px]">
+              <div className="rounded-[12px] overflow-hidden p-[8px]" style={{ background: 'linear-gradient(180deg, #091143 0%, #172ba9 100%)' }}>
+                <div className="flex items-center justify-between px-2 py-[10px]">
+                  <div className="h-6 bg-white/20 rounded w-36 animate-pulse" />
                 </div>
-                <div className="bg-white rounded-xl mx-1 mb-1 p-4">
-                  {/* Accuracy Section Skeleton */}
-                  <div className="px-4 py-3 border-b border-gray-100 mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="h-5 bg-gray-200 rounded w-12 animate-pulse" />
-                      <div className="h-4 bg-gray-200 rounded w-32 animate-pulse" />
-                      <div className="flex-1 bg-gray-200 rounded-full h-2 animate-pulse" />
+                <div className="bg-white rounded-[10px] p-4 space-y-4">
+                  {[1, 2, 3, 4, 5].map(i => (
+                    <div key={i} className="flex gap-3 animate-pulse">
+                      <div className="flex-1">
+                        <div className="h-3 bg-gray-200 rounded w-20 mb-2" />
+                        <div className="h-4 bg-gray-200 rounded w-full mb-1" />
+                        <div className="h-4 bg-gray-200 rounded w-3/4" />
+                      </div>
+                      <div className="w-[70px] h-[70px] bg-gray-200 rounded-[8px] shrink-0" />
                     </div>
-                  </div>
-                  <div className="space-y-4">
-                    <MatchCardSkeleton variant="compact" />
-                    <MatchCardSkeleton variant="compact" />
-                  </div>
-                  {/* See More Button Skeleton */}
-                  <div className="mt-4 px-4">
-                    <div className="w-full h-10 bg-gray-200 rounded-lg animate-pulse" />
-                  </div>
+                  ))}
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Mobile: Smart Combo Skeleton */}
+          {/* Mobile: Trending News Skeleton */}
           <div className="xl:hidden mt-8 w-full">
-            <div className="rounded-2xl overflow-hidden p-[3px]" style={{ background: `linear-gradient(to top right, ${COLORS.primary.dark} 65%, ${COLORS.primary.light} 100%)` }}>
-              <div className="text-white px-4 py-3">
-                <div className="h-6 bg-white/20 rounded w-32 animate-pulse" />
+            <div className="rounded-[12px] overflow-hidden p-[8px]" style={{ background: 'linear-gradient(180deg, #091143 0%, #172ba9 100%)' }}>
+              <div className="flex items-center justify-between px-2 py-[10px]">
+                <div className="h-6 bg-white/20 rounded w-36 animate-pulse" />
               </div>
-              <div className="bg-white rounded-xl mx-1 mb-1 p-4">
-                <div className="space-y-4">
-                  <MatchCardSkeleton variant="compact" />
-                  <MatchCardSkeleton variant="compact" />
-                </div>
+              <div className="bg-white rounded-[10px] p-4 space-y-4">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="flex gap-3 animate-pulse">
+                    <div className="flex-1">
+                      <div className="h-3 bg-gray-200 rounded w-20 mb-2" />
+                      <div className="h-4 bg-gray-200 rounded w-full mb-1" />
+                      <div className="h-4 bg-gray-200 rounded w-3/4" />
+                    </div>
+                    <div className="w-[70px] h-[70px] bg-gray-200 rounded-[8px] shrink-0" />
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -319,7 +319,7 @@ export function DemoPage() {
         <div className="w-full md:flex md:gap-[30px] md:w-[1440px] md:min-h-[1124px] md:items-start">
           {/* Left Side: Featured Matches */}
           <div className="flex-1 md:w-[960px] md:flex-none">
-            {/* Header - Mobile: match banner width (358px), Desktop: match grey container (960px), aligned with SmartCombo header */}
+            {/* Header - Mobile: match banner width (358px), Desktop: match grey container (960px) */}
             <div className="flex items-center justify-between mb-6 w-[358px] mx-auto md:w-[960px] md:mx-0 md:pt-[15px]">
               <div className="flex items-center gap-3">
                 <h1 className="text-[18px] md:text-2xl font-bold text-gray-900">Featured Matches</h1>
@@ -427,15 +427,15 @@ export function DemoPage() {
             </div>
           </div>
 
-          {/* Right Side: Smart Combo - Desktop only */}
+          {/* Right Side: Trending News - Desktop only */}
           <div className="hidden xl:block">
-            <SmartCombo isPremium={isPremium} />
+            <TrendingNews leagueId={8} />
           </div>
         </div>
 
-        {/* Mobile: Smart Combo - Below Featured Matches */}
+        {/* Mobile: Trending News - Below Featured Matches */}
         <div className="xl:hidden mt-8">
-          <SmartCombo isPremium={isPremium} />
+          <TrendingNews leagueId={8} />
         </div>
 
         {/* Players to Watch Section - Full Width on Desktop */}
