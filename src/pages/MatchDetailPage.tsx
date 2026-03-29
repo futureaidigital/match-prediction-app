@@ -1032,7 +1032,7 @@ function AIAnalysisPanel({ prediction, fixture: _fixture, statsData: _statsData,
                         </div>
                       </td>
                       {/* Stat columns */}
-                      {statCols.map((col, colIdx) => {
+                      {statCols.map((col) => {
                         const val = match[col.key];
                         return (
                           <td key={col.key} className="text-center px-1 py-3">
