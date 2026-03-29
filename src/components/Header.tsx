@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRegionConfig } from '@/contexts/RegionConfigContext';
 import { LoginModal } from '@/components/ui/LoginModal';
 import { RegisterModal } from '@/components/ui/RegisterModal';
 
@@ -15,7 +16,11 @@ export function Header({ onNavigate, currentPage = '' }: HeaderProps) {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const navigate = useNavigate();
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout, hasAccess } = useAuth();
+  const { config: regionConfig } = useRegionConfig();
+  const isPremium = isAuthenticated && hasAccess();
+  // Hide pricing if user is subscribed OR region config says not to show it
+  const showPricing = !isPremium && regionConfig.show_pricing;
 
   // Handle menu open/close with animation
   const openMenu = () => {
@@ -39,7 +44,7 @@ export function Header({ onNavigate, currentPage = '' }: HeaderProps) {
     { id: 'players', label: 'Players', path: '/players' },
     { id: 'league', label: 'League', path: '/league' },
     { id: 'smart-combo', label: 'Smart Combo', path: '/smart-combo' },
-    { id: 'pricing', label: 'Pricing', path: '/pricing' },
+    ...(showPricing ? [{ id: 'pricing', label: 'Pricing', path: '/pricing' }] : []),
   ];
 
   const mobileNavItems = [
@@ -47,7 +52,7 @@ export function Header({ onNavigate, currentPage = '' }: HeaderProps) {
     { id: 'players', label: 'Players', path: '/players' },
     { id: 'league', label: 'League', path: '/league' },
     { id: 'smart-combo', label: 'Smart Combo', path: '/smart-combo' },
-    { id: 'pricing', label: 'Pricing', path: '/pricing' },
+    ...(showPricing ? [{ id: 'pricing', label: 'Pricing', path: '/pricing' }] : []),
     ...(isAuthenticated
       ? [{ id: 'logout', label: 'Log out', path: '' }]
       : [
@@ -173,13 +178,15 @@ export function Header({ onNavigate, currentPage = '' }: HeaderProps) {
                   Login
                 </button>
 
-                {/* Desktop: Register Button */}
-                <button
-                  onClick={() => navigate('/pricing')}
-                  className="hidden md:block px-5 py-2 border border-white text-white text-sm font-semibold rounded-lg hover:bg-white/10 transition-colors"
-                >
-                  Register
-                </button>
+                {/* Desktop: Register Button - hidden for subscribed users or non-pricing regions */}
+                {showPricing && (
+                  <button
+                    onClick={() => navigate('/pricing')}
+                    className="hidden md:block px-5 py-2 border border-white text-white text-sm font-semibold rounded-lg hover:bg-white/10 transition-colors"
+                  >
+                    Register
+                  </button>
+                )}
 
                 {/* Desktop: Login Button */}
                 <button
