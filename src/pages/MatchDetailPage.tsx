@@ -938,21 +938,23 @@ function AIAnalysisPanel({ prediction, fixture: _fixture, statsData: _statsData,
               </div>
               <div className="rounded-[8px] bg-white p-4 flex flex-col gap-4">
                 <div className="flex flex-col gap-2">
-                  {/* vs Top 6 row — h-24, gap-16 */}
-                  <div className="flex items-center h-[24px]" style={{ gap: '16px' }}>
-                    <span className="text-[12px] font-semibold text-[#7c8a9c] w-[94px] shrink-0">vs Top 6</span>
+                  {/* vs Top 6 row */}
+                  <div className="flex items-center h-[24px] gap-[16px]">
+                    <span className="text-[12px] font-semibold text-[#7c8a9c] shrink-0">vs Top 6</span>
+                    <div className="flex-1" />
                     <span className="text-[14px] font-semibold text-[#0a0a0a] whitespace-nowrap" style={{ lineHeight: '150%' }}>{preGamePct > 0 ? `${(preGamePct / 100 * 5).toFixed(1)} Avg SOT` : '-'}</span>
                     <div className="w-px h-4 bg-[#e1e4eb] shrink-0" />
-                    <div className="relative w-[90px] h-[6px] rounded-full bg-[#f7f8fa] shrink-0">
+                    <div className="relative w-[120px] h-[6px] rounded-full bg-[#f7f8fa] shrink-0">
                       <div className="absolute top-0 left-0 h-[6px] rounded-full bg-[#7c8a9c] transition-all" style={{ width: `${Math.min(preGamePct, 100)}%` }} />
                     </div>
                   </div>
-                  {/* vs Bottom 6 row — h-24, gap-16 */}
-                  <div className="flex items-center h-[24px]" style={{ gap: '16px' }}>
-                    <span className="text-[12px] font-semibold text-[#7c8a9c] w-[94px] shrink-0">vs Bottom 6</span>
+                  {/* vs Bottom 6 row */}
+                  <div className="flex items-center h-[24px] gap-[16px]">
+                    <span className="text-[12px] font-semibold text-[#27ae60] shrink-0">vs Bottom 6</span>
+                    <div className="flex-1" />
                     <span className="text-[14px] font-semibold text-[#0a0a0a] whitespace-nowrap" style={{ lineHeight: '150%' }}>{percentage > 0 ? `${(percentage / 100 * 5).toFixed(1)} Avg SOT` : '-'}</span>
                     <div className="w-px h-4 bg-[#e1e4eb] shrink-0" />
-                    <div className="relative w-[90px] h-[6px] rounded-full bg-[#f7f8fa] shrink-0">
+                    <div className="relative w-[120px] h-[6px] rounded-full bg-[#f7f8fa] shrink-0">
                       <div className="absolute top-0 left-0 h-[6px] rounded-full bg-[#27ae60] transition-all" style={{ width: `${Math.min(percentage, 100)}%` }} />
                     </div>
                   </div>
@@ -973,12 +975,6 @@ function AIAnalysisPanel({ prediction, fixture: _fixture, statsData: _statsData,
           );
         })()}
 
-        {/* Prediction Summary */}
-        {detail?.prediction_summary && (
-          <div className="rounded-[8px] bg-white p-4">
-            <p className="text-[13px] font-medium text-[#3a3f47] leading-[1.7]">{detail.prediction_summary}</p>
-          </div>
-        )}
 
         {/* Divider */}
         <div className="w-full h-px bg-[#e1e4eb]" />
